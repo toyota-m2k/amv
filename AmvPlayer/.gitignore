@@ -1,3 +1,5 @@
+# Original
+
 *.iml
 .gradle
 /local.properties
@@ -8,3 +10,29 @@
 /build
 /captures
 .externalNativeBuild
+
+# Built application files
+*.apk
+*.ap_
+*.dex
+*.class
+
+# Generated files
+bin/
+gen/
+out/
+
+# Local configulations
+local.properties
+.classpath
+.project
+proguard/
+
+
+# Android Studio
+*.ipr
+*.iws
+*/build/
+*/production/
+/.idea/dictionaries/
+/.idea/caches/
