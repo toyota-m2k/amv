@@ -43,6 +43,7 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
 //        setContentView(R.layout.main_activity);
         MainActivityBinding binding = DataBindingUtil.setContentView(this, R.layout.main_activity);
+        binding.setLifecycleOwner(this);
         binding.setMainActivity(this);
 
         UiFileSelectionDialog.FileSelectorViewModel model = ViewModelProviders.of(this).get(UiFileSelectionDialog.FileSelectorViewModel.class);
