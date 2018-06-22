@@ -9,9 +9,11 @@ import android.os.Bundle
 import android.support.v4.app.DialogFragment
 
 class UiFileSelectionDialog : DialogFragment() {
+    enum class DlgState {
+        INIT, OK, CANCELED
+    }
     class FileSelectorViewModel : ViewModel() {
-        val dialogOk = MutableLiveData<Unit>()
-        val dialogCancel = MutableLiveData<Unit>()
+        val state = MutableLiveData<DlgState>();
     }
     companion object {
         fun newInstance() = UiFileSelectionDialog()
@@ -19,12 +21,13 @@ class UiFileSelectionDialog : DialogFragment() {
     override fun onCreateDialog(savedInstanceState: Bundle?): Dialog {
         val builder = AlertDialog.Builder(activity)
         val viewModel = ViewModelProviders.of(activity!!).get(FileSelectorViewModel::class.java)
+        viewModel.state.value = DlgState.INIT;
         builder.setMessage("Hello")
                 .setPositiveButton("Yes") { _, _ ->
-                    viewModel.dialogOk.value = Unit
+                    viewModel.state.value = DlgState.OK;
                 }
                 .setNegativeButton("Cancel") { _, _ ->
-                    viewModel.dialogCancel.value = Unit
+                    viewModel.state.value = DlgState.CANCELED;
                 }
         return builder.create()
     }

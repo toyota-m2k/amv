@@ -44,6 +44,24 @@ public class MainActivity extends AppCompatActivity {
 //        setContentView(R.layout.main_activity);
         MainActivityBinding binding = DataBindingUtil.setContentView(this, R.layout.main_activity);
         binding.setMainActivity(this);
+
+        UiFileSelectionDialog.FileSelectorViewModel model = ViewModelProviders.of(this).get(UiFileSelectionDialog.FileSelectorViewModel.class);
+        model.getState().observe(this, new Observer<UiFileSelectionDialog.DlgState>() {
+            @Override
+            public void onChanged(@Nullable UiFileSelectionDialog.DlgState state) {
+                switch(state) {
+                    case OK:
+                        Log.d("Amv", "OK");
+                        break;
+                    case CANCELED:
+                        Log.d("Amv", "Canceled");
+                        break;
+                    default:
+                        Log.d("Amv", "(INITIALIZED)");
+                        break;
+                }
+            }
+        });
     }
 
     @Override
@@ -57,19 +75,6 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void onClickFile(View view) {
-        UiFileSelectionDialog.FileSelectorViewModel model = ViewModelProviders.of(this).get(UiFileSelectionDialog.FileSelectorViewModel.class);
-        model.getDialogOk().observe(this, new Observer<Unit>() {
-            @Override
-            public void onChanged(@Nullable Unit unit) {
-                Log.d("Amv", "OK");
-            }
-        });
-        model.getDialogCancel().observe(this, new Observer<Unit>() {
-            @Override
-            public void onChanged(@Nullable Unit unit) {
-                Log.d("Amv", "Cancel");
-            }
-        });
         UiFileSelectionDialog.Companion.newInstance().show(this.getSupportFragmentManager(), "hoge");
     }
 
