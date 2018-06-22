@@ -1,19 +1,27 @@
 package com.michael.amvplayer;
 
 import android.Manifest;
+import android.arch.lifecycle.Observer;
+import android.arch.lifecycle.ViewModelProviders;
 import android.content.DialogInterface;
+import android.content.Intent;
 import android.databinding.DataBindingUtil;
 import android.graphics.Camera;
+import android.net.Uri;
+import android.provider.MediaStore;
 import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.Toast;
 
 import com.michael.amvplayer.databinding.MainActivityBinding;
 
+import kotlin.Unit;
 import permissions.dispatcher.NeedsPermission;
 import permissions.dispatcher.OnNeverAskAgain;
 import permissions.dispatcher.OnPermissionDenied;
@@ -48,6 +56,23 @@ public class MainActivity extends AppCompatActivity {
         MainActivityPermissionsDispatcher.useCameraWithPermissionCheck(this);
     }
 
+    public void onClickFile(View view) {
+        UiFileSelectionDialog.FileSelectorViewModel model = ViewModelProviders.of(this).get(UiFileSelectionDialog.FileSelectorViewModel.class);
+        model.getDialogOk().observe(this, new Observer<Unit>() {
+            @Override
+            public void onChanged(@Nullable Unit unit) {
+                Log.d("Amv", "OK");
+            }
+        });
+        model.getDialogCancel().observe(this, new Observer<Unit>() {
+            @Override
+            public void onChanged(@Nullable Unit unit) {
+                Log.d("Amv", "Cancel");
+            }
+        });
+        UiFileSelectionDialog.Companion.newInstance().show(this.getSupportFragmentManager(), "hoge");
+    }
+
     /**
      * パーミッションが必要な処理の実体
      * （パーミッションを要求するダイアログで「許可」を選択した時、あるいは既に許可されている場合の処理）
@@ -57,13 +82,18 @@ public class MainActivity extends AppCompatActivity {
      */
     @NeedsPermission(Manifest.permission.CAMERA)
     public void useCamera() {
-        // カメラを使う処理を記述する
         try {
-            // Camera camera = new Camera();
-
+            // カメラを使う処理を記述する
+            Intent intent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
+            startActivityForResult(intent, 1);
         } catch (Exception e) {
             e.printStackTrace();
         }
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
     }
 
     /**
