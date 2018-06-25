@@ -40,7 +40,7 @@
 
     <FrameLayout
         android:background="#448844"
-        android:id="@+id/dlgContent"
+        android:id="@+id/dlgContainer"
         android:minHeight="300dp"
         android:minWidth="300dp"
         android:layout_width="wrap_content"

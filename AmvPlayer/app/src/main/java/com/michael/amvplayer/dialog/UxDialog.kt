@@ -9,16 +9,34 @@ import android.support.v4.app.FragmentManager
 import android.support.v4.app.FragmentTransaction
 import android.view.View
 
+/**
+ * OK/Cancelボタンとタイトルを持つダイアログ(DialogFragment派生）の既定クラス
+ * 基本動作（show/close）と、サブダイアログチェーンの管理を提供
+ *
+ * サブクラスでcreateContentView()をオーバーライドすることにより、任意のダイアログを実装可能。
+ */
 abstract class UxDialog : DialogFragment() {
 
-    protected var mViewModel: UxDialogViewModel? = null;
+    protected lateinit var mViewModel: UxDialogViewModel
 
-    abstract fun createContentView(dlg:Dialog) : View;
+    /**
+     * ダイアログの中身のビューを構築して返すメソッド
+     * （サブクラスでオーバーライドすること）
+     */
+    abstract fun createContentView(dlg:Dialog, savedInstanceState: Bundle?) : View?;
 
+    /**
+     * ダイアログ構築時の処理
+     * Android OSから呼び出される
+     */
     override fun onCreateDialog(savedInstanceState: Bundle?): Dialog {
         mViewModel = ViewModelProviders.of(this.activity!!).get(UxDialogViewModel::class.java)
         return Dialog(getActivity(), this.theme).apply {
-            setContentView(createContentView(this));
+            val view = createContentView(this, savedInstanceState);
+            if(null!=view) {
+                setContentView(view)
+
+            }
         }
     }
 
@@ -28,7 +46,7 @@ abstract class UxDialog : DialogFragment() {
     protected fun close(state:Boolean) {
         val activity = this.activity
         val viewModel = this.mViewModel
-        if(null!=activity && null!=viewModel) {
+        if(null!=activity) {
             val tag = viewModel.onClosed(state)
             if(null!=tag) {
                 val dlg = fragmentManager?.findFragmentByTag(tag) as? DialogFragment
@@ -57,7 +75,7 @@ abstract class UxDialog : DialogFragment() {
     /**
      * ダイアログを表示する
      */
-    protected fun show(activity: FragmentActivity, tag: String) {
+    fun show(activity: FragmentActivity, tag: String) {
         val viewModel = ViewModelProviders.of(activity).get(UxDialogViewModel::class.java)
         viewModel.onOpened(tag)
         super.show(activity.supportFragmentManager, tag)
@@ -65,6 +83,8 @@ abstract class UxDialog : DialogFragment() {
 
     /**
      * サブダイアログを表示する
+     * @param tag 新たに開くダイアログのタグ
+     * @param hideCurrent サブダイアログを開く前にカレントダイアログを閉じる(true)か、閉じない(false)か
      */
     protected fun showSubDialog(tag: String, hideCurrent: Boolean = true) {
         val activity = this.activity;

@@ -6,22 +6,22 @@ import android.arch.lifecycle.ViewModelProviders;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.databinding.DataBindingUtil;
-import android.graphics.Camera;
-import android.net.Uri;
 import android.provider.MediaStore;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
+import android.support.v4.app.FragmentActivity;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
-import android.widget.Button;
 import android.widget.Toast;
 
 import com.michael.amvplayer.databinding.MainActivityBinding;
+import com.michael.amvplayer.dialog.UxDialogViewModel;
+import com.michael.amvplayer.dialog.UxDlgState;
+import com.michael.amvplayer.dialog.UxFileDialog;
 
-import kotlin.Unit;
 import permissions.dispatcher.NeedsPermission;
 import permissions.dispatcher.OnNeverAskAgain;
 import permissions.dispatcher.OnPermissionDenied;
@@ -46,20 +46,14 @@ public class MainActivity extends AppCompatActivity {
         binding.setLifecycleOwner(this);
         binding.setMainActivity(this);
 
-        UiFileSelectionDialog.FileSelectorViewModel model = ViewModelProviders.of(this).get(UiFileSelectionDialog.FileSelectorViewModel.class);
-        model.getState().observe(this, new Observer<UiFileSelectionDialog.DlgState>() {
+        UxDialogViewModel viewModel = ViewModelProviders.of(this).get(UxDialogViewModel.class);
+
+        viewModel.getState().observe(this, new Observer<UxDialogViewModel.State>() {
+
             @Override
-            public void onChanged(@Nullable UiFileSelectionDialog.DlgState state) {
-                switch(state) {
-                    case OK:
-                        Log.d("Amv", "OK");
-                        break;
-                    case CANCELED:
-                        Log.d("Amv", "Canceled");
-                        break;
-                    default:
-                        Log.d("Amv", "(INITIALIZED)");
-                        break;
+            public void onChanged(@Nullable UxDialogViewModel.State state) {
+                if(state.getState() == UxDlgState.OK) {
+                    onDialogResult(state.getTag());
                 }
             }
         });
@@ -76,7 +70,17 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void onClickFile(View view) {
-        UiFileSelectionDialog.Companion.newInstance().show(this.getSupportFragmentManager(), "hoge");
+        UxFileDialog dlg = UxFileDialog.Companion.newInstance();
+        dlg.show(this, "FileDialog");
+    }
+
+    public void onDialogResult(String tag) {
+        switch(tag) {
+            case "FileDialog":
+                Log.d("Amv", "FileDialog ... opened");
+            default:
+                break;
+        }
     }
 
     /**

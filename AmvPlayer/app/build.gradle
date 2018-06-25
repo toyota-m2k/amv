@@ -1,5 +1,7 @@
 apply plugin: 'com.android.application'
 apply plugin: 'kotlin-android'
+apply plugin: 'kotlin-android-extensions'
+apply plugin: 'kotlin-kapt'
 
 android {
     compileSdkVersion 27
@@ -34,8 +36,13 @@ dependencies {
     def lifecycle_version = '1.1.1'
     implementation "android.arch.lifecycle:extensions:$lifecycle_version"
 
-    implementation 'com.github.hotchemi:permissionsdispatcher:3.2.0'
-    annotationProcessor 'com.github.hotchemi:permissionsdispatcher-processor:3.2.0'
+    implementation "com.github.hotchemi:permissionsdispatcher:3.2.0"
+    kapt "com.github.hotchemi:permissionsdispatcher-processor:3.2.0"
+    // permissionsdispatcher-processorは、kotlin-kapt と一緒に使うと、恐ろしいエラーが起きるので、kapt版を使う
+//    annotationProcessor 'com.github.hotchemi:permissionsdispatcher-processor:3.2.0'
+
+    implementation "org.parceler:parceler-api:1.1.10"
+    kapt "org.parceler:parceler:1.1.10"
 
     implementation "com.android.support:support-v4:$support_lib_version"
     implementation "com.android.support:support-v13:$support_lib_version"
