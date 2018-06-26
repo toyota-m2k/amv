@@ -2,6 +2,7 @@ package com.michael.amvplayer.dialog
 
 import android.arch.lifecycle.MutableLiveData
 import android.arch.lifecycle.ViewModel
+import android.os.Bundle
 import com.michael.amvplayer.utils.Stack
 
 enum class UxDlgState {
@@ -16,7 +17,7 @@ class UxDialogViewModel : ViewModel() {
     /**
      * ダイアログの状態管理用データクラス
      */
-    data class State (var state: UxDlgState, val tag:String?)
+    data class State (var state: UxDlgState, val tag:String, var result:Bundle? = null)
 
     /**
      * ダイアログの状態
@@ -26,7 +27,7 @@ class UxDialogViewModel : ViewModel() {
 
     // Internals
     private val mTagStack = Stack<State>()
-    private var mCurrentState = UxDialogViewModel.State(UxDlgState.INIT, null)
+    private var mCurrentState = UxDialogViewModel.State(UxDlgState.INIT, "#")
 
     /**
      * ダイアログが開かれたときの処理
@@ -40,9 +41,10 @@ class UxDialogViewModel : ViewModel() {
     /**
      * ダイアログが閉じられるときの処理
      */
-    fun onClosed  (ok: Boolean) : String {
+    fun onClosed  (ok: Boolean, result:Bundle?) : String {
         val current = mCurrentState;
         mCurrentState.state = if(ok) UxDlgState.OK else UxDlgState.CANCELED;
+        mCurrentState.result = result;
         state.value = mCurrentState;
 
         val prevState = mTagStack.pop()
@@ -50,7 +52,7 @@ class UxDialogViewModel : ViewModel() {
             mCurrentState = prevState;
             state.value = mCurrentState;
         }
-        return current.tag!!;
+        return current.tag;
     }
 
 //    fun setDialogState(s: UxDlgState) {

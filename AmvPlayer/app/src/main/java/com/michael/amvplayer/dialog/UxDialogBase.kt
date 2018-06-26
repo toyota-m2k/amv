@@ -1,6 +1,8 @@
 package com.michael.amvplayer.dialog
 
 import android.app.Dialog
+import android.databinding.BaseObservable
+import android.databinding.Bindable
 import android.databinding.DataBindingUtil
 import android.databinding.ObservableField
 import android.os.Bundle
@@ -8,6 +10,8 @@ import android.view.View
 import android.view.ViewGroup
 import com.michael.amvplayer.R
 import com.michael.amvplayer.databinding.UxDialogBaseBinding
+import com.michael.amvplayer.utils.Packing
+import org.parceler.Parcel
 
 /**
  * ux_dialog_base レイアウトを使った UxDialogの実装
@@ -26,6 +30,11 @@ abstract class UxDialogBase : UxDialog() {
      * ダイアログの中身となるビューを構築して返すメソッド
      */
     abstract fun createDialogComponentView(dlg:Dialog, container:ViewGroup, savedInstanceState:Bundle?) : View?;
+
+    /**
+     * ダイアログの結果をBundleにして返す
+     */
+    abstract fun getResult() : Bundle?
 
     /**
      * OKボタンが押されたときの処理
@@ -72,7 +81,7 @@ abstract class UxDialogBase : UxDialog() {
      */
     fun onOKClicked(view: View) {
         if(onOk()) {
-            close(true)
+            close(true, getResult())
         }
     }
 
@@ -81,7 +90,7 @@ abstract class UxDialogBase : UxDialog() {
      */
     fun onCancelClicked(view: View) {
         if(onCanceled()) {
-            close(false)
+            close(false, null)
         }
     }
 }

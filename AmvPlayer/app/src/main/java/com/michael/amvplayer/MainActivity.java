@@ -70,8 +70,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void onClickFile(View view) {
-        UxFileDialog dlg = UxFileDialog.Companion.newInstance();
-        dlg.show(this, "FileDialog");
+        UxFileDialog.Companion.selectFile(this, "FileDialog");
     }
 
     public void onDialogResult(String tag) {

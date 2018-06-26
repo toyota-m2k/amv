@@ -2,5 +2,5 @@
     <string name="app_name">AmvPlayer</string>
     <string name="camera">Camera</string>
     <string name="open_file">Open File</string>
-    <string name="dir_move_parent">Move Parent Folder</string>
+    <string name="dir_move_parent">..</string>
 </resources>

@@ -16,6 +16,7 @@ import com.michael.amvplayer.R
 
 import java.io.File
 import java.io.FileFilter
+import java.lang.ref.WeakReference
 import java.util.ArrayList
 
 /**
@@ -24,43 +25,62 @@ import java.util.ArrayList
  */
 class UxFileListView : ListView {
 
-    // Fields
-    /**
-     * 対象ディレクトリを取得する。
-     * @return  File
-     */
+    @JvmOverloads constructor(context: Context, attrs: AttributeSet?=null, defStyle: Int = 0) : super(context, attrs, defStyle) {
+        init()
+    }
+
+    //------------------------------------
+    // Properties
+    //------------------------------------
 
     /**
      * ファイル列挙対象ディレクトリを指定する。
      */
     var baseDir :File? = null
-        set(fileDirectory) {
-            field = fileDirectory
-            if (null != mFilter) {
+        set(value) {
+            field = value
+            updateList()
+        }                       // リスト対象ディレクトリ
+
+    /**
+     * フィルター（拡張子/ディレクトリ）
+     */
+    var filter: ExtFilter? = null                   // 拡張子によるファイルフィルター
+        set(value) {
+            field = value
+            updateList()
+        }
+
+    /**
+     * 親フォルダ(..)を表示するか？
+     */
+    var showParentDir = true
+        set(value) {
+            if(value != field) {
+                field = value
                 updateList()
             }
-        }                       // リスト対象ディレクトリ
-    private var mFilter: ExtFilter? = null                   // 拡張子によるファイルフィルター
-    private var mSelectListener: IOnFileSelected? = null     // ファイル選択監視リスナー
-    private var mShowParentDir = true
+        }
+
+    /**
+     * 選択変更リスナー（回転時の選択状態復元のために、ダイアログ側で覚えておく必要がある）
+     */
+    private var mSelectedListener : WeakReference<IOnFileSelected>? = null;
+    var selectListener: IOnFileSelected?     // ファイル選択監視リスナー
+        get() = mSelectedListener?.get()
+        set(value) {
+            mSelectedListener = WeakReference<IOnFileSelected>(value);
+        }
 
     /**
      * 選択されているファイルを取得
      * @return
      */
-    val selectedFile: File?
-        get() {
-            val info = this.selectedItem as? FileInfo
-            return info?.file
-        }
-
-    constructor(context: Context) : super(context) {
-        init()
-    }
-
-    @JvmOverloads constructor(context: Context, attrs: AttributeSet, defStyle: Int = 0) : super(context, attrs, defStyle) {
-        init()
-    }
+//    val selectedFile: File?
+//        get() {
+//            val info = this.selectedItem as? FileInfo
+//            return info?.file
+//        }
 
     /**
      * ファイル選択通知用リスナー
@@ -72,18 +92,18 @@ class UxFileListView : ListView {
          * @param file  選択されたファイルまたはディレクトリ
          * @return  true: 処理継続 / false: ファイル選択を決定して終了するので継続処理不要（ディレクトリの場合、中に入るかどうかの選択）
          */
-        fun onFileSelected(file: File?): Boolean
+        fun onFileSelected(file: File): Boolean
     }
 
-    /**
-     * ファイルリストのタイプ
-     */
-    object Type {
-        const val FILE = 1       // ファイル選択用（ディレクトリの変更禁止）
-        const val DIRECTORY = 2  // ディレクトリ選択用
-        const val ALL = 3        // ファイル選択用（ディレクトリの変更可能）
-        const val ALL_DIR = 7    // ディレクトリ選択用（ファイルも単色表示表示）
-    }
+//    /**
+//     * ファイルリストのタイプ
+//     */
+//    object Type {
+//        const val FILE = 1       // ファイル選択用（ディレクトリの変更禁止）
+//        const val DIRECTORY = 2  // ディレクトリ選択用
+//        const val ALL = 3        // ファイル選択用（ディレクトリの変更可能）
+//        const val ALL_DIR = 7    // ディレクトリ選択用（ファイルも単色表示表示）
+//    }
 
 
     /**
@@ -95,16 +115,17 @@ class UxFileListView : ListView {
         onItemClickListener = OnItemClickListener { parent, view, position, id ->
             // 選択ファイルを取得
             val file = getFileAt(position)
+            if(null!=file) {
 
-            // ファイル選択リスナーを呼びだす
-            if (null != mSelectListener) {
-                if (!mSelectListener!!.onFileSelected(file)) {
-                    return@OnItemClickListener
+                // ファイル選択リスナーを呼びだす
+                val listener = selectListener
+                if (null != listener) {
+                    if (!listener.onFileSelected(file)) {
+                        return@OnItemClickListener
+                    }
                 }
-            }
 
-            // 選択されたのがディレクトリなら、中に入る
-            if (null != file) {
+                // 選択されたのがディレクトリなら、中に入る
                 if (file.isDirectory) {
                     baseDir = file
                 }
@@ -112,35 +133,30 @@ class UxFileListView : ListView {
         }
     }
 
-    fun showParentDir(show: Boolean) {
-        mShowParentDir = show
-        if (null != mFilter && null != baseDir) {
-            updateList()
-        }
-    }
-
     /**
      * ファイル列挙フィルターをセットする
-     * @param extensions 拡張子リスト（nullならすべて）
-     * @param type  Type.FILE: ファイルのみ / Type.DIRECTORY: ディレクトリのみ / Type.ALL: ファイルとディレクトリ
+     *
+     * @param extensions        拡張子リスト（nullならすべて）
+     * @param type              列挙対象（FILES: ファイルのみ / DIRECTORYS: ディレクトリのみ / ALL: ファイルとディレクトリ
+     * @param selectDirectory   false:ファイル選択用 / true:ディレクトリ選択用
      */
-    fun setFilter(extensions: Array<String>, type: Int) {
-        mFilter = ExtFilter(extensions, type)
-        if (null != baseDir) {
-            updateList()
-        }
-    }
+//    fun setFilter(type: UxFileDialog.ListType, selectDirectory:Boolean, extensions:Array<String>) {
+//        filter = ExtFilter(type, selectDirectory, extensions)
+//    }
 
-    fun setFileSelectedListener(listener: IOnFileSelected) {
-        mSelectListener = listener
-    }
 
     /**
      * ファイルリストを更新する
      */
     private fun updateList() {
+        val filter = this.filter
+        val baseDir = this.baseDir
+        if(null==filter || null==baseDir) {
+            return
+        }
+
         // ファイルリスト
-        val files = baseDir!!.listFiles(mFilter)
+        val files = baseDir.listFiles(filter)
         val listFileInfo = ArrayList<FileInfo>(files?.size ?: 1)
         if (null != files) {
             var i = 0
@@ -153,7 +169,7 @@ class UxFileListView : ListView {
             listFileInfo.sort()
         }
         // ソート後に親フォルダに戻るパスを先頭に追加
-        if (mShowParentDir && mFilter!!.isDirectoryEnabled && null != baseDir!!.parent) {
+        if (showParentDir && filter.isDirectoryEnabled && null != baseDir.parent) {
 
             /*
              * getExternalStorageDirectoryで取得したパスより上への移動を止める（#212） → 止めない（#391）
@@ -170,7 +186,7 @@ class UxFileListView : ListView {
                 listFileInfo.add(0, new FileInfo(new File(mBaseDir.getParent()), true));
         	}
         	*/
-            listFileInfo.add(0, FileInfo(File(baseDir!!.parent), true))
+            listFileInfo.add(0, FileInfo(File(baseDir.parent), true))
         }
 
         val adapter = FileInfoArrayAdapter(context, listFileInfo)
@@ -188,29 +204,42 @@ class UxFileListView : ListView {
 
     /**
      * ファイル列挙用のフィルタリング
+     * @param mType             FILES: ファイルのみ / Type.DIRECTORIES: ディレクトリのみ / ALL: ファイルとディレクトリ
+     * @param mSelectDirectory  false:ファイル選択用 / true:ディレクトリ選択用(ALLの場合はファイルを淡色表示)
+     * @param mExtensions       拡張子リスト（nullならすべて）
      */
-    private inner class ExtFilter
-    /**
-     * コンストラクタ
-     * @param mExtensions 拡張子リスト（nullならすべて）
-     * @param mType  Type.FILE: ファイルのみ / Type.DIRECTORY: ディレクトリのみ / Type.ALL: ファイルとディレクトリ
-     */
-    internal constructor(internal var mExtensions: Array<String>?   // 拡張子リスト
-                         , internal var mType: Int) : FileFilter {
+    class ExtFilter
+        @JvmOverloads constructor(
+            private var mType: UxFileDialog.ListType,
+            private var mSelectDirectory: Boolean,
+            private var mExtensions: Array<String>? = null   // 拡張子リスト
+        ) : FileFilter {
 
         /**
          * ディレクトリは列挙対象か？
          * @return  true/false
          */
         val isDirectoryEnabled: Boolean
-            get() = 0 != mType and Type.DIRECTORY
+            get() = mType.directory()
 
         /**
          * ファイルは列挙対象か？
          * @return  true/false
          */
         val isFileEnabled: Boolean
-            get() = 0 != mType and Type.FILE
+            get() = mType.file()
+
+        /**
+         * ファイル選択用か？
+         */
+//        val forFileSelection: Boolean
+//            get() = !mSelectDirectory
+
+        /**
+         * ディレクトリ選択用か？
+         */
+        val forDirectorySelection: Boolean
+            get() = mSelectDirectory
 
         /**
          * 列挙対象かどうかを判断
@@ -221,18 +250,18 @@ class UxFileListView : ListView {
             if (file.isDirectory) {
                 return if (file.isHidden) {
                     false
-                } else 0 != mType and Type.DIRECTORY
-            } else if (0 != mType and Type.FILE) {
-                if (null == mExtensions) {
+                } else {
+                    isDirectoryEnabled
+                }
+            } else if (isFileEnabled) {
+                val extensions = mExtensions
+                if (null == extensions) {
                     return true
                 }
-                var i = 0
-                val ci = mExtensions!!.size
-                while (i < ci) {
-                    if (file.name.endsWith(mExtensions!![i])) {
+                for(ext in extensions) {
+                    if(file.name.endsWith(ext)) {
                         return true
                     }
-                    i++
                 }
             }
             return false
@@ -241,21 +270,14 @@ class UxFileListView : ListView {
 
     /**
      * ファイル情報クラス
+     * @param file      ファイル
+     * @param parentDirectory   親ディレクトリか（..と表示するか）
      */
     private inner class FileInfo
-    /**
-     * コンストラクタ
-     * @param file      ファイル
-     * @param mParentDirectory   親ディレクトリか（..と表示するか）
-     */
-    @JvmOverloads constructor(
-            /**
-             * ファイルオブジェクトを取得
-             * @return  ファイル名。ディレクトリの場合は"/"で終わることを保証
-             */
-            val file: File    // ファイルオブジェクト
-            , internal var mParentDirectory: Boolean = false   // ".."を特別扱いするためのフラグ
-    ) : Comparable<FileInfo> {
+        @JvmOverloads constructor(
+                val file: File,                        // ファイルオブジェクト
+                val parentDirectory: Boolean = false   // ".."を特別扱いするためのフラグ
+        ) : Comparable<FileInfo> {
 
         /**
          * ファイル名を取得
@@ -263,7 +285,7 @@ class UxFileListView : ListView {
          */
         //return ".. (" + mFile.getName() + "/)";
         val name: String
-            get() = if (mParentDirectory) {
+            get() = if (parentDirectory) {
                 resources.getString(R.string.dir_move_parent)
             } else {
                 if (file.isDirectory) {
@@ -300,9 +322,10 @@ class UxFileListView : ListView {
     /**
      * データソース用アダプタクラス
      */
-    private inner class FileInfoArrayAdapter// コンストラクタ
-    (context: Context, private val mListFileInfo: ArrayList<FileInfo> // ファイル情報リスト
-    ) : ArrayAdapter<FileInfo>(context, -1, mListFileInfo) {
+    private inner class FileInfoArrayAdapter (
+        context: Context,
+        private val mListFileInfo: ArrayList<FileInfo>      // ファイル情報リスト
+        ) : ArrayAdapter<FileInfo>(context, -1, mListFileInfo) {
 
         /**
          * 指定されたFileInfoを取得
@@ -355,7 +378,7 @@ class UxFileListView : ListView {
             val imageview = result.findViewWithTag<View>("icon") as ImageView
             if (!fileinfo.file.isDirectory) {
                 imageview.setImageResource(R.mipmap.folder_blank)
-            } else if (!fileinfo.mParentDirectory) {
+            } else if (!fileinfo.parentDirectory) {
                 imageview.setImageResource(R.mipmap.folder)
             } else {
                 imageview.setImageResource(R.mipmap.folder_up)
@@ -363,10 +386,13 @@ class UxFileListView : ListView {
             // テキスト
             val textview = result.findViewWithTag<View>("text") as TextView
             textview.text = fileinfo.name
-            if (mFilter!!.mType == Type.ALL_DIR && !fileinfo.file.isDirectory) {
-                textview.setTextColor(Color.GRAY)
-            } else {
-                textview.setTextColor(Color.BLACK)
+            val filter = this@UxFileListView.filter
+            if(null!=filter) {
+                if(!fileinfo.file.isDirectory && filter.forDirectorySelection) {
+                    textview.setTextColor(Color.GRAY)
+                } else {
+                    textview.setTextColor(Color.BLACK)
+                }
             }
             return result
         }

@@ -42,12 +42,14 @@ abstract class UxDialog : DialogFragment() {
 
     /**
      * ダイアログを閉じる (ok/cancel時の処理）
+     * @param state ok:true / cancel:false
+     * @param result ダイアログからの戻り値(cancelの場合はnull）
      */
-    protected fun close(state:Boolean) {
+    protected fun close(state:Boolean, result:Bundle?) {
         val activity = this.activity
         val viewModel = this.mViewModel
         if(null!=activity) {
-            val tag = viewModel.onClosed(state)
+            val tag = viewModel.onClosed(state, result)
             if(null!=tag) {
                 val dlg = fragmentManager?.findFragmentByTag(tag) as? DialogFragment
                 dlg?.dialog?.show()
