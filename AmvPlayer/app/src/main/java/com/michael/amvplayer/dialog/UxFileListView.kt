@@ -23,11 +23,8 @@ import java.util.ArrayList
  * @author M.TOYOTA 13/02/19 Created.
  * @author Copyright (C) 2012 MetaMoJi Corp. All Rights Reserved.
  */
-class UxFileListView : ListView {
-
-    @JvmOverloads constructor(context: Context, attrs: AttributeSet?=null, defStyle: Int = 0) : super(context, attrs, defStyle) {
-        init()
-    }
+class UxFileListView @JvmOverloads constructor(context: Context, attrs: AttributeSet? = null, defStyle: Int = 0)
+    : ListView(context, attrs, defStyle) {
 
     //------------------------------------
     // Properties
@@ -54,7 +51,7 @@ class UxFileListView : ListView {
     /**
      * 親フォルダ(..)を表示するか？
      */
-    var showParentDir = true
+    private var showParentDir = true
         set(value) {
             if(value != field) {
                 field = value
@@ -65,11 +62,11 @@ class UxFileListView : ListView {
     /**
      * 選択変更リスナー（回転時の選択状態復元のために、ダイアログ側で覚えておく必要がある）
      */
-    private var mSelectedListener : WeakReference<IOnFileSelected>? = null;
+    private var mSelectedListener : WeakReference<IOnFileSelected>? = null
     var selectListener: IOnFileSelected?     // ファイル選択監視リスナー
         get() = mSelectedListener?.get()
         set(value) {
-            mSelectedListener = WeakReference<IOnFileSelected>(value);
+            mSelectedListener = WeakReference<IOnFileSelected>(value)
         }
 
     /**
@@ -112,7 +109,7 @@ class UxFileListView : ListView {
     private fun init() {
         isScrollingCacheEnabled = false
         itemsCanFocus = true
-        onItemClickListener = OnItemClickListener { parent, view, position, id ->
+        onItemClickListener = OnItemClickListener { _, _, position, _ ->
             // 選択ファイルを取得
             val file = getFileAt(position)
             if(null!=file) {
@@ -133,13 +130,13 @@ class UxFileListView : ListView {
         }
     }
 
-    /**
-     * ファイル列挙フィルターをセットする
-     *
-     * @param extensions        拡張子リスト（nullならすべて）
-     * @param type              列挙対象（FILES: ファイルのみ / DIRECTORYS: ディレクトリのみ / ALL: ファイルとディレクトリ
-     * @param selectDirectory   false:ファイル選択用 / true:ディレクトリ選択用
-     */
+//    /**
+//     * ファイル列挙フィルターをセットする
+//     *
+//     * @param extensions        拡張子リスト（nullならすべて）
+//     * @param type              列挙対象（FILES: ファイルのみ / DIRECTORIES: ディレクトリのみ / ALL: ファイルとディレクトリ
+//     * @param selectDirectory   false:ファイル選択用 / true:ディレクトリ選択用
+//     */
 //    fun setFilter(type: UxFileDialog.ListType, selectDirectory:Boolean, extensions:Array<String>) {
 //        filter = ExtFilter(type, selectDirectory, extensions)
 //    }
@@ -196,7 +193,7 @@ class UxFileListView : ListView {
     /**
      * 指定インデックスのファイルを取得
      */
-    fun getFileAt(index: Int): File? {
+    private fun getFileAt(index: Int): File? {
         val info = this.getItemAtPosition(index) as? FileInfo
         return info?.file
 
@@ -226,7 +223,7 @@ class UxFileListView : ListView {
          * ファイルは列挙対象か？
          * @return  true/false
          */
-        val isFileEnabled: Boolean
+        private val isFileEnabled: Boolean
             get() = mType.file()
 
         /**
@@ -254,10 +251,7 @@ class UxFileListView : ListView {
                     isDirectoryEnabled
                 }
             } else if (isFileEnabled) {
-                val extensions = mExtensions
-                if (null == extensions) {
-                    return true
-                }
+                val extensions = mExtensions ?: return true
                 for(ext in extensions) {
                     if(file.name.endsWith(ext)) {
                         return true
@@ -355,17 +349,17 @@ class UxFileListView : ListView {
                 layoutIconText.setBackgroundResource(0)
                 layout.addView(layoutIconText, LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, 0, 1f))
                 // アイコン
-                val imageview = ImageView(context)
-                imageview.tag = "icon"
-                imageview.setBackgroundResource(0)
-                layoutIconText.addView(imageview, LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.MATCH_PARENT))
+                val imageView = ImageView(context)
+                imageView.tag = "icon"
+                imageView.setBackgroundResource(0)
+                layoutIconText.addView(imageView, LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.MATCH_PARENT))
                 // テキスト
-                val textview = TextView(context)
-                textview.tag = "text"
-                textview.setBackgroundResource(0)
-                textview.setPadding(10, 10, 10, 10)
-                //layout.addView(textview, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
-                layoutIconText.addView(textview, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
+                val textView = TextView(context)
+                textView.tag = "text"
+                textView.setBackgroundResource(0)
+                textView.setPadding(10, 10, 10, 10)
+                //layout.addView(textView, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+                layoutIconText.addView(textView, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
                 // 区切り線
                 val line = FrameLayout(context)
                 line.setBackgroundColor(Color.LTGRAY)
@@ -373,25 +367,25 @@ class UxFileListView : ListView {
             }
 
             // 値の指定
-            val fileinfo = mListFileInfo[position]
+            val fileInfo = mListFileInfo[position]
             // アイコン
-            val imageview = result.findViewWithTag<View>("icon") as ImageView
-            if (!fileinfo.file.isDirectory) {
-                imageview.setImageResource(R.mipmap.folder_blank)
-            } else if (!fileinfo.parentDirectory) {
-                imageview.setImageResource(R.mipmap.folder)
+            val imageView = result.findViewWithTag<View>("icon") as ImageView
+            if (!fileInfo.file.isDirectory) {
+                imageView.setImageResource(R.mipmap.folder_blank)
+            } else if (!fileInfo.parentDirectory) {
+                imageView.setImageResource(R.mipmap.folder)
             } else {
-                imageview.setImageResource(R.mipmap.folder_up)
+                imageView.setImageResource(R.mipmap.folder_up)
             }
             // テキスト
-            val textview = result.findViewWithTag<View>("text") as TextView
-            textview.text = fileinfo.name
+            val textView = result.findViewWithTag<View>("text") as TextView
+            textView.text = fileInfo.name
             val filter = this@UxFileListView.filter
             if(null!=filter) {
-                if(!fileinfo.file.isDirectory && filter.forDirectorySelection) {
-                    textview.setTextColor(Color.GRAY)
+                if(!fileInfo.file.isDirectory && filter.forDirectorySelection) {
+                    textView.setTextColor(Color.GRAY)
                 } else {
-                    textview.setTextColor(Color.BLACK)
+                    textView.setTextColor(Color.BLACK)
                 }
             }
             return result
@@ -400,6 +394,10 @@ class UxFileListView : ListView {
         override fun isEnabled(position: Int): Boolean {
             return true
         }
+    }
+
+    init {
+        init()
     }
 
 }

@@ -4,6 +4,7 @@
     xmlns:app="http://schemas.android.com/apk/res-auto">
 
     <data>
+        <variable name="args" type="com.michael.amvplayer.dialog.UxDialogBase.BaseDialogArgs"/>
         <variable name="dialogBase" type="com.michael.amvplayer.dialog.UxDialogBase"/>
     </data>
 
@@ -18,7 +19,10 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginStart="4dp"
-            android:text="@android:string/cancel"
+            android:textAllCaps="false"
+            android:text="@{args.cancelText}"
+            android:alpha="@{args.cancelVisibility ? 255 : 0}"
+            android:enabled="@{args.cancelVisibility &amp;&amp; args.cancelEnabled}"
             android:onClick="@{dialogBase::onCancelClicked}"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent"
@@ -29,7 +33,10 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginEnd="4dp"
-            android:text="@android:string/ok"
+            android:textAllCaps="false"
+            android:text="@{args.okText}"
+            android:alpha="@{args.okVisibility ? 255 : 0}"
+            android:enabled="@{args.okVisibility &amp;&amp; args.okEnabled}"
             android:onClick="@{dialogBase::onOKClicked}"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintTop_toTopOf="parent"
@@ -40,7 +47,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_margin="8dp"
-            android:text="@{dialogBase.title}"
+            android:text="@{args.title}"
             app:layout_constraintBottom_toTopOf="@+id/dlgContainer"
             app:layout_constraintEnd_toStartOf="@+id/btnCancel"
             app:layout_constraintStart_toEndOf="@+id/btnOk"

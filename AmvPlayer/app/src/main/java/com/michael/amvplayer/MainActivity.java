@@ -6,13 +6,12 @@ import android.arch.lifecycle.ViewModelProviders;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.databinding.DataBindingUtil;
+import android.os.Bundle;
 import android.provider.MediaStore;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
-import android.support.v4.app.FragmentActivity;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
-import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
 import android.widget.Toast;
@@ -52,8 +51,8 @@ public class MainActivity extends AppCompatActivity {
 
             @Override
             public void onChanged(@Nullable UxDialogViewModel.State state) {
-                if(state.getState() == UxDlgState.OK) {
-                    onDialogResult(state.getTag());
+                if(null!=state && state.getState() == UxDlgState.OK) {
+                    onDialogResult(state);
                 }
             }
         });
@@ -70,16 +69,27 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void onClickFile(View view) {
-        UxFileDialog.Companion.selectFile(this, "FileDialog");
+        MainActivityPermissionsDispatcher.selectFileWithPermissionCheck(this);
+        //selectFile();
     }
 
-    public void onDialogResult(String tag) {
-        switch(tag) {
+    public void onDialogResult(@NonNull UxDialogViewModel.State state) {
+        switch(state.getTag()) {
             case "FileDialog":
-                Log.d("Amv", "FileDialog ... opened");
+                Bundle bundle = state.getResult();
+                if(null!=bundle) {
+                    UxFileDialog.Status result = UxFileDialog.Status.Companion.unpack(bundle, null);
+                    Log.d("Amv", String.format("FileDialog ... select \"%s\"", result.getFileName()));
+                }
+                break;
             default:
                 break;
         }
+    }
+
+    @NeedsPermission({Manifest.permission.READ_EXTERNAL_STORAGE, Manifest.permission.WRITE_EXTERNAL_STORAGE})
+    public void selectFile() {
+        UxFileDialog.Companion.selectFile(this, "FileDialog");
     }
 
     /**

@@ -17,17 +17,18 @@ import com.michael.amvplayer.utils.UnPacker
 import com.michael.amvplayer.utils.unpack
 import org.parceler.Parcel
 import java.io.File
+import java.util.*
 
 class UxFileDialog : UxDialogBase(), UxFileListView.IOnFileSelected {
 
     // Binding
-    private lateinit var binding: UxFileDialogBinding;
+    private lateinit var binding: UxFileDialogBinding
 
     /**
      * ダイアログの結果をBundleにして返す
      */
     override fun getResult(): Bundle? {
-        return status.pack();
+        return status.pack()
     }
 
     /**
@@ -75,14 +76,41 @@ class UxFileDialog : UxDialogBase(), UxFileListView.IOnFileSelected {
             val type:ListType,
             val purpose:Purpose,
             val extensions: Array<String>?,
-            val initialDir: File?
+            val initialDir: File?,
+            val title: String?
+
                 ) : Packing {
-        constructor() : this(ListType.INVALID, Purpose.INVALID, null, null)
+        constructor() : this(ListType.INVALID, Purpose.INVALID, null, null, null)
         fun pack(to:Bundle?=null) = pack(defKey, to)
+
+        override fun equals(other: Any?): Boolean {
+            if (this === other) return true
+            if (javaClass != other?.javaClass) return false
+
+            other as Args
+
+            if (type != other.type) return false
+            if (purpose != other.purpose) return false
+            if (!Arrays.equals(extensions, other.extensions)) return false
+            if (initialDir != other.initialDir) return false
+            if (title != other.title) return false
+
+            return true
+        }
+
+        override fun hashCode(): Int {
+            var result = type.hashCode()
+            result = 31 * result + purpose.hashCode()
+            result = 31 * result + (extensions?.let { Arrays.hashCode(it) } ?: 0)
+            result = 31 * result + (initialDir?.hashCode() ?: 0)
+            result = 31 * result + (title?.hashCode() ?: 0)
+            return result
+        }
+
         companion object : UnPacker<Args>("UxFileDialog.Args")
 
         val isForDirectory: Boolean
-            get() = purpose == Purpose.SELECT_DIR || purpose == Purpose.SELECT_OR_CREATE_DIR;
+            get() = purpose == Purpose.SELECT_DIR || purpose == Purpose.SELECT_OR_CREATE_DIR
     }
 
     /**
@@ -122,9 +150,8 @@ class UxFileDialog : UxDialogBase(), UxFileListView.IOnFileSelected {
     private lateinit var args : Args
 
 
-
-    init {
-        setTitle("Open File");
+    override fun onInitBaseDialog(args: BaseDialogArgs) {
+//        args.title = "File Selection"
     }
 
     override fun createDialogComponentView(dlg: Dialog, container: ViewGroup, savedInstanceState: Bundle?): View? {
@@ -134,19 +161,34 @@ class UxFileDialog : UxDialogBase(), UxFileListView.IOnFileSelected {
 //        val c = bundle.unpack<Args>(Args.defKey)
 //        Log.d("Amv", "Type=${b.type} / Purpose:${b.purpose}")
 
-        val inflater = activity?.layoutInflater;
-        if(null==inflater) {
-            return null;
+        val inflater = activity?.layoutInflater ?: return null
+
+        args = arguments?.unpack(Args.defKey) ?: Args(ListType.ALL, Purpose.SELECT_FILE, null, null,null)
+
+        when(args.purpose) {
+            Purpose.SELECT_FILE -> {
+                baseDialogArgs.okVisibility = false
+                baseDialogArgs.cancelText = resources.getString(R.string.close)
+                baseDialogArgs.title = if (args.title != null) args.title!! else resources.getString(R.string.file_select_dlg_title)
+            }
+            Purpose.CREATE_FILE -> {
+                baseDialogArgs.title = if (args.title != null) args.title!! else resources.getString(R.string.file_create_dlg_title)
+            }
+            Purpose.SELECT_DIR, Purpose.SELECT_OR_CREATE_DIR -> {
+                baseDialogArgs.title = if (args.title != null) args.title!! else resources.getString(R.string.folder_select_dlg_title)
+            }
+            else -> return null
         }
 
-        args = arguments?.unpack(Args.defKey) ?: Args(ListType.ALL, Purpose.SELECT_FILE, null, null)
-        if(null!=savedInstanceState) {
-            status = Status.unpack(savedInstanceState);
+
+        status = if(null!=savedInstanceState) {
+            Status.unpack(savedInstanceState)
         } else {
-            status = Status()
+            Status()
         }
+
         if(null == status.baseDir) {
-            status.baseDir = args.initialDir?: Environment.getExternalStorageDirectory();
+            status.baseDir = args.initialDir?: Environment.getExternalStorageDirectory()
         }
 
 
@@ -158,12 +200,16 @@ class UxFileDialog : UxDialogBase(), UxFileListView.IOnFileSelected {
             it.filter = UxFileListView.ExtFilter(args.type, args.isForDirectory, args.extensions)
             it.selectListener = this
         }
-        return binding.root;
+        return binding.root
     }
 
+    override fun onSaveInstanceState(outState: Bundle) {
+        super.onSaveInstanceState(outState)
+        status.pack(outState)
+    }
 
     override fun onFileSelected(file: File): Boolean {
-        if (file.isDirectory()) {
+        if (file.isDirectory) {
             status.baseDir = file
             // mHistory.push(mBaseDir)
             // updateButtons()
@@ -179,9 +225,9 @@ class UxFileDialog : UxDialogBase(), UxFileListView.IOnFileSelected {
 
     companion object {
 
-        @JvmOverloads fun selectFile(activity:FragmentActivity, tag:String="FileSelect", initialDir:File?=null, extensions: Array<String>?=null) {
+        @JvmOverloads fun selectFile(activity:FragmentActivity, tag:String="FileSelect", initialDir:File?=null, extensions: Array<String>?=null, title:String?=null) {
             val dlg = UxFileDialog()
-            dlg.arguments = Args(ListType.ALL, Purpose.SELECT_FILE, extensions, initialDir).pack()
+            dlg.arguments = Args(ListType.ALL, Purpose.SELECT_FILE, extensions, initialDir, title).pack()
             dlg.show(activity, tag)
         }
     }

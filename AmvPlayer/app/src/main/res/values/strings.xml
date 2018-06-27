@@ -3,4 +3,8 @@
     <string name="camera">Camera</string>
     <string name="open_file">Open File</string>
     <string name="dir_move_parent">..</string>
+    <string name="close">Close</string>
+    <string name="file_select_dlg_title">Select File</string>
+    <string name="file_create_dlg_title">Create File</string>
+    <string name="folder_select_dlg_title">Select Folder</string>
 </resources>

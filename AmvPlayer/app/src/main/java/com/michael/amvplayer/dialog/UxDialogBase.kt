@@ -4,14 +4,12 @@ import android.app.Dialog
 import android.databinding.BaseObservable
 import android.databinding.Bindable
 import android.databinding.DataBindingUtil
-import android.databinding.ObservableField
 import android.os.Bundle
 import android.view.View
 import android.view.ViewGroup
+import com.michael.amvplayer.BR
 import com.michael.amvplayer.R
 import com.michael.amvplayer.databinding.UxDialogBaseBinding
-import com.michael.amvplayer.utils.Packing
-import org.parceler.Parcel
 
 /**
  * ux_dialog_base レイアウトを使った UxDialogの実装
@@ -20,28 +18,98 @@ import org.parceler.Parcel
  *  createDialogComponentView()をオーバーライドすることにより、ダイアログの中身をカスタマイズできる。
  */
 abstract class UxDialogBase : UxDialog() {
-    val title = ObservableField<String>()
 
-    protected fun setTitle(title:String) {
-        this.title.set(title);
+    inner class BaseDialogArgs @JvmOverloads constructor(
+            title: String = "",
+            okString: String? = null,
+            okVisibility: Boolean = true,
+            okEnabled: Boolean = true,
+            cancelString: String? = null,
+            cancelVisibility: Boolean = true,
+            cancelEnabled: Boolean = true
+    ) : BaseObservable() {
+
+        @get:Bindable
+        var title: String = title
+            set(v) {
+                field = v
+                notifyPropertyChanged(BR.title)
+            }
+
+        @get:Bindable
+        var okText:String? = okString
+            get() = field ?: resources.getString(android.R.string.ok)
+            set(v) {
+                field = v
+                notifyPropertyChanged(BR.okText)
+            }
+
+        @get:Bindable
+        var okVisibility : Boolean = okVisibility
+            set(v) {
+                if(v!=field) {
+                    field = v
+                    notifyPropertyChanged(BR.okVisibility)
+                }
+            }
+
+        @get:Bindable
+        var okEnabled : Boolean = okEnabled
+            set(v) {
+                if(v!=field) {
+                    field = v
+                    notifyPropertyChanged(BR.okEnabled)
+                }
+            }
+
+        @get:Bindable
+        var cancelText:String? = cancelString
+            get() = field ?: resources.getString(android.R.string.ok)
+            set(v) {
+                field = v
+                notifyPropertyChanged(BR.cancelText)
+            }
+        @get:Bindable
+        var cancelVisibility : Boolean = cancelVisibility
+            set(v) {
+                if(v!=field) {
+                    field = v
+                    notifyPropertyChanged(BR.cancelVisibility)
+                }
+            }
+        @get:Bindable
+        var cancelEnabled : Boolean = cancelEnabled
+            set(v) {
+                if(v!=field) {
+                    field = v
+                    notifyPropertyChanged(BR.cancelEnabled)
+                }
+            }
     }
+
+    protected var baseDialogArgs = BaseDialogArgs()
+
+    /**
+     *
+     */
+    protected abstract fun onInitBaseDialog(args:BaseDialogArgs)
 
     /**
      * ダイアログの中身となるビューを構築して返すメソッド
      */
-    abstract fun createDialogComponentView(dlg:Dialog, container:ViewGroup, savedInstanceState:Bundle?) : View?;
+    protected abstract fun createDialogComponentView(dlg:Dialog, container:ViewGroup, savedInstanceState:Bundle?) : View?
 
     /**
      * ダイアログの結果をBundleにして返す
      */
-    abstract fun getResult() : Bundle?
+    protected abstract fun getResult() : Bundle?
 
     /**
      * OKボタンが押されたときの処理
      * 必要に応じてオーバーライド
      * @return true: ダイアログを閉じる / false:閉じない
      */
-    protected fun onOk() : Boolean {
+    protected open fun onOk() : Boolean {
         return true
     }
 
@@ -50,7 +118,7 @@ abstract class UxDialogBase : UxDialog() {
      * 必要に応じてオーバーライド
      * @return true: ダイアログを閉じる / false:閉じない
      */
-    protected fun onCanceled() : Boolean {
+    protected open fun onCanceled() : Boolean {
         return true
     }
 
@@ -59,27 +127,28 @@ abstract class UxDialogBase : UxDialog() {
      * （UxDialogの仮想メソッドをオーバーライド）
      */
     override fun createContentView(dlg: Dialog, savedInstanceState: Bundle?): View? {
-        val inflater = activity?.layoutInflater;
-        if(null==inflater) {
-            return null;
-        }
-        val binding = DataBindingUtil.inflate<UxDialogBaseBinding>(inflater, R.layout.ux_dialog_base, null, false )
-        binding.dialogBase = this;
+        val inflater = activity?.layoutInflater ?: return null
 
-        val view = binding.root;
-        val container = binding.dlgContainer;
-        val body = createDialogComponentView(dlg, container, savedInstanceState);
+        onInitBaseDialog(baseDialogArgs)
+
+        val binding = DataBindingUtil.inflate<UxDialogBaseBinding>(inflater, R.layout.ux_dialog_base, null, false )
+        binding.args = baseDialogArgs
+        binding.dialogBase = this
+
+        val view = binding.root
+        val container = binding.dlgContainer
+        val body = createDialogComponentView(dlg, container, savedInstanceState)
         if(null!=body) {
-            container.addView(body);
+            container.addView(body)
         }
-        return view;
+        return view
 //        return null;
     }
 
     /**
      * OKボタンクリック時の処理（Binding）
      */
-    fun onOKClicked(view: View) {
+    fun onOKClicked(@Suppress("UNUSED_PARAMETER") view: View) {
         if(onOk()) {
             close(true, getResult())
         }
@@ -88,7 +157,7 @@ abstract class UxDialogBase : UxDialog() {
     /**
      * Cancelボタンクリック時の処理（Binding）
      */
-    fun onCancelClicked(view: View) {
+    fun onCancelClicked(@Suppress("UNUSED_PARAMETER") view: View) {
         if(onCanceled()) {
             close(false, null)
         }

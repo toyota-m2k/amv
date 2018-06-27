@@ -40,7 +40,7 @@ import org.parceler.Parcels
  * Bundle から、Packing派生オブジェクトを取り出すための拡張関数
  */
 fun <T: Packing> Bundle.unpack(key:String) : T {
-    return Parcels.unwrap<T>(this.getParcelable(key));
+    return Parcels.unwrap<T>(this.getParcelable(key))
 }
 
 /**
@@ -49,7 +49,7 @@ fun <T: Packing> Bundle.unpack(key:String) : T {
  */
 open class UnPacker<T:Packing>(val defKey:String) {
     fun unpack(from:Bundle, key:String?=null) : T {
-        return from.unpack<T>(key?:defKey) ;
+        return from.unpack(key?:defKey)
     }
 }
 
@@ -66,7 +66,7 @@ interface Packing {
     fun pack(key:String, to:Bundle?) : Bundle {
         val parcel = Parcels.wrap(this)
         return (to ?: Bundle()).apply {
-            this.putParcelable(key, parcel);
+            this.putParcelable(key, parcel)
         }
     }
 }

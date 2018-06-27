@@ -33,26 +33,27 @@ class UxDialogViewModel : ViewModel() {
      * ダイアログが開かれたときの処理
      */
     fun onOpened (newTag: String) {
-        mTagStack.push(mCurrentState);
-        mCurrentState = State(UxDlgState.INIT, newTag);
-        state.value = mCurrentState;
+        mTagStack.push(mCurrentState)
+        mCurrentState = State(UxDlgState.INIT, newTag)
+        state.value = mCurrentState
     }
 
     /**
      * ダイアログが閉じられるときの処理
+     * @return 閉じたダイアログの親のダイアログのタグ（ルートダイアログを閉じた場合はnull）
      */
-    fun onClosed  (ok: Boolean, result:Bundle?) : String {
-        val current = mCurrentState;
-        mCurrentState.state = if(ok) UxDlgState.OK else UxDlgState.CANCELED;
-        mCurrentState.result = result;
-        state.value = mCurrentState;
+    fun onClosed  (ok: Boolean, result:Bundle?) : String? {
+        mCurrentState.state = if(ok) UxDlgState.OK else UxDlgState.CANCELED
+        mCurrentState.result = result
+        state.value = mCurrentState
 
         val prevState = mTagStack.pop()
         if(null!=prevState) {
-            mCurrentState = prevState;
-            state.value = mCurrentState;
+            mCurrentState = prevState
+            state.value = mCurrentState
+            return mCurrentState.tag
         }
-        return current.tag;
+        return null
     }
 
 //    fun setDialogState(s: UxDlgState) {

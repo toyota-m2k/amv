@@ -17,13 +17,13 @@ import android.view.View
  */
 abstract class UxDialog : DialogFragment() {
 
-    protected lateinit var mViewModel: UxDialogViewModel
+    private lateinit var mViewModel: UxDialogViewModel
 
     /**
      * ダイアログの中身のビューを構築して返すメソッド
      * （サブクラスでオーバーライドすること）
      */
-    abstract fun createContentView(dlg:Dialog, savedInstanceState: Bundle?) : View?;
+    abstract fun createContentView(dlg:Dialog, savedInstanceState: Bundle?) : View?
 
     /**
      * ダイアログ構築時の処理
@@ -31,8 +31,8 @@ abstract class UxDialog : DialogFragment() {
      */
     override fun onCreateDialog(savedInstanceState: Bundle?): Dialog {
         mViewModel = ViewModelProviders.of(this.activity!!).get(UxDialogViewModel::class.java)
-        return Dialog(getActivity(), this.theme).apply {
-            val view = createContentView(this, savedInstanceState);
+        return Dialog(activity, this.theme).apply {
+            val view = createContentView(this, savedInstanceState)
             if(null!=view) {
                 setContentView(view)
 
@@ -62,7 +62,7 @@ abstract class UxDialog : DialogFragment() {
      * このメソッドは直接呼んではならない
      */
     override fun show(manager: FragmentManager?, tag: String?) {
-        assert(false);
+        assert(false)
         super.show(manager, tag)
     }
 
@@ -70,7 +70,7 @@ abstract class UxDialog : DialogFragment() {
      * このメソッドは直接呼んではならない
      */
     override fun show(transaction: FragmentTransaction?, tag: String?): Int {
-        assert(false);
+        assert(false)
         return super.show(transaction, tag)
     }
 
@@ -89,12 +89,12 @@ abstract class UxDialog : DialogFragment() {
      * @param hideCurrent サブダイアログを開く前にカレントダイアログを閉じる(true)か、閉じない(false)か
      */
     protected fun showSubDialog(tag: String, hideCurrent: Boolean = true) {
-        val activity = this.activity;
+        val activity = this.activity
         if(null!=activity) {
             if(hideCurrent) {
-                this.dialog.hide();
+                this.dialog.hide()
             }
-            this.show(activity, tag);
+            this.show(activity, tag)
         }
     }
 }
