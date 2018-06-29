@@ -53,5 +53,4 @@ class Stack<T> {
             items[count - 1]
         }
     }
-
 }
