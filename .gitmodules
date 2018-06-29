@@ -1,0 +1,3 @@
+[submodule "AmvPlayer/m4m"]
+	path = AmvPlayer/m4m
+	url = https://github.com/INDExOS/media-for-mobile.git
