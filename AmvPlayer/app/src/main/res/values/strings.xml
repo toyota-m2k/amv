@@ -7,4 +7,6 @@
     <string name="file_select_dlg_title">Select File</string>
     <string name="file_create_dlg_title">Create File</string>
     <string name="folder_select_dlg_title">Select Folder</string>
+    <string name="play_video">Play</string>
+    <string name="pause_video">Pause</string>
 </resources>

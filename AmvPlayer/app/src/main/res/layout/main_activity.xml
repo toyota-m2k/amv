@@ -12,24 +12,23 @@
         android:layout_height="match_parent"
         tools:context=".MainActivity">
 
-        <TextView
-            android:id="@+id/textView"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="@{mainActivity.Message}"
-            app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintLeft_toLeftOf="parent"
-            app:layout_constraintRight_toRightOf="parent"
-            app:layout_constraintTop_toTopOf="parent" />
+        <!--<TextView-->
+            <!--android:id="@+id/textView"-->
+            <!--android:layout_width="wrap_content"-->
+            <!--android:layout_height="wrap_content"-->
+            <!--android:text="@{mainActivity.Message}"-->
+            <!--app:layout_constraintBottom_toBottomOf="parent"-->
+            <!--app:layout_constraintLeft_toLeftOf="parent"-->
+            <!--app:layout_constraintRight_toRightOf="parent"-->
+            <!--app:layout_constraintTop_toTopOf="parent" />-->
 
         <Button
             android:id="@+id/camera_button"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="@string/camera"
-            app:layout_constraintTop_toBottomOf="@id/textView"
+            app:layout_constraintTop_toTopOf="parent"
             app:layout_constraintLeft_toLeftOf="parent"
-            app:layout_constraintRight_toRightOf="parent"
             android:onClick="@{mainActivity::onClickCamera}"
             />
 
@@ -38,10 +37,40 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="@string/open_file"
-            app:layout_constraintTop_toBottomOf="@id/camera_button"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintLeft_toRightOf="@id/camera_button"
+            android:onClick="@{mainActivity::onClickFile}"
+            />
+
+        <Button
+            android:id="@+id/play_button"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/play_video"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintLeft_toRightOf="@id/file_button"
+            android:onClick="@{mainActivity::onClickPlay}"
+            />
+
+        <Button
+            android:id="@+id/pause_button"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/pause_video"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintLeft_toRightOf="@id/play_button"
+            android:onClick="@{mainActivity::onClickPause}"
+            />
+
+        <com.michael.video.AmvVideoPlayer
+            tools:layout_width="300dp"
+            tools:layout_height="300dp"
+            android:layout_height="wrap_content"
+            android:layout_width="wrap_content"
+            android:id="@+id/video_player"
+            app:layout_constraintTop_toBottomOf="@id/file_button"
             app:layout_constraintLeft_toLeftOf="parent"
             app:layout_constraintRight_toRightOf="parent"
-            android:onClick="@{mainActivity::onClickFile}"
             />
 
     </android.support.constraint.ConstraintLayout>

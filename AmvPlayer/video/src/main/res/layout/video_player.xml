@@ -1,11 +1,41 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:orientation="vertical" android:layout_width="match_parent"
-    android:layout_height="match_parent">
-    <VideoView
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:id="@+id/player"
-        />
+<layout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    >
+    <data>
+        <variable name="params" type="com.michael.video.AmvVideoPlayer.BindingParams"/>
+        <import type="android.view.View"/>
+    </data>
+    <FrameLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:minWidth="50dp"
+        android:minHeight="50dp"
+        >
+        <VideoView
+            tools:layout_width="150dp"
+            tools:layout_height="150dp"
+            tools:visibility="visible"
+            android:layout_width="150dp"
+            android:layout_height="150dp"
+            android:id="@+id/player"
+            android:layout_gravity="center_horizontal|center_vertical"
+            />
+        <ProgressBar
+            android:layout_width="50dp"
+            android:layout_height="50dp"
+            android:layout_gravity="center_horizontal|center_vertical"
+            android:visibility="@{params.isLoading ? View.VISIBLE : View.GONE}"
+            />
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@{params.errorMessage}"
+            android:layout_gravity="center_horizontal|center_vertical"
+            android:visibility="@{params.hasError ? View.VISIBLE : View.GONE }"
+            />
 
-</LinearLayout>
+
+    </FrameLayout>
+</layout>

@@ -20,6 +20,7 @@ import com.michael.amvplayer.databinding.MainActivityBinding;
 import com.michael.amvplayer.dialog.UxDialogViewModel;
 import com.michael.amvplayer.dialog.UxDlgState;
 import com.michael.amvplayer.dialog.UxFileDialog;
+import com.michael.video.AmvVideoPlayer;
 
 import permissions.dispatcher.NeedsPermission;
 import permissions.dispatcher.OnNeverAskAgain;
@@ -36,14 +37,16 @@ import permissions.dispatcher.RuntimePermissions;
 public class MainActivity extends AppCompatActivity {
 
     public final String Message = "Hoge Fuga";
+    MainActivityBinding mBinding = null;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 //        setContentView(R.layout.main_activity);
-        MainActivityBinding binding = DataBindingUtil.setContentView(this, R.layout.main_activity);
-        binding.setLifecycleOwner(this);
-        binding.setMainActivity(this);
+        mBinding = DataBindingUtil.setContentView(this, R.layout.main_activity);
+        mBinding.setLifecycleOwner(this);
+        mBinding.setMainActivity(this);
+        mBinding.videoPlayer.setLayoutHint(AmvVideoPlayer.LayoutMode.Inside, 300, 300);
 
         UxDialogViewModel viewModel = ViewModelProviders.of(this).get(UxDialogViewModel.class);
 
@@ -73,6 +76,13 @@ public class MainActivity extends AppCompatActivity {
         //selectFile();
     }
 
+    public void onClickPlay(View view) {
+        mBinding.videoPlayer.play();
+    }
+    public void onClickPause(View view) {
+        mBinding.videoPlayer.pause();
+    }
+
     public void onDialogResult(@NonNull UxDialogViewModel.State state) {
         switch(state.getTag()) {
             case "FileDialog":
@@ -80,6 +90,8 @@ public class MainActivity extends AppCompatActivity {
                 if(null!=bundle) {
                     UxFileDialog.Status result = UxFileDialog.Status.Companion.unpack(bundle, null);
                     Log.d("Amv", String.format("FileDialog ... select \"%s\"", result.getFileName()));
+                    mBinding.videoPlayer.setSource(result.getFile());
+//                    mBinding.videoPlayer.play();
                 }
                 break;
             default:
