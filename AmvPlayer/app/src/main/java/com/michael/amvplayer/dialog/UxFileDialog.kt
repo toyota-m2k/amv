@@ -16,6 +16,7 @@ import com.michael.amvplayer.utils.Packing
 import com.michael.amvplayer.utils.UnPacker
 import com.michael.amvplayer.utils.unpack
 import org.parceler.Parcel
+import org.parceler.ParcelConstructor
 import java.io.File
 import java.util.*
 
@@ -71,15 +72,14 @@ class UxFileDialog : UxDialogBase(), UxFileListView.IOnFileSelected {
      * ダイアログの初期値（Showする前にargumentsにセットする）
      * ・・・ダイアログの操作で変更されない
      */
-    @Parcel
-    data class Args (
+    @Parcel(Parcel.Serialization.BEAN)
+    data class Args @ParcelConstructor constructor (
             val type:ListType,
             val purpose:Purpose,
             val extensions: Array<String>?,
             val initialDir: File?,
             val title: String?
-
-                ) : Packing {
+        ) : Packing {
         constructor() : this(ListType.INVALID, Purpose.INVALID, null, null, null)
         fun pack(to:Bundle?=null) = pack(defKey, to)
 
@@ -118,7 +118,7 @@ class UxFileDialog : UxDialogBase(), UxFileListView.IOnFileSelected {
      *  - ビューにバインド
      *  - 利用者(Activity）へ結果として返す
      */
-    @Parcel
+    @Parcel(Parcel.Serialization.BEAN)
     class Status : BaseObservable(), Packing {
         fun pack(to:Bundle?=null) = pack(defKey, to)
         companion object : UnPacker<Status>("UxFileDialog.Status")

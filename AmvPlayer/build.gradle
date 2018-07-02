@@ -3,6 +3,8 @@
 buildscript {
     ext.kotlin_version = '1.2.50'
     ext.support_lib_version = '27.1.1'
+    ext.lifecycle_version = '1.1.1'     // com.android.support.constraint:constraint-layout
+    ext.c_layout_version = '1.1.2'      // constraint-layout
 
     repositories {
         google()
