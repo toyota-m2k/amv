@@ -88,7 +88,7 @@ public class MainActivity extends AppCompatActivity {
             case "FileDialog":
                 Bundle bundle = state.getResult();
                 if(null!=bundle) {
-                    UxFileDialog.Status result = UxFileDialog.Status.Companion.unpack(bundle, null);
+                    UxFileDialog.Status result = UxFileDialog.Status.unpack(bundle, null);
                     Log.d("Amv", String.format("FileDialog ... select \"%s\"", result.getFileName()));
                     mBinding.videoPlayer.setSource(result.getFile());
 //                    mBinding.videoPlayer.play();
@@ -101,7 +101,7 @@ public class MainActivity extends AppCompatActivity {
 
     @NeedsPermission({Manifest.permission.READ_EXTERNAL_STORAGE, Manifest.permission.WRITE_EXTERNAL_STORAGE})
     public void selectFile() {
-        UxFileDialog.Companion.selectFile(this, "FileDialog");
+        UxFileDialog.selectFile(this, "FileDialog");
     }
 
     /**

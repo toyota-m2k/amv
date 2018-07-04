@@ -3,7 +3,7 @@ package com.michael.amvplayer.dialog
 import android.arch.lifecycle.MutableLiveData
 import android.arch.lifecycle.ViewModel
 import android.os.Bundle
-import com.michael.amvplayer.utils.Stack
+import com.michael.utils.Stack
 
 enum class UxDlgState {
     INIT, OK, CANCELED

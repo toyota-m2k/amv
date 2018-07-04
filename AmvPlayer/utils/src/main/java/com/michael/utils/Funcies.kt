@@ -133,6 +133,7 @@ abstract class Methody<R> : IFuncy<R> {
     }
 
     companion object {
+        @JvmStatic
         fun methodOf(obj:Any, name:String) : Method? {
             for(m in obj.javaClass.methods ) {
                 if(m.name == name) {
@@ -193,6 +194,7 @@ class Methody1<T1,R>  : Methody<R>, IFuncy1<T1,R> {
     }
 
     companion object {
+        @JvmStatic
         fun <T1,R> create(obj:Any, name:String) : Methody1<T1,R>? {
             val m = Methody.methodOf(obj, name);
             if(null==m || m.parameterTypes.count() !=1) {
@@ -229,6 +231,7 @@ class Methody2<T1,T2,R> : Methody<R>, IFuncy2<T1,T2,R> {
     }
 
     companion object {
+        @JvmStatic
         fun <T1,T2,R> create(obj:Any, name:String) : Methody2<T1,T2,R>? {
             val m = Methody.methodOf(obj, name);
             if(null==m || m.parameterTypes.count() !=2) {

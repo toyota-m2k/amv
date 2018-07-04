@@ -31,7 +31,7 @@
  *      val b = SomeData.unpack(bundle)
  */
 
-package com.michael.amvplayer.utils
+package com.michael.utils
 
 import android.os.Bundle
 import org.parceler.Parcels
@@ -47,8 +47,8 @@ fun <T: Packing> Bundle.unpack(key:String) : T {
  * Packing派生クラスに、unpackメソッド（Bundleからオブジェクトを取り出す）を追加するためのヘルパクラス
  * companion object の基底クラスとして使用する。
  */
-open class UnPacker<T:Packing>(val defKey:String) {
-    fun unpack(from:Bundle, key:String?=null) : T {
+open class UnPacker<T: Packing>(val defKey:String) {
+    open fun unpack(from:Bundle, key:String?=null) : T {
         return from.unpack(key?:defKey)
     }
 }

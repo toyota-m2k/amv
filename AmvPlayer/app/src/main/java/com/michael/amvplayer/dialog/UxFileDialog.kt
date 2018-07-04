@@ -12,9 +12,9 @@ import android.view.ViewGroup
 import com.michael.amvplayer.BR
 import com.michael.amvplayer.R
 import com.michael.amvplayer.databinding.UxFileDialogBinding
-import com.michael.amvplayer.utils.Packing
-import com.michael.amvplayer.utils.UnPacker
-import com.michael.amvplayer.utils.unpack
+import com.michael.utils.Packing
+import com.michael.utils.UnPacker
+import com.michael.utils.unpack
 import org.parceler.Parcel
 import org.parceler.ParcelConstructor
 import java.io.File
@@ -121,7 +121,12 @@ class UxFileDialog : UxDialogBase(), UxFileListView.IOnFileSelected {
     @Parcel(Parcel.Serialization.BEAN)
     class Status : BaseObservable(), Packing {
         fun pack(to:Bundle?=null) = pack(defKey, to)
-        companion object : UnPacker<Status>("UxFileDialog.Status")
+        companion object : UnPacker<Status>("UxFileDialog.Status") {
+            @JvmStatic
+            override fun unpack(from: Bundle, key: String?): Status {
+                return super.unpack(from, key)
+            }
+        }
 
         @get:Bindable
         var baseDir:File? = null
@@ -225,7 +230,9 @@ class UxFileDialog : UxDialogBase(), UxFileListView.IOnFileSelected {
 
     companion object {
 
-        @JvmOverloads fun selectFile(activity:FragmentActivity, tag:String="FileSelect", initialDir:File?=null, extensions: Array<String>?=null, title:String?=null) {
+        @JvmOverloads
+        @JvmStatic
+        fun selectFile(activity:FragmentActivity, tag:String="FileSelect", initialDir:File?=null, extensions: Array<String>?=null, title:String?=null) {
             val dlg = UxFileDialog()
             dlg.arguments = Args(ListType.ALL, Purpose.SELECT_FILE, extensions, initialDir, title).pack()
             dlg.show(activity, tag)

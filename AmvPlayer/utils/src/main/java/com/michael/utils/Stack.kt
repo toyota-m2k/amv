@@ -1,4 +1,4 @@
-package com.michael.amvplayer.utils
+package com.michael.utils
 
 /**
  * Push/Pop/Peek をサポートするシンプルなスタッククラス

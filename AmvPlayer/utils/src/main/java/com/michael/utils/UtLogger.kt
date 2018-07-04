@@ -2,29 +2,27 @@ package com.michael.utils
 
 import android.util.Log
 
-class UtLogger {
+class UtLogger(val tag:String) {
 
     companion object {
         val instance : UtLogger by lazy {
-            UtLogger()
+            UtLogger("Amv")
         }
-
-        var tag = "Amv"
 
         fun debug(s:String, vararg args:Any?) {
-            instance.print(Log.DEBUG, tag, s, *args)
+            instance.debug(s, *args)
         }
         fun warn(s:String, vararg args:Any?) {
-            instance.print(Log.WARN, tag, s, *args)
+            instance.warn(s, *args)
         }
         fun error(s:String, vararg args:Any?) {
-            instance.print(Log.ERROR, tag, s, *args)
+            instance.error(s, *args)
         }
         fun info(s:String, vararg args:Any?) {
-            instance.print(Log.INFO, tag, s, *args)
+            instance.info(s, *args)
         }
         fun verbose(s:String, vararg args:Any?) {
-            instance.print(Log.VERBOSE, tag, s, *args)
+            instance.verbose(s, *args)
         }
     }
 
@@ -53,7 +51,7 @@ class UtLogger {
         }
     }
 
-    fun print(level:Int, tag:String, s:String, vararg args:Any?) {
+    fun print(level:Int, s:String, vararg args:Any?) {
         var ss = s;
         if(args.count()>0) {
             ss = String.format(s,*args)
@@ -61,4 +59,19 @@ class UtLogger {
         target(level)(tag,ss);
     }
 
+    fun debug(s:String, vararg args:Any?) {
+        instance.print(Log.DEBUG, s, *args)
+    }
+    fun warn(s:String, vararg args:Any?) {
+        instance.print(Log.WARN, s, *args)
+    }
+    fun error(s:String, vararg args:Any?) {
+        instance.print(Log.ERROR, s, *args)
+    }
+    fun info(s:String, vararg args:Any?) {
+        instance.print(Log.INFO, s, *args)
+    }
+    fun verbose(s:String, vararg args:Any?) {
+        instance.print(Log.VERBOSE, s, *args)
+    }
 }

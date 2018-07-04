@@ -8,7 +8,7 @@ interface ISomething {
     fun do2int(v:Int,s:String) : Int
 }
 
-class Thing (var prop:Int) : ISomething {
+open class Thing (var prop:Int) : ISomething {
 
     var str:String = ""
 
@@ -28,6 +28,10 @@ class Thing (var prop:Int) : ISomething {
 
 
 class FuncyTest {
+    var xxx = object : Thing(1000) {
+        fun hoge():String { return "abc"}
+    }
+
     @Test
     fun funcy_test() {
         val thing1 = Thing(1)
@@ -38,6 +42,13 @@ class FuncyTest {
         assertEquals(1, thing1.prop)
         assertEquals(2, thing2.prop)
 
+
+        val x = object : Thing(1000) {
+            fun hoge():String { return "abc"}
+        }
+        x.hoge()
+        xxx = x
+//        xxx.hoge()
 
 //        var f1 = thing1::do2int
 //        val f2 = f1.reflect()!!

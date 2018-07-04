@@ -14,30 +14,24 @@ import android.view.LayoutInflater
 import android.widget.FrameLayout
 import android.widget.LinearLayout
 import android.widget.VideoView
+import com.michael.utils.Funcies
+import com.michael.utils.Funcies2
 import com.michael.video.databinding.VideoPlayerBinding
 import kotlinx.android.synthetic.main.video_player.view.*
 import java.io.File
 
+class AmvVideoPlayer @JvmOverloads constructor(context: Context, attrs: AttributeSet? = null, defStyleAttr: Int = 0)
+    : FrameLayout(context, attrs, defStyleAttr), IAmvVideoPlayer {
 
-class AmvVideoPlayer @JvmOverloads constructor(
-        context: Context, attrs: AttributeSet? = null, defStyleAttr: Int = 0
-) : FrameLayout(context, attrs, defStyleAttr) {
+    /**
+     * プレーヤーの状態が変化したことを通知するイベント
+     */
+    override val playerStateChangedListener = IAmvVideoPlayer.PlayerStateChangedListener()
 
-    enum class LayoutMode {
-        Width,       // 指定された幅になるように高さを調整
-        Height,      // 指定された高さになるよう幅を調整
-        Inside,      // 指定された矩形に収まるよう幅、または、高さを調整
-        Fit          // 指定された矩形にリサイズする
-    }
-
-    enum class PlayerState {
-        None,       // 何もしていない
-        Loading,
-        Playing,
-        Paused
-    }
-
-    data class Size (var width:Float=0f, var height:Float=0f) {
+    /**
+     * MutableなSize型（内部利用専用）
+     */
+    private data class Size (var width:Float=0f, var height:Float=0f) {
         fun copyFrom(s:Size) {
             width = s.width
             height = s.height
@@ -51,7 +45,7 @@ class AmvVideoPlayer @JvmOverloads constructor(
     private var mMediaPlayer: MediaPlayer? = null
     private val mVideoSize : Size = Size(100f, 100f)                  // 動画のNatural Size
     private val mLayoutSize : Size = Size(100f, 100f)                 // Layout Hint
-    private var mLayoutMode : LayoutMode = LayoutMode.Fit
+    private var mLayoutMode : IAmvVideoPlayer.LayoutMode = IAmvVideoPlayer.LayoutMode.Fit
     private val mPlayerSize : Size = Size(0f,0f)
     private lateinit var mBinding : VideoPlayerBinding
     private val mBindingParams = BindingParams()
@@ -59,34 +53,25 @@ class AmvVideoPlayer @JvmOverloads constructor(
     private var mAutoPlay : Boolean = false
 
     inner class BindingParams : BaseObservable() {
-        private var mPlayerState = PlayerState.None
+        private var mPlayerState = IAmvVideoPlayer.PlayerState.None
         private var mErrorMessage : String? = null
 
         @get:Bindable
         val isReady: Boolean
-            get() {
-                return when(mPlayerState) { PlayerState.Paused, PlayerState.Playing -> true else -> false }
-            }
+            get() = when(mPlayerState) { IAmvVideoPlayer.PlayerState.Paused, IAmvVideoPlayer.PlayerState.Playing -> true else -> false }
 
         @get:Bindable
         val isLoading: Boolean
-            get() {
-                return mPlayerState == PlayerState.Loading
-            }
+            get() = mPlayerState == IAmvVideoPlayer.PlayerState.Loading
 
 
         @get:Bindable
         val hasError: Boolean
-            get() {
-                return !isReady && mErrorMessage!=null
-            }
+            get() = !isReady && mErrorMessage!=null
 
         @get:Bindable
         val errorMessage: String
-            get() {
-                val m = mErrorMessage;
-                return if (null != m) m else ""
-            }
+            get() = mErrorMessage?:""
 
         val playerWidth: Float
             get() = mPlayerSize.width
@@ -106,7 +91,7 @@ class AmvVideoPlayer @JvmOverloads constructor(
 //            notifyPropertyChanged(BR.hasError)
 //        }
 
-        var playerState : PlayerState
+        var playerState : IAmvVideoPlayer.PlayerState
             get() = mPlayerState
             set(state) {
                 if (state != mPlayerState) {
@@ -114,6 +99,7 @@ class AmvVideoPlayer @JvmOverloads constructor(
                     notifyPropertyChanged(BR.ready)
                     notifyPropertyChanged(BR.loading)
                     notifyPropertyChanged(BR.hasError)
+                    playerStateChangedListener.invoke(this@AmvVideoPlayer, state)
                 }
             }
 
@@ -138,7 +124,7 @@ class AmvVideoPlayer @JvmOverloads constructor(
                 fitSize()
 
                 mBindingParams.error = null
-                mBindingParams.playerState = PlayerState.Paused
+                mBindingParams.playerState = IAmvVideoPlayer.PlayerState.Paused
 
                 if(mAutoPlay) {
                     Handler().postDelayed( Runnable {
@@ -149,12 +135,12 @@ class AmvVideoPlayer @JvmOverloads constructor(
             setOnCompletionListener {  mp ->
                 // 動画の最後まで再生が終わった
                 Log.d("Amv", "MediaPlayer Completed.")
-                mBindingParams.playerState = PlayerState.Paused
+                mBindingParams.playerState = IAmvVideoPlayer.PlayerState.Paused
             }
             setOnErrorListener { mp, what, extra ->
                 Log.d("Amv", "MediaPlayer Error: what=${what}, extra=${extra}")
                 if(mBindingParams.isLoading) {
-                    mBindingParams.playerState = PlayerState.None
+                    mBindingParams.playerState = IAmvVideoPlayer.PlayerState.None
                 }
                 mBindingParams.error = when(what) {
                     MEDIA_ERROR_UNKNOWN -> "Unknown error."
@@ -178,67 +164,58 @@ class AmvVideoPlayer @JvmOverloads constructor(
     val videoView : VideoView
         get() = mBinding.player
 
-    fun setLayoutHint(mode:LayoutMode, width:Float, height:Float) {
+    override fun setLayoutHint(mode: IAmvVideoPlayer.LayoutMode, width:Float, height:Float) {
         mLayoutMode = mode
         mLayoutSize.width = width
         mLayoutSize.height = height
     }
 
 
-    fun reset(state:PlayerState=PlayerState.None) {
+    override fun reset(state: IAmvVideoPlayer.PlayerState) {
         mMediaPlayer?.stop()
         mMediaPlayer = null
         mBindingParams.error = null
         mBindingParams.playerState = state
     }
 
-    fun setSource(source: File) {
-        reset(PlayerState.Loading)
+    override fun setSource(source: File) {
+        reset(IAmvVideoPlayer.PlayerState.Loading)
         videoView.setVideoPath(source.path)
     }
 
-    fun play() {
+    override fun play() {
         if(mBindingParams.isReady) {
             videoView.start()
-            mBindingParams.playerState = PlayerState.Playing
+            mBindingParams.playerState = IAmvVideoPlayer.PlayerState.Playing
         }
     }
 
-//    fun stop() {
+//    override fun stop() {
 //        if(mBindingParams.isReady) {
 //            videoView.stopPlayback()
 //            mBindingParams.playerState = PlayerState.Paused
 //        }
 //    }
 
-    fun pause() {
+    override fun pause() {
         if(mBindingParams.isReady) {
             videoView.pause()
-            mBindingParams.playerState = PlayerState.Paused
+            mBindingParams.playerState = IAmvVideoPlayer.PlayerState.Paused
         }
     }
 
-    fun seekTo(pos:Int) {
+    override fun seekTo(pos:Int) {
         videoView.seekTo(pos)
     }
 
     private fun fitSize() {
         try {
             when (mLayoutMode) {
-                LayoutMode.Fit -> mPlayerSize.copyFrom(mLayoutSize)
-                LayoutMode.Width -> mPlayerSize.set(mLayoutSize.width, mVideoSize.height * mLayoutSize.width / mVideoSize.width)
-                LayoutMode.Height -> mPlayerSize.set(mVideoSize.width * mLayoutSize.height / mVideoSize.height, mLayoutSize.height)
-                LayoutMode.Inside -> {
-                    val rw = mLayoutSize.width / mVideoSize.width
-                    val rh = mLayoutSize.height / mVideoSize.height
-                    if (rw < rh) {
-                        mPlayerSize.set(mLayoutSize.width, mVideoSize.height * rw)
-                    } else {
-                        mPlayerSize.set(mVideoSize.width * rh, mLayoutSize.height)
-                    }
-                }
-                else -> {
-                    val rw = mLayoutSize.width / mVideoSize.width
+                IAmvVideoPlayer.LayoutMode.Fit -> mPlayerSize.copyFrom(mLayoutSize)
+                IAmvVideoPlayer.LayoutMode.Width -> mPlayerSize.set(mLayoutSize.width, mVideoSize.height * mLayoutSize.width / mVideoSize.width)
+                IAmvVideoPlayer.LayoutMode.Height -> mPlayerSize.set(mVideoSize.width * mLayoutSize.height / mVideoSize.height, mLayoutSize.height)
+                IAmvVideoPlayer.LayoutMode.Inside -> {
+                   val rw = mLayoutSize.width / mVideoSize.width
                     val rh = mLayoutSize.height / mVideoSize.height
                     if (rw < rh) {
                         mPlayerSize.set(mLayoutSize.width, mVideoSize.height * rw)
