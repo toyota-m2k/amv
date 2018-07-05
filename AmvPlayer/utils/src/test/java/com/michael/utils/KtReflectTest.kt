@@ -2,6 +2,8 @@ package com.michael.utils
 
 import org.junit.Test
 import org.junit.Assert.*
+import kotlin.reflect.KFunction
+import kotlin.reflect.jvm.reflect
 
 interface ISomething {
     fun do1void(s:String)
@@ -32,6 +34,14 @@ class FuncyTest {
         fun hoge():String { return "abc"}
     }
 
+    fun lambdaFunc(fn:(String)->Unit) {
+        fn("hoge")
+    }
+
+    fun function_func(fn:KFunction<Unit>) {
+        fn.call("hoge")
+    }
+
     @Test
     fun funcy_test() {
         val thing1 = Thing(1)
@@ -41,6 +51,7 @@ class FuncyTest {
         assertEquals("", thing2.str)
         assertEquals(1, thing1.prop)
         assertEquals(2, thing2.prop)
+
 
 
         val x = object : Thing(1000) {
@@ -62,11 +73,21 @@ class FuncyTest {
 //        f2.call(4,"d")
 
 
+        val lmd : (String)->Unit = {s:String->5}
+//        val fn:KFunction<Int> = lmd.reflect()!!
+        // val r = fn.call("hoge") // ng
+
+        lambdaFunc(lmd) // ok
+        lambdaFunc(thing1::do1void) // ok
+        // function_func(lmd) // ng
+        function_func(thing1::do1void)  // ok
 
 
+        var lm = 0
         val cb1 = Funcies1<String, Unit>().apply {
             add(null, thing1::do1void)
             add(null, thing2::do1void)
+            add(null) { s -> lm = 800 }
             invoke("hoge")
         }
 
@@ -74,12 +95,13 @@ class FuncyTest {
         assertEquals("hoge", thing2.str)
         assertEquals(1, thing1.prop)
         assertEquals(2, thing2.prop)
+        assertEquals( 800, lm)
 
         var count = 0
         val cb2 = Funcies2<Int,String,Int>().apply {
             add(null,thing1::do2int)
             add(null, thing2::do2int)
-            invoke(2,"fuga")  {
+            invokeWithPredicate(2,"fuga")  {
                 count++
                 true
             }
@@ -91,48 +113,48 @@ class FuncyTest {
         assertEquals(1+2, thing1.prop)
         assertEquals(2+2, thing2.prop)
 
-        var tmp:Int = 0
-        val c = ExampleUnitTest.ITheThing {
-            tmp = it*2;
-            "Test:${tmp}"
-        }
-
-//        for(m in c::class.members) {
+//        var tmp:Int = 0
+//        val c = ExampleUnitTest.ITheThing {
+//            tmp = it*2;
+//            "Test:${tmp}"
+//        }
+//
+////        for(m in c::class.members) {
+////            if(m.name == "doIt") {
+////                val f = Funcy1<Int,String>(m as KFunction<String>)
+////                assertEquals("Test:10", f.invoke(10))
+////            }
+////        }
+//
+//        for(m in c.javaClass.methods ) {
 //            if(m.name == "doIt") {
-//                val f = Funcy1<Int,String>(m as KFunction<String>)
-//                assertEquals("Test:10", f.invoke(10))
+//                val my =  Methody1<Int,String>(c, m)
+//                var res = my.invoke(100)
+//                assertEquals(tmp, 200)
+//                assertEquals(res, "Test:200")
 //            }
 //        }
-
-        for(m in c.javaClass.methods ) {
-            if(m.name == "doIt") {
-                val my =  Methody1<Int,String>(c, m)
-                var res = my.invoke(100)
-                assertEquals(tmp, 200)
-                assertEquals(res, "Test:200")
-            }
-        }
-
-        try {
-            // Int.javaClass だと、KotlinのIntクラスのjavaClass(!=int.class)が返ってきてしまう
-            // Int::class.java としなければならない
-            val m = c.javaClass.getMethod("doIt", Int::class.java)
-            val that = Methody1<Int,String>(c, m)
-            val res = that.invoke(150)
-
-            assertEquals(tmp, 300)
-            assertEquals(res, "Test:300")
-        } catch(e:Exception) {
-            UtLogger.error(e.toString())
-        }
-
-        val m = Methody1.create<Int,String>(c,"doIt")
-        assertTrue(m!=null)
-
-        val res = m!!.invoke(300)
-
-        assertEquals(tmp, 600)
-        assertEquals(res, "Test:600")
+//
+//        try {
+//            // Int.javaClass だと、KotlinのIntクラスのjavaClass(!=int.class)が返ってきてしまう
+//            // Int::class.java としなければならない
+//            val m = c.javaClass.getMethod("doIt", Int::class.java)
+//            val that = Methody1<Int,String>(c, m)
+//            val res = that.invoke(150)
+//
+//            assertEquals(tmp, 300)
+//            assertEquals(res, "Test:300")
+//        } catch(e:Exception) {
+//            UtLogger.error(e.toString())
+//        }
+//
+//        val m = Methody1.create<Int,String>(c,"doIt")
+//        assertTrue(m!=null)
+//
+//        val res = m!!.invoke(300)
+//
+//        assertEquals(tmp, 600)
+//        assertEquals(res, "Test:600")
 
 
     }

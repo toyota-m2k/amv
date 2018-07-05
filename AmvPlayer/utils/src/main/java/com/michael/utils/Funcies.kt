@@ -7,33 +7,26 @@ package com.michael.utils
 
 import java.lang.reflect.Method
 import java.util.*
-import kotlin.reflect.KFunction
-import kotlin.reflect.jvm.reflect
 
 /**
  * 関数様の何か...を抽象化した基底インターフェース
  */
 interface IFuncy<R> {
     fun compare(other: Any?) : Boolean
-    fun invoke_(vararg arg:Any?) : R
+    fun invoke_(vararg args:Any?) : R
 }
 
 /**
  * Kotlinの関数リテラルを保持するクラス
  */
-abstract class Funcy<R: Any?>(private val func: KFunction<*>) : IFuncy<R> {
+abstract class Funcy<R> : IFuncy<R> {
 
-    override fun invoke_(vararg arg:Any?) : R {
-        @Suppress("UNCHECKED_CAST")
-        return func.call(*arg) as R
-    }
-
+    abstract val func : Any
     override fun compare(other: Any?): Boolean {
         return when (other) {
             null -> false
             is Funcy<*> -> other.func == func
-            is KFunction<*> -> other == func
-            else -> false
+            else ->  other == func
         }
     }
 }
@@ -48,9 +41,12 @@ interface IFuncy0<R> : IFuncy<R> {
 /**
  * 引数のないのKotlin関数リテラル
  */
-class Funcy0<R: Any?>(f:()->R) : Funcy<R>(f as KFunction<*>), IFuncy0<R> {
+class Funcy0<R: Any?>(override val func:()->R) : Funcy<R>(), IFuncy0<R> {
     override fun invoke() : R {
-        return invoke_()
+        return func()
+    }
+    override fun invoke_(vararg args: Any?): R {
+        return invoke()
     }
 }
 
@@ -64,10 +60,15 @@ interface IFuncy1<T:Any?,R:Any?> : IFuncy<R> {
 /**
  * 引数１個のKotlin関数リテラル
  */
-class Funcy1<T:Any?,R:Any?>(func: (T)->R) : Funcy<R>(func as KFunction<*>), IFuncy1<T,R> {
+class Funcy1<T:Any?,R:Any?>(override val func: (T)->R) : Funcy<R>(), IFuncy1<T,R> {
     override fun invoke(p:T) : R {
-        return invoke_(p)
+        return func(p)
     }
+    override fun invoke_(vararg args: Any?): R {
+        @Suppress("UNCHECKED_CAST")
+        return func(args[0] as T)
+    }
+
 }
 
 /**
@@ -80,11 +81,15 @@ interface IFuncy2<T1:Any?,T2:Any?,R:Any?> : IFuncy<R> {
 /**
  * 引数２個のKotlin関数リテラル
  */
-class Funcy2<T1:Any?, T2:Any?, R:Any?>(func:(T1, T2)->R) : Funcy<R>(func as KFunction<*>), IFuncy2<T1,T2,R> {
-
+class Funcy2<T1:Any?, T2:Any?, R:Any?>(override val func:(T1, T2)->R) : Funcy<R>(), IFuncy2<T1,T2,R> {
     override fun invoke(p1:T1, p2:T2) : R {
-        return invoke_(p1, p2)
+        return func(p1,p2)
     }
+    override fun invoke_(vararg args: Any?): R {
+        @Suppress("UNCHECKED_CAST")
+        return invoke(args[0] as T1, args[1] as T2)
+    }
+
 }
 
 /**
@@ -97,10 +102,13 @@ interface IFuncy3<T1:Any?,T2:Any?,T3:Any?,R:Any?> : IFuncy<R> {
 /**
  * 引数３個のKotlin関数リテラル
  */
-class Funcy3<T1:Any?, T2:Any?, T3:Any?, R:Any?>(func: (T1, T2, T3)->R) : Funcy<R>(func as KFunction<*>), IFuncy3<T1,T2,T3,R> {
-
+class Funcy3<T1:Any?, T2:Any?, T3:Any?, R:Any?>(override val func: (T1, T2, T3)->R) : Funcy<R>(), IFuncy3<T1,T2,T3,R> {
     override fun invoke(p1:T1, p2:T2, p3:T3) : R {
-        return invoke_(p1, p2, p3)
+        return func(p1,p2,p3)
+    }
+    override fun invoke_(vararg args: Any?): R {
+        @Suppress("UNCHECKED_CAST")
+        return invoke(args[0] as T1, args[1] as T2, args[2] as T3)
     }
 }
 
@@ -112,9 +120,9 @@ abstract class Methody<R> : IFuncy<R> {
     lateinit var obj:Any
     lateinit var method:Method
 
-    override fun invoke_(vararg arg:Any?) : R {
+    override fun invoke_(vararg args:Any?) : R {
         @Suppress("UNCHECKED_CAST")
-        return method.invoke(obj, *arg) as R
+        return method.invoke(obj, *args) as R
     }
 
     override fun compare(other: Any?): Boolean {
@@ -302,7 +310,7 @@ abstract class Funcies<R> {
         }
     }
 
-    fun invoke_(predicate:(R)->Boolean, vararg args:Any?) {
+    fun invokeWithPredicate_(predicate:(R)->Boolean, vararg args:Any?) {
         for(f in mArray) {
             if(!predicate(f.funcy.invoke_(*args))) {
                 break
@@ -321,13 +329,12 @@ open class Funcies0<R:Any?> : Funcies<R>() {
             super.add(name, this)
         }
     }
-
     fun invoke() {
-        super.invoke_()
+        invoke_()
     }
 
-    fun invoke(predicate:(R)->Boolean) {
-        super.invoke_(predicate)
+    fun invokeWithPredicate(predicate:(R)->Boolean) {
+        invokeWithPredicate_(predicate)
     }
 }
 
@@ -341,13 +348,12 @@ open class Funcies1<T1:Any?, R:Any?> : Funcies<R>() {
             add(name, this)
         }
     }
-
     fun invoke(p1:T1) {
-        super.invoke_(p1)
+        invoke_(p1)
     }
 
-    fun invoke(p1:T1, predicate:(R)->Boolean) {
-        super.invoke_(predicate, p1)
+    fun invokeWithPredicate(p1:T1, predicate:(R)->Boolean) {
+        invokeWithPredicate_(predicate, p1)
     }
 }
 
@@ -361,13 +367,12 @@ open class Funcies2<T1:Any?, T2:Any?, R:Any?> : Funcies<R>() {
             add(name, this)
         }
     }
-
     fun invoke(p1:T1, p2:T2) {
-        super.invoke_(p1,p2)
+        invoke_(p1, p2)
     }
 
-    fun invoke(p1:T1, p2:T2, predicate:(R)->Boolean) {
-        super.invoke_(predicate, p1, p2)
+    fun invokeWithPredicate(p1:T1, p2:T2, predicate:(R)->Boolean) {
+        invokeWithPredicate_(predicate, p1, p2)
     }
 }
 
@@ -381,12 +386,11 @@ open class Funcies3<T1:Any?, T2:Any?, T3:Any?, R:Any?> : Funcies<R>() {
             add(name, this)
         }
     }
-
     fun invoke(p1:T1, p2:T2, p3:T3) {
-        super.invoke_(p1,p2,p3)
+        invoke_(p1, p2, p3)
     }
 
-    fun invoke(p1:T1, p2:T2, p3:T3, predicate:(R)->Boolean) {
-        super.invoke_(predicate, p1, p2, p3)
+    fun invokeWithPredicate(p1:T1, p2:T2, p3:T3, predicate:(R)->Boolean) {
+        invokeWithPredicate_(predicate, p1, p2, p3)
     }
 }
