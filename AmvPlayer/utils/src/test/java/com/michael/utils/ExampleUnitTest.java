@@ -3,9 +3,6 @@ package com.michael.utils;
 import org.junit.Test;
 
 import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
-
-import static org.junit.Assert.*;
 
 /**
  * Example local unit test, which will execute on the development machine (host).
@@ -18,7 +15,7 @@ public class ExampleUnitTest {
     }
 
     @Test
-    public void funcy_test() throws NoSuchMethodException, InvocationTargetException, IllegalAccessException {
+    public void funcy_test() {
         ITheThing t = new ITheThing() {
             @Override
             public String doIt(int n) {

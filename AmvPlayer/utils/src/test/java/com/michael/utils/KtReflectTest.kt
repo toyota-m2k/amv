@@ -14,8 +14,8 @@ open class Thing (var prop:Int) : ISomething {
 
     override fun do2int(v: Int, s: String): Int {
         UtLogger.debug("doSomething:${s}=${v} (prop=${prop})")
-        prop += v;
-        str = s;
+        prop += v
+        str = s
         return prop
     }
 
@@ -65,8 +65,8 @@ class FuncyTest {
 
 
         val cb1 = Funcies1<String, Unit>().apply {
-            add(thing1::do1void)
-            add(thing2::do1void)
+            add(null, thing1::do1void)
+            add(null, thing2::do1void)
             invoke("hoge")
         }
 
@@ -77,8 +77,8 @@ class FuncyTest {
 
         var count = 0
         val cb2 = Funcies2<Int,String,Int>().apply {
-            add(thing1::do2int)
-            add(thing2::do2int)
+            add(null,thing1::do2int)
+            add(null, thing2::do2int)
             invoke(2,"fuga")  {
                 count++
                 true

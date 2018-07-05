@@ -33,7 +33,7 @@
             android:layout_height="wrap_content"
             android:text="@{params.errorMessage}"
             android:layout_gravity="center_horizontal|center_vertical"
-            android:visibility="@{params.hasError ? View.VISIBLE : View.GONE }"
+            android:visibility="@{params.isError ? View.VISIBLE : View.GONE }"
             />
 
 

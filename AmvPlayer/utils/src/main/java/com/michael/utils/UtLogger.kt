@@ -2,6 +2,7 @@ package com.michael.utils
 
 import android.util.Log
 
+@Suppress("unused")
 class UtLogger(val tag:String) {
 
     companion object {
@@ -26,37 +27,38 @@ class UtLogger(val tag:String) {
         }
     }
 
-    fun print_sys(tag:String, s:String) : Int {
-        System.out.println(tag + ":" + s)
+    private fun printToSystemOut(tag:String, s:String) : Int {
+        System.out.println("$tag:$s")
         Log.DEBUG
-        return 0;
+        return 0
     }
 
-    val isAndroid : Boolean by lazy {
-        var runtime = System.getProperty("java.runtime.name")
+    private val isAndroid : Boolean by lazy {
+        val runtime = System.getProperty("java.runtime.name")
         0 <= runtime.indexOf("Android")
     }
 
     fun target(level:Int) :(String,String)->Int {
-        if(isAndroid) {
-            return when(level) {
-                Log.DEBUG -> Log::d
-                Log.ERROR -> Log::e
-                Log.INFO -> Log::i
-                Log.WARN -> Log::w
-                else -> Log::v
-            }
-        } else {
-            return this::print_sys
+        if(!isAndroid) {
+            return this::printToSystemOut
+        }
+
+        return when(level) {
+            Log.DEBUG -> Log::d
+            Log.ERROR -> Log::e
+            Log.INFO -> Log::i
+            Log.WARN -> Log::w
+            else -> Log::v
         }
     }
 
+    @Suppress("MemberVisibilityCanBePrivate")
     fun print(level:Int, s:String, vararg args:Any?) {
-        var ss = s;
+        var ss = s
         if(args.count()>0) {
             ss = String.format(s,*args)
         }
-        target(level)(tag,ss);
+        target(level)(tag,ss)
     }
 
     fun debug(s:String, vararg args:Any?) {

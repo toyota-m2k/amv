@@ -47,6 +47,7 @@ public class MainActivity extends AppCompatActivity {
         mBinding.setLifecycleOwner(this);
         mBinding.setMainActivity(this);
         mBinding.videoPlayer.setLayoutHint(AmvVideoPlayer.LayoutMode.Inside, 300, 300);
+        mBinding.videoController.setVideoPlayer(mBinding.videoPlayer);
 
         UxDialogViewModel viewModel = ViewModelProviders.of(this).get(UxDialogViewModel.class);
 
@@ -90,7 +91,7 @@ public class MainActivity extends AppCompatActivity {
                 if(null!=bundle) {
                     UxFileDialog.Status result = UxFileDialog.Status.unpack(bundle, null);
                     Log.d("Amv", String.format("FileDialog ... select \"%s\"", result.getFileName()));
-                    mBinding.videoPlayer.setSource(result.getFile());
+                    mBinding.videoPlayer.setSource(result.getFile(), false);
 //                    mBinding.videoPlayer.play();
                 }
                 break;

@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    >
+    <data>
+        <variable name="params" type="com.michael.video.AmvVideoController.BindingParams"/>
+        <variable name="handlers" type="com.michael.video.AmvVideoController"/>
+        <import type="android.view.View"/>
+        <import type="com.michael.video.R"/>
+    </data>
+
+    <android.support.constraint.ConstraintLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content">
+
+        <ImageButton
+            android:id="@+id/playButton"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:scaleType="fitXY"
+            android:background="@android:color/transparent"
+            app:srcCompat="@{params.isPlaying ? R.drawable.ic_stop : R.drawable.ic_play}"
+            app:layout_constraintLeft_toLeftOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            android:contentDescription="@{params.isPlaying ? @string/stop : @string/play}"
+            android:onClick="@{handlers.onPlayClicked}"
+            />
+        <ImageButton
+            android:id="@+id/backButton"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:scaleType="fitXY"
+            android:background="@android:color/transparent"
+            app:srcCompat="@drawable/ic_back"
+            app:layout_constraintLeft_toRightOf="@id/playButton"
+            app:layout_constraintTop_toTopOf="parent"
+            android:contentDescription="@string/back"
+            />
+
+        <ImageButton
+            android:id="@+id/forwardButton"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:scaleType="fitXY"
+            android:background="@android:color/transparent"
+            app:srcCompat="@drawable/ic_forward"
+            app:layout_constraintLeft_toRightOf="@id/backButton"
+            app:layout_constraintTop_toTopOf="parent"
+            android:contentDescription="@string/next"
+            />
+
+        <!--<ImageButton-->
+            <!--android:id="@+id/markButton"-->
+            <!--android:layout_width="40dp"-->
+            <!--android:layout_height="40dp"-->
+            <!--android:scaleType="fitXY"-->
+            <!--android:background="@android:color/transparent"-->
+            <!--app:srcCompat="@drawable/ic_add_marker"-->
+            <!--app:layout_constraintLeft_toRightOf="@id/forwardButton"-->
+            <!--app:layout_constraintTop_toTopOf="parent"-->
+            <!--/>-->
+        <!--<ImageButton-->
+            <!--android:id="@+id/fullscreenButton"-->
+            <!--android:layout_width="40dp"-->
+            <!--android:layout_height="40dp"-->
+            <!--android:scaleType="fitXY"-->
+            <!--android:background="@android:color/transparent"-->
+            <!--app:srcCompat="@drawable/ic_fullscreen"-->
+            <!--app:layout_constraintLeft_toRightOf="@id/markButton"-->
+            <!--app:layout_constraintTop_toTopOf="parent"-->
+            <!--/>-->
+
+    </android.support.constraint.ConstraintLayout>
+</layout>
