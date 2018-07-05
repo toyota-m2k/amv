@@ -61,7 +61,7 @@ dependencies {
 
     // sub modules
     implementation project(':video')
-    compile project(path: ':utils')
+    implementation project(path: ':utils')
 }
 repositories {
     mavenCentral()
