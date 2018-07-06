@@ -4,4 +4,7 @@
     <string name="play">Play</string>
     <string name="stop">Stop</string>
     <string name="next">Next</string>
+    <string name="add_marker">add marker</string>
+    <string name="pinp">Picture in picture</string>
+    <string name="fullscreen">Full screen</string>
 </resources>

@@ -15,62 +15,90 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content">
 
-        <ImageButton
-            android:id="@+id/playButton"
-            android:layout_width="40dp"
-            android:layout_height="40dp"
-            android:scaleType="fitXY"
-            android:background="@android:color/transparent"
-            app:srcCompat="@{params.isPlaying ? R.drawable.ic_stop : R.drawable.ic_play}"
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
             app:layout_constraintLeft_toLeftOf="parent"
             app:layout_constraintTop_toTopOf="parent"
-            android:contentDescription="@{params.isPlaying ? @string/stop : @string/play}"
-            android:onClick="@{handlers.onPlayClicked}"
-            />
+            android:orientation="horizontal"
+            android:background="@color/button_face"
+            >
+            <ImageButton
+                android:id="@+id/playButton"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:scaleType="fitXY"
+                tools:srcCompat="@drawable/ic_play"
+                app:srcCompat="@{params.isPlaying ? R.drawable.ic_pause : R.drawable.ic_play}"
+                android:contentDescription="@{params.isPlaying ? @string/stop : @string/play}"
+                android:onClick="@{handlers.onPlayClicked}"
+                android:background="?android:selectableItemBackground"
+                />
+            <ImageButton
+                android:id="@+id/backButton"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:padding="2dp"
+                android:scaleType="fitXY"
+                app:srcCompat="@drawable/ic_back"
+                android:contentDescription="@string/back"
+                android:alpha="@{params.hasPrev ? 255 : 80 }"
+                android:clickable="@{params.hasPrev}"
+                android:background="?android:selectableItemBackground"
+                />
+
+            <ImageButton
+                android:id="@+id/forwardButton"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:padding="2dp"
+                android:scaleType="fitXY"
+                app:srcCompat="@drawable/ic_forward"
+                android:contentDescription="@string/next"
+                android:alpha="@{params.hasNext ? 255 : 80 }"
+                android:clickable="@{params.hasNext}"
+                android:background="?android:selectableItemBackground"
+                />
+
+            <ImageButton
+                android:id="@+id/markButton"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:padding="8dp"
+                android:scaleType="fitXY"
+                app:srcCompat="@drawable/ic_add_marker"
+                android:background="?android:selectableItemBackground"
+                android:contentDescription="@string/add_marker" />
+            <ImageButton
+                android:id="@+id/pinpButton"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:padding="8dp"
+                android:scaleType="fitXY"
+                app:srcCompat="@drawable/ic_pinp"
+                android:background="?android:selectableItemBackground"
+                android:contentDescription="@string/pinp" />
+            <ImageButton
+                android:id="@+id/fullscreenButton"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:padding="8dp"
+                android:scaleType="fitXY"
+                app:srcCompat="@drawable/ic_expand"
+                android:background="?android:selectableItemBackground"
+                android:contentDescription="@string/fullscreen" />
+        </LinearLayout>
         <ImageButton
-            android:id="@+id/backButton"
+            android:id="@+id/showFramesButton"
             android:layout_width="40dp"
             android:layout_height="40dp"
+            android:padding="8dp"
             android:scaleType="fitXY"
-            android:background="@android:color/transparent"
-            app:srcCompat="@drawable/ic_back"
-            app:layout_constraintLeft_toRightOf="@id/playButton"
+            app:srcCompat="@drawable/ic_film"
+            android:background="?android:selectableItemBackground"
+            android:contentDescription="@string/fullscreen"
+            app:layout_constraintRight_toRightOf="parent"
             app:layout_constraintTop_toTopOf="parent"
-            android:contentDescription="@string/back"
             />
-
-        <ImageButton
-            android:id="@+id/forwardButton"
-            android:layout_width="40dp"
-            android:layout_height="40dp"
-            android:scaleType="fitXY"
-            android:background="@android:color/transparent"
-            app:srcCompat="@drawable/ic_forward"
-            app:layout_constraintLeft_toRightOf="@id/backButton"
-            app:layout_constraintTop_toTopOf="parent"
-            android:contentDescription="@string/next"
-            />
-
-        <!--<ImageButton-->
-            <!--android:id="@+id/markButton"-->
-            <!--android:layout_width="40dp"-->
-            <!--android:layout_height="40dp"-->
-            <!--android:scaleType="fitXY"-->
-            <!--android:background="@android:color/transparent"-->
-            <!--app:srcCompat="@drawable/ic_add_marker"-->
-            <!--app:layout_constraintLeft_toRightOf="@id/forwardButton"-->
-            <!--app:layout_constraintTop_toTopOf="parent"-->
-            <!--/>-->
-        <!--<ImageButton-->
-            <!--android:id="@+id/fullscreenButton"-->
-            <!--android:layout_width="40dp"-->
-            <!--android:layout_height="40dp"-->
-            <!--android:scaleType="fitXY"-->
-            <!--android:background="@android:color/transparent"-->
-            <!--app:srcCompat="@drawable/ic_fullscreen"-->
-            <!--app:layout_constraintLeft_toRightOf="@id/markButton"-->
-            <!--app:layout_constraintTop_toTopOf="parent"-->
-            <!--/>-->
-
     </android.support.constraint.ConstraintLayout>
 </layout>

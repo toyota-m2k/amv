@@ -45,10 +45,19 @@ class AmvVideoController @JvmOverloads constructor(context: Context, attrs: Attr
                     notifyPropertyChanged(BR.playing)
                 }
             }
+
+        val hasPrev : Boolean = false
+
+        val hasNext : Boolean = true
     }
 
     init {
         mBinding = DataBindingUtil.inflate(LayoutInflater.from(context), R.layout.video_controller, this, true)
+        mBinding.handlers = this
+        mBinding.params = mBindingParams
+//        mBinding.backButton.isEnabled = false
+//        mBinding.forwardButton.isEnabled = true
+//        mBinding.backButton
     }
 
 
@@ -56,7 +65,7 @@ class AmvVideoController @JvmOverloads constructor(context: Context, attrs: Attr
         mPlayer = player
         mBindingParams.playerState = player.playerState;
         mPlayer.playerStateChangedListener.add("videoController") { m,state ->
-            mBindingParams.playerState = state;
+            mBindingParams.playerState = state
         }
     }
 

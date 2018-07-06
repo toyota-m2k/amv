@@ -46,7 +46,7 @@ public class MainActivity extends AppCompatActivity {
         mBinding = DataBindingUtil.setContentView(this, R.layout.main_activity);
         mBinding.setLifecycleOwner(this);
         mBinding.setMainActivity(this);
-        mBinding.videoPlayer.setLayoutHint(AmvVideoPlayer.LayoutMode.Inside, 300, 300);
+        mBinding.videoPlayer.setLayoutHint(AmvVideoPlayer.LayoutMode.Inside, 1000, 1000);
         mBinding.videoController.setVideoPlayer(mBinding.videoPlayer);
 
         UxDialogViewModel viewModel = ViewModelProviders.of(this).get(UxDialogViewModel.class);

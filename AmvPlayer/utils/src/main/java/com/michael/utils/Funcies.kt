@@ -157,6 +157,7 @@ class Methody0<R> : Methody<R>, IFuncy0<R> {
         this.obj = obj
         this.method = method
     }
+
     constructor(obj:Any, methodName:String) {
         this.obj = obj
         try {
@@ -182,10 +183,16 @@ class Methody1<T1,R>  : Methody<R>, IFuncy1<T1,R> {
         this.obj = obj
         this.method = method
     }
-    constructor(obj:Any, methodName:String, t1:Class<T1>) {
+
+    @JvmOverloads
+    constructor(obj:Any, methodName:String, t1:Class<T1>?=null) {
         this.obj = obj
         try {
-            this.method = obj.javaClass.getMethod(methodName, t1)
+            if(null==t1) {
+                this.method = methodOf(obj, methodName)!!
+            } else {
+                this.method = obj.javaClass.getMethod(methodName, t1)
+            }
         } catch (e:Exception) {
             UtLogger.error("Methody1:$methodName, $t1\n$e")
             throw e
@@ -220,10 +227,14 @@ class Methody2<T1,T2,R> : Methody<R>, IFuncy2<T1,T2,R> {
         this.obj = obj
         this.method = method
     }
-    constructor(obj:Any, methodName:String, t1:Class<T1>, t2:Class<T2>) {
+    constructor(obj:Any, methodName:String, t1:Class<T1>?=null, t2:Class<T2>?=null) {
         this.obj = obj
         try {
-            this.method = obj.javaClass.getMethod(methodName, t1, t2)
+            if(null==t1||null==t2) {
+                this.method = methodOf(obj, methodName)!!
+            } else {
+                this.method = obj.javaClass.getMethod(methodName, t1, t2)
+            }
         } catch (e:Exception) {
             UtLogger.error("Methody2:$methodName, $t1, $t2\n$e")
             throw e
@@ -256,10 +267,16 @@ class Methody3<T1,T2,T3,R> : Methody<R>, IFuncy3<T1,T2,T3,R> {
         this.obj = obj
         this.method = method
     }
-    constructor(obj:Any, methodName:String, t1:Class<T1>, t2:Class<T2>, t3:Class<T3>) {
+
+    @JvmOverloads
+    constructor(obj:Any, methodName:String, t1:Class<T1>?=null, t2:Class<T2>?=null, t3:Class<T3>?=null) {
         this.obj = obj
         try {
-            this.method = obj.javaClass.getMethod(methodName, t1, t2, t3)
+            if(null==t1||null==t2||null==t3) {
+                this.method = methodOf(obj, methodName)!!
+            } else {
+                this.method = obj.javaClass.getMethod(methodName, t1, t2, t3)
+            }
         } catch (e:Exception) {
             UtLogger.error("Methody3:$methodName, $t1, $t2, $t3\n$e")
             throw e

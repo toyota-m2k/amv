@@ -7,18 +7,13 @@ import android.databinding.DataBindingUtil
 import android.media.MediaPlayer
 import android.media.MediaPlayer.*
 import android.os.Handler
-import android.renderscript.ScriptGroup
 import android.util.AttributeSet
 import android.util.Log
 import android.view.LayoutInflater
 import android.widget.FrameLayout
-import android.widget.LinearLayout
 import android.widget.VideoView
-import com.michael.utils.Funcies
-import com.michael.utils.Funcies2
 import com.michael.utils.UtLogger
 import com.michael.video.databinding.VideoPlayerBinding
-import kotlinx.android.synthetic.main.video_player.view.*
 import java.io.File
 
 class AmvVideoPlayer @JvmOverloads constructor(context: Context, attrs: AttributeSet? = null, defStyleAttr: Int = 0)
@@ -55,7 +50,7 @@ class AmvVideoPlayer @JvmOverloads constructor(context: Context, attrs: Attribut
     private val mLayoutSize : Size = Size(100f, 100f)                 // Layout Hint
     private var mLayoutMode : IAmvVideoPlayer.LayoutMode = IAmvVideoPlayer.LayoutMode.Fit
     private val mPlayerSize : Size = Size(0f,0f)
-    private var mBinding : VideoPlayerBinding
+    private var mBinding : VideoPlayerBinding = DataBindingUtil.inflate(LayoutInflater.from(context), R.layout.video_player, this, true)
     private val mBindingParams = BindingParams()
     private var mAutoPlay : Boolean = false
 
@@ -65,7 +60,6 @@ class AmvVideoPlayer @JvmOverloads constructor(context: Context, attrs: Attribut
      */
     inner class BindingParams : BaseObservable() {
         private var mPlayerState = IAmvVideoPlayer.PlayerState.None
-        private var mErrorMessage : String? = null
 
         @get:Bindable
         val isReady: Boolean
@@ -81,12 +75,19 @@ class AmvVideoPlayer @JvmOverloads constructor(context: Context, attrs: Attribut
             get() = mPlayerState == IAmvVideoPlayer.PlayerState.Error
 
         @get:Bindable
-        val errorMessage: String
-            get() = mErrorMessage?:""
+        var errorMessage: String = ""
+            set(v) {
+                if(field != v) {
+                    field = v
+                    notifyPropertyChanged(BR.errorMessage)
+                }
+            }
 
+        @Suppress("MemberVisibilityCanBePrivate")
         val playerWidth: Float
             get() = mPlayerSize.width
 
+        @Suppress("MemberVisibilityCanBePrivate")
         val playerHeight: Float
             get() =  mPlayerSize.height
 
@@ -94,7 +95,7 @@ class AmvVideoPlayer @JvmOverloads constructor(context: Context, attrs: Attribut
             val lp = videoView.layoutParams
             lp.height = Math.round(playerHeight)
             lp.width = Math.round(playerWidth)
-            videoView.layoutParams = lp;
+            videoView.layoutParams = lp
         }
 
 //        fun updateStatus() {
@@ -106,7 +107,7 @@ class AmvVideoPlayer @JvmOverloads constructor(context: Context, attrs: Attribut
             get() = mPlayerState
             set(state) {
                 if (state != mPlayerState) {
-                    mPlayerState = state;
+                    mPlayerState = state
                     notifyPropertyChanged(BR.ready)
                     notifyPropertyChanged(BR.loading)
                     notifyPropertyChanged(BR.error)
@@ -114,12 +115,6 @@ class AmvVideoPlayer @JvmOverloads constructor(context: Context, attrs: Attribut
                 }
             }
 
-        var error :String?
-            get() = mErrorMessage
-            set(message) {
-                mErrorMessage = message
-                notifyPropertyChanged(BR.errorMessage)
-            }
     }
 
     override val playerState : IAmvVideoPlayer.PlayerState
@@ -128,7 +123,6 @@ class AmvVideoPlayer @JvmOverloads constructor(context: Context, attrs: Attribut
     // Construction
 
     init {
-        mBinding = DataBindingUtil.inflate(LayoutInflater.from(context), R.layout.video_player, this, true)
         // val v = LayoutInflater.from(context).inflate(R.layout.video_player,this)
         mBinding.player.apply {
             setOnPreparedListener {  mp ->
@@ -138,30 +132,28 @@ class AmvVideoPlayer @JvmOverloads constructor(context: Context, attrs: Attribut
                 mVideoSize.width = mp.videoWidth.toFloat()
                 fitSize()
 
-                mBindingParams.error = null
+                mBindingParams.errorMessage = ""
                 mBindingParams.playerState = IAmvVideoPlayer.PlayerState.Paused
 
                 if(mAutoPlay) {
-                    Handler().postDelayed( Runnable {
-                        start()
-                    }, 100)
+                    Handler().postDelayed( {start()}, 100)
                 }
             }
-            setOnCompletionListener {  mp ->
+            setOnCompletionListener {
                 // 動画の最後まで再生が終わった
                 Log.d("Amv", "MediaPlayer Completed.")
                 mBindingParams.playerState = IAmvVideoPlayer.PlayerState.Paused
             }
-            setOnErrorListener { mp, what, extra ->
+            setOnErrorListener { _, what, extra ->
                 // 動画ロード中、または、再生中にエラーが発生した
                 // --> エラー状態にして、これ以降、再生などの操作を禁止する
-                Log.d("Amv", "MediaPlayer Error: what=${what}, extra=${extra}")
+                Log.d("Amv", "MediaPlayer Error: what=$what, extra=$extra")
 //                if(mBindingParams.isLoading) {
 //                    mBindingParams.playerState = IAmvVideoPlayer.PlayerState.None
 //                }
-                mBindingParams.error = when(what) {
+                mBindingParams.errorMessage = when(what) {
                     MEDIA_ERROR_UNKNOWN -> "Unknown error."
-                    MEDIA_ERROR_SERVER_DIED -> "Server error (${extra})."
+                    MEDIA_ERROR_SERVER_DIED -> "Server error ($extra)."
                     MEDIA_ERROR_IO -> "IO Error."
                     MEDIA_ERROR_MALFORMED->"Malformed."
                     MEDIA_ERROR_UNSUPPORTED->"Unsupported."
@@ -172,8 +164,8 @@ class AmvVideoPlayer @JvmOverloads constructor(context: Context, attrs: Attribut
                 mBindingParams.playerState = IAmvVideoPlayer.PlayerState.Error
                 true    // falseを返すと OnCOmpletionが呼ばれる
             }
-            setOnInfoListener { mp, what, extra ->
-                Log.d("Amv", "MediaPlayer Info: what=${what}, extra=${extra}")
+            setOnInfoListener { _, what, extra ->
+                Log.d("Amv", "MediaPlayer Info: what=$what, extra=$extra")
                 false
             }
         }
@@ -191,7 +183,7 @@ class AmvVideoPlayer @JvmOverloads constructor(context: Context, attrs: Attribut
     override fun reset(state: IAmvVideoPlayer.PlayerState) {
         mMediaPlayer?.stop()
         mMediaPlayer = null
-        mBindingParams.error = null
+        mBindingParams.errorMessage = ""
         mBindingParams.playerState = state
     }
 
@@ -260,4 +252,5 @@ class AmvVideoPlayer @JvmOverloads constructor(context: Context, attrs: Attribut
         super.onDetachedFromWindow()
         playerStateChangedListener.clear()
     }
+
 }
