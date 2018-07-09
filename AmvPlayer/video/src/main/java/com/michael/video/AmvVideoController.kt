@@ -161,11 +161,11 @@ class AmvVideoController @JvmOverloads constructor(context: Context, attrs: Attr
      * Sliderの値が変化した
      */
     @Suppress("UNUSED_PARAMETER")
-    fun onSeekBarValueChanged(seekBar: SeekBar, progresValue: Int, fromUser: Boolean) {
+    fun onSeekBarValueChanged(seekBar: SeekBar, progressValue: Int, fromUser: Boolean) {
         if(fromUser) {
-            seekTarget = sliderPos2SeekPos(progresValue)
+            seekTarget = sliderPos2SeekPos(progressValue)
             mPlayer.seekTo(seekTarget)
-            UtLogger.debug("Tracking - Pos = Slider=$progresValue, Seek=${sliderPos2SeekPos(progresValue)}")
+            UtLogger.debug("Tracking - Pos = Slider=$progressValue, Seek=${sliderPos2SeekPos(progressValue)}")
         }
     }
 

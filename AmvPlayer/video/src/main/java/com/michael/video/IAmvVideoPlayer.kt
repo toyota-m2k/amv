@@ -1,8 +1,6 @@
 package com.michael.video
 
 import com.michael.utils.Funcies2
-import com.michael.utils.IFuncy
-import com.michael.utils.IFuncy2
 import java.io.File
 
 interface IAmvVideoPlayer {
@@ -29,7 +27,7 @@ interface IAmvVideoPlayer {
             fun playerStateChanged(vp:IAmvVideoPlayer, state:IAmvVideoPlayer.PlayerState)
         }
         @JvmOverloads
-        fun add(listener:IHandler, name:String?=null) = super.add(null, listener::playerStateChanged)
+        fun add(listener:IHandler, name:String?=null) = super.add(name, listener::playerStateChanged)
         fun remove(listener:IHandler) = this.remove(listener::playerStateChanged)
     }
     val playerStateChangedListener:PlayerStateChangedListener
@@ -39,7 +37,7 @@ interface IAmvVideoPlayer {
             fun seekCompleted(vp:IAmvVideoPlayer, position:Int)
         }
         @JvmOverloads
-        fun add(listener:IHandler, name:String?=null) = super.add(null, listener::seekCompleted)
+        fun add(listener:IHandler, name:String?=null) = super.add(name, listener::seekCompleted)
         fun remove(listener:IHandler) = this.remove(listener::seekCompleted)
     }
     val seekCompletedListener:SeekCompletedListener
