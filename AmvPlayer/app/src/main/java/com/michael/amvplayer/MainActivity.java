@@ -38,7 +38,6 @@ import permissions.dispatcher.RuntimePermissions;
 @RuntimePermissions
 public class MainActivity extends AppCompatActivity {
 
-    public final String Message = "Hoge Fuga";
     MainActivityBinding mBinding = null;
 
     @Override
@@ -96,7 +95,10 @@ public class MainActivity extends AppCompatActivity {
                 if(null!=bundle) {
                     UxFileDialog.Status result = UxFileDialog.Status.unpack(bundle, null);
                     Log.d("Amv", String.format("FileDialog ... select \"%s\"", result.getFileName()));
-                    mBinding.videoPlayer.setSource(result.getFile(), false);
+                    File file = result.getFile();
+                    if(null!=file) {
+                        mBinding.videoPlayer.setSource(file,false);
+                    }
 //                    mBinding.videoPlayer.play();
                 }
                 break;

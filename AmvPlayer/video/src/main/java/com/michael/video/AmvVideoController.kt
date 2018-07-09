@@ -79,7 +79,7 @@ class AmvVideoController @JvmOverloads constructor(context: Context, attrs: Attr
                     notifyPropertyChanged(BR.ready)
                     UtLogger.debug("PlayState: $v")
                     if(v==IAmvVideoPlayer.PlayerState.Playing) {
-                        val startPos = mPlayer.seekPosition;
+                        val startPos = mPlayer.seekPosition
                         UtLogger.debug("Start Playing --> Seek($startPos)")
                         mHandler.post (object : Runnable {
                             override fun run() {
@@ -87,7 +87,7 @@ class AmvVideoController @JvmOverloads constructor(context: Context, attrs: Attr
                                     val seek = mPlayer.seekPosition
                                     if(seek>=seekTarget) {
                                         seekTarget = 0
-                                        val pos = seekPos2SliderPos(seek);
+                                        val pos = seekPos2SliderPos(seek)
                                         UtLogger.debug("Playing Pos --> Slider ($pos), Seek($seek)")
                                         mBinding.slider.progress = pos
                                     }
@@ -140,15 +140,16 @@ class AmvVideoController @JvmOverloads constructor(context: Context, attrs: Attr
         // mBinding.showFramesButton.isSelected = mBindingParams.showingFrames
     }
 
+    @Suppress("unused")
     val seekPosition : Int
         get() = mPlayer.seekPosition
 
-    fun sliderPos2SeekPos(sliderPos:Int) : Int {
+    private fun sliderPos2SeekPos(sliderPos:Int) : Int {
         return (mPlayer.naturalDuration * sliderPos)/1000
     }
 
-    fun seekPos2SliderPos(seekPos:Int) : Int {
-        val nd = mPlayer.naturalDuration;
+    private fun seekPos2SliderPos(seekPos:Int) : Int {
+        val nd = mPlayer.naturalDuration
         return if(nd>0) (1000 * seekPos) / nd else 0
     }
 
@@ -159,6 +160,7 @@ class AmvVideoController @JvmOverloads constructor(context: Context, attrs: Attr
     /**
      * Sliderの値が変化した
      */
+    @Suppress("UNUSED_PARAMETER")
     fun onSeekBarValueChanged(seekBar: SeekBar, progresValue: Int, fromUser: Boolean) {
         if(fromUser) {
             seekTarget = sliderPos2SeekPos(progresValue)
@@ -170,6 +172,7 @@ class AmvVideoController @JvmOverloads constructor(context: Context, attrs: Attr
     /**
      * Sliderのトラッキングが開始される
      */
+    @Suppress("UNUSED_PARAMETER")
     fun onSeekBarStartTracking(bar:SeekBar) {
         pausingOnTracking = mBindingParams.isPlaying
         UtLogger.debug("Tracking - Start (playing = $pausingOnTracking) --> pausing")
@@ -179,6 +182,7 @@ class AmvVideoController @JvmOverloads constructor(context: Context, attrs: Attr
     /**
      * Sliderのトラッキングが終了する
      */
+    @Suppress("UNUSED_PARAMETER")
     fun onSeekBarEndTracking(bar:SeekBar) {
         UtLogger.debug("Tracking - End (restore playing = $pausingOnTracking) <-- pausing")
         if(pausingOnTracking) {
