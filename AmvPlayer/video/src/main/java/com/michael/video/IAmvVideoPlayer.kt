@@ -25,8 +25,7 @@ interface IAmvVideoPlayer {
     // Event listeners
 
     class PlayerStateChangedListener : Funcies2<IAmvVideoPlayer, IAmvVideoPlayer.PlayerState, Unit>() {
-        // Java からも呼び出せるように細工をしておく
-        interface IHandler {
+        interface IHandler {    // for Java
             fun playerStateChanged(vp:IAmvVideoPlayer, state:IAmvVideoPlayer.PlayerState)
         }
         @JvmOverloads
@@ -35,7 +34,21 @@ interface IAmvVideoPlayer {
     }
     val playerStateChangedListener:PlayerStateChangedListener
 
+    class SeekCompletedListener : Funcies2<IAmvVideoPlayer, Int, Unit>() {
+        interface IHandler {    // for Java
+            fun seekCompleted(vp:IAmvVideoPlayer, position:Int)
+        }
+        @JvmOverloads
+        fun add(listener:IHandler, name:String?=null) = super.add(null, listener::seekCompleted)
+        fun remove(listener:IHandler) = this.remove(listener::seekCompleted)
+    }
+    val seekCompletedListener:SeekCompletedListener
+
     val playerState: PlayerState
+
+    val naturalDuration : Int
+
+    val seekPosition : Int
 
     // Operations
 
@@ -52,4 +65,5 @@ interface IAmvVideoPlayer {
     fun pause()
 
     fun seekTo(pos:Int)
+
 }

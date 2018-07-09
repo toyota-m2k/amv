@@ -22,6 +22,8 @@ import com.michael.amvplayer.dialog.UxDlgState;
 import com.michael.amvplayer.dialog.UxFileDialog;
 import com.michael.video.AmvVideoPlayer;
 
+import java.io.File;
+
 import permissions.dispatcher.NeedsPermission;
 import permissions.dispatcher.OnNeverAskAgain;
 import permissions.dispatcher.OnPermissionDenied;
@@ -50,6 +52,9 @@ public class MainActivity extends AppCompatActivity {
         mBinding.videoController.setVideoPlayer(mBinding.videoPlayer);
 
         UxDialogViewModel viewModel = ViewModelProviders.of(this).get(UxDialogViewModel.class);
+
+
+        mBinding.videoPlayer.setSource(new File("a.mp4"), false);
 
         viewModel.getState().observe(this, new Observer<UxDialogViewModel.State>() {
 

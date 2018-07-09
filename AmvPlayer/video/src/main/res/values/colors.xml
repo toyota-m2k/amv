@@ -2,4 +2,6 @@
 <resources>
     <color name="button_face">#e8e8e8</color>
     <color name="button_face_pressed">#c0c0c0</color>
+    <color name="button_text_normal">#000000</color>color>
+    <color name="button_text_highlight">#80acff</color>color>
 </resources>

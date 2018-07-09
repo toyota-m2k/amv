@@ -12,10 +12,14 @@
     </data>
 
     <android.support.constraint.ConstraintLayout
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content">
+        android:layout_width="325dp"
+        android:minWidth="325dp"
+        android:layout_height="wrap_content"
+        android:background="@color/button_face"
+        >
 
         <LinearLayout
+            android:id="@+id/buttons"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             app:layout_constraintLeft_toLeftOf="parent"
@@ -25,20 +29,23 @@
             >
             <ImageButton
                 android:id="@+id/playButton"
-                android:layout_width="40dp"
-                android:layout_height="40dp"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:padding="2dp"
                 android:scaleType="fitXY"
                 tools:srcCompat="@drawable/ic_play"
                 app:srcCompat="@{params.isPlaying ? R.drawable.ic_pause : R.drawable.ic_play}"
                 android:contentDescription="@{params.isPlaying ? @string/stop : @string/play}"
                 android:onClick="@{handlers.onPlayClicked}"
+                android:alpha="@{params.isReady ? 255 : 80 }"
+                android:clickable="@{params.isReady}"
                 android:background="?android:selectableItemBackground"
                 />
             <ImageButton
                 android:id="@+id/backButton"
-                android:layout_width="40dp"
-                android:layout_height="40dp"
-                android:padding="2dp"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:padding="0dp"
                 android:scaleType="fitXY"
                 app:srcCompat="@drawable/ic_back"
                 android:contentDescription="@string/back"
@@ -49,9 +56,9 @@
 
             <ImageButton
                 android:id="@+id/forwardButton"
-                android:layout_width="40dp"
-                android:layout_height="40dp"
-                android:padding="2dp"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:padding="0dp"
                 android:scaleType="fitXY"
                 app:srcCompat="@drawable/ic_forward"
                 android:contentDescription="@string/next"
@@ -62,17 +69,19 @@
 
             <ImageButton
                 android:id="@+id/markButton"
-                android:layout_width="40dp"
-                android:layout_height="40dp"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
                 android:padding="8dp"
                 android:scaleType="fitXY"
                 app:srcCompat="@drawable/ic_add_marker"
+                android:alpha="@{params.isReadOnly ? 255 : 80 }"
+                android:clickable="@{params.isReadOnly}"
                 android:background="?android:selectableItemBackground"
                 android:contentDescription="@string/add_marker" />
             <ImageButton
                 android:id="@+id/pinpButton"
-                android:layout_width="40dp"
-                android:layout_height="40dp"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
                 android:padding="8dp"
                 android:scaleType="fitXY"
                 app:srcCompat="@drawable/ic_pinp"
@@ -80,8 +89,8 @@
                 android:contentDescription="@string/pinp" />
             <ImageButton
                 android:id="@+id/fullscreenButton"
-                android:layout_width="40dp"
-                android:layout_height="40dp"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
                 android:padding="8dp"
                 android:scaleType="fitXY"
                 app:srcCompat="@drawable/ic_expand"
@@ -90,15 +99,33 @@
         </LinearLayout>
         <ImageButton
             android:id="@+id/showFramesButton"
-            android:layout_width="40dp"
-            android:layout_height="40dp"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
             android:padding="8dp"
             android:scaleType="fitXY"
             app:srcCompat="@drawable/ic_film"
             android:background="?android:selectableItemBackground"
             android:contentDescription="@string/fullscreen"
+            android:onClick="@{handlers.onShowFramesClick}"
+            android:tint="@color/frame_list_button_color"
+            android:selected="@{params.showingFrames}"
             app:layout_constraintRight_toRightOf="parent"
             app:layout_constraintTop_toTopOf="parent"
             />
+        <SeekBar
+            android:id="@+id/slider"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:progressDrawable="@drawable/slider_bg"
+            android:thumb="@drawable/slider_thumb"
+            android:onProgressChanged="@{handlers.onSeekBarValueChanged}"
+            android:onStartTrackingTouch="@{handlers.onSeekBarStartTracking}"
+            android:onStopTrackingTouch="@{handlers.onSeekBarEndTracking}"
+            android:max="1000"
+            app:layout_constraintLeft_toLeftOf="parent"
+            app:layout_constraintRight_toRightOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/buttons"
+            />
+
     </android.support.constraint.ConstraintLayout>
 </layout>

@@ -26,6 +26,8 @@ class AmvVideoPlayer @JvmOverloads constructor(context: Context, attrs: Attribut
      */
     override val playerStateChangedListener = IAmvVideoPlayer.PlayerStateChangedListener()
 
+    override val seekCompletedListener= IAmvVideoPlayer.SeekCompletedListener()
+
     // Public Properties
     val videoView : VideoView
         get() = mBinding.player
@@ -53,7 +55,6 @@ class AmvVideoPlayer @JvmOverloads constructor(context: Context, attrs: Attribut
     private var mBinding : VideoPlayerBinding = DataBindingUtil.inflate(LayoutInflater.from(context), R.layout.video_player, this, true)
     private val mBindingParams = BindingParams()
     private var mAutoPlay : Boolean = false
-
 
     /**
      * Binding Data
@@ -120,6 +121,12 @@ class AmvVideoPlayer @JvmOverloads constructor(context: Context, attrs: Attribut
     override val playerState : IAmvVideoPlayer.PlayerState
         get() = mBindingParams.playerState
 
+
+    override var naturalDuration: Int = 0
+
+    override val seekPosition: Int
+        get() = mBinding.player.currentPosition
+
     // Construction
 
     init {
@@ -128,12 +135,20 @@ class AmvVideoPlayer @JvmOverloads constructor(context: Context, attrs: Attribut
             setOnPreparedListener {  mp ->
                 // 動画がロードされた
                 mMediaPlayer = mp
+                naturalDuration = mp.duration
                 mVideoSize.height = mp.videoHeight.toFloat()
                 mVideoSize.width = mp.videoWidth.toFloat()
                 fitSize()
 
+                mp.setOnSeekCompleteListener {
+                    val pos = it.currentPosition
+                    UtLogger.debug("SeekCompleted: $pos")
+                    seekCompletedListener.invoke(this@AmvVideoPlayer, pos)
+                }
+
                 mBindingParams.errorMessage = ""
                 mBindingParams.playerState = IAmvVideoPlayer.PlayerState.Paused
+
 
                 if(mAutoPlay) {
                     Handler().postDelayed( {start()}, 100)
