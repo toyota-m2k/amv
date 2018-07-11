@@ -299,7 +299,7 @@ class Methody3<T1,T2,T3,R> : Methody<R>, IFuncy3<T1,T2,T3,R> {
  * Funcyたちを一束にして扱うためのコンテナの基底クラス
  * イベントリスナーなどとして使うことを想定
  */
-abstract class Funcies<R> {
+abstract class Funcies<R> : IFuncy<Unit> {
 
     data class NamedFunc<R>(val name:String?, val funcy:IFuncy<R>)
 
@@ -321,10 +321,14 @@ abstract class Funcies<R> {
         mArray.clear()
     }
 
-    fun invoke_(vararg args:Any?) {
+    override fun invoke_(vararg args:Any?) {
         for(f in mArray) {
             f.funcy.invoke_(*args)
         }
+    }
+
+    override fun compare(other: Any?): Boolean {
+        return other is Funcies<*> && other == this
     }
 
     fun invokeWithPredicate_(predicate:(R)->Boolean, vararg args:Any?) {
@@ -340,13 +344,13 @@ abstract class Funcies<R> {
  * 引数のないFuncyたちのコンテナ
  */
 @Suppress("unused")
-open class Funcies0<R:Any?> : Funcies<R>() {
+open class Funcies0<R:Any?> : Funcies<R>(), IFuncy0<Unit> {
     fun add(name:String?, f:()->R) : IFuncy0<R> {
         return Funcy0(f).apply {
             super.add(name, this)
         }
     }
-    fun invoke() {
+    override fun invoke() {
         invoke_()
     }
 
@@ -359,14 +363,14 @@ open class Funcies0<R:Any?> : Funcies<R>() {
  * 引数１個のFuncyたちのコンテナ
  */
 @Suppress("unused")
-open class Funcies1<T1:Any?, R:Any?> : Funcies<R>() {
+open class Funcies1<T1:Any?, R:Any?> : Funcies<R>(), IFuncy1<T1,Unit> {
     fun add(name:String?, f:(T1)->R) : IFuncy1<T1,R> {
         return Funcy1(f).apply {
             add(name, this)
         }
     }
-    fun invoke(p1:T1) {
-        invoke_(p1)
+    override fun invoke(p:T1) {
+        invoke_(p)
     }
 
     fun invokeWithPredicate(p1:T1, predicate:(R)->Boolean) {
@@ -378,13 +382,13 @@ open class Funcies1<T1:Any?, R:Any?> : Funcies<R>() {
  * 引数２個のFuncyたちのコンテナ
  */
 @Suppress("unused")
-open class Funcies2<T1:Any?, T2:Any?, R:Any?> : Funcies<R>() {
+open class Funcies2<T1:Any?, T2:Any?, R:Any?> : Funcies<R>(), IFuncy2<T1,T2,Unit> {
     fun add(name:String?, f:(T1, T2)->R) : IFuncy2<T1,T2,R> {
         return Funcy2(f).apply {
             add(name, this)
         }
     }
-    fun invoke(p1:T1, p2:T2) {
+    override fun invoke(p1:T1, p2:T2) {
         invoke_(p1, p2)
     }
 
@@ -397,13 +401,13 @@ open class Funcies2<T1:Any?, T2:Any?, R:Any?> : Funcies<R>() {
  * 引数３個のFuncyたちのコンテナ
  */
 @Suppress("unused")
-open class Funcies3<T1:Any?, T2:Any?, T3:Any?, R:Any?> : Funcies<R>() {
+open class Funcies3<T1:Any?, T2:Any?, T3:Any?, R:Any?> : Funcies<R>(), IFuncy3<T1,T2,T3,Unit> {
     fun add(name:String?, f:(T1, T2, T3)->R) : IFuncy3<T1,T2,T3,R> {
         return Funcy3(f).apply {
             add(name, this)
         }
     }
-    fun invoke(p1:T1, p2:T2, p3:T3) {
+    override fun invoke(p1:T1, p2:T2, p3:T3) {
         invoke_(p1, p2, p3)
     }
 

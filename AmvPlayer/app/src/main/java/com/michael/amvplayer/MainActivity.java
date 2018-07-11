@@ -21,6 +21,7 @@ import com.michael.amvplayer.dialog.UxDialogViewModel;
 import com.michael.amvplayer.dialog.UxDlgState;
 import com.michael.amvplayer.dialog.UxFileDialog;
 import com.michael.video.AmvVideoPlayer;
+import com.michael.video.FitMode;
 
 import java.io.File;
 
@@ -47,13 +48,13 @@ public class MainActivity extends AppCompatActivity {
         mBinding = DataBindingUtil.setContentView(this, R.layout.main_activity);
         mBinding.setLifecycleOwner(this);
         mBinding.setMainActivity(this);
-        mBinding.videoPlayer.setLayoutHint(AmvVideoPlayer.LayoutMode.Inside, 1000, 1000);
+        mBinding.videoPlayer.setLayoutHint(FitMode.Inside, 1000, 1000);
         mBinding.videoController.setVideoPlayer(mBinding.videoPlayer);
 
         UxDialogViewModel viewModel = ViewModelProviders.of(this).get(UxDialogViewModel.class);
 
 
-        mBinding.videoPlayer.setSource(new File("a.mp4"), false);
+        mBinding.videoPlayer.setSource(new File("/storage/emulated/0/Download/b.mp4"), false);
 
         viewModel.getState().observe(this, new Observer<UxDialogViewModel.State>() {
 

@@ -6,8 +6,7 @@ import org.m4m.MediaComposer
 import org.m4m.android.AndroidMediaObjectFactory
 import java.lang.Exception
 
-
-class FrameExtractor {
+class AmvTranscoder {
     fun hoge(context: Context) : Any? {
         val factory = AndroidMediaObjectFactory(context)
         val listener = object : IProgressListener {
@@ -36,7 +35,7 @@ class FrameExtractor {
             }
 
         }
-        val a = MediaComposer(factory, listener);
-        return a;
+        val a = MediaComposer(factory, listener)
+        return a
     }
 }

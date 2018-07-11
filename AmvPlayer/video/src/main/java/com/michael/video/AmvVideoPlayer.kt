@@ -9,6 +9,7 @@ import android.media.MediaPlayer.*
 import android.os.Handler
 import android.util.AttributeSet
 import android.util.Log
+//import android.util.SizeF
 import android.view.LayoutInflater
 import android.widget.FrameLayout
 import android.widget.VideoView
@@ -28,33 +29,22 @@ class AmvVideoPlayer @JvmOverloads constructor(context: Context, attrs: Attribut
 
     override val seekCompletedListener= IAmvVideoPlayer.SeekCompletedListener()
 
+    override val sourceChangedListener = IAmvVideoPlayer.SourceChangedListener()
+
+    override val sizeChangedListener = IAmvVideoPlayer.SizeChangedListener()
+
     // Public Properties
     val videoView : VideoView
         get() = mBinding.player
 
-    /**
-     * MutableなSize型（内部利用専用）
-     */
-    private data class Size (var width:Float=0f, var height:Float=0f) {
-        fun copyFrom(s:Size) {
-            width = s.width
-            height = s.height
-        }
-        fun set(width:Float, height:Float) {
-            this.width = width
-            this.height = height
-        }
-    }
-
     // Private Properties
     private var mMediaPlayer: MediaPlayer? = null
-    private val mVideoSize : Size = Size(100f, 100f)                  // 動画のNatural Size
-    private val mLayoutSize : Size = Size(100f, 100f)                 // Layout Hint
-    private var mLayoutMode : IAmvVideoPlayer.LayoutMode = IAmvVideoPlayer.LayoutMode.Fit
-    private val mPlayerSize : Size = Size(0f,0f)
+    private val mVideoSize = MuSize(100f, 100f)                  // 動画のNatural Size
+    private val mPlayerSize = MuSize(0f,0f)                      // VideoView のサイズ
+    private val mFitter = AmvFitter()
     private var mBinding : VideoPlayerBinding = DataBindingUtil.inflate(LayoutInflater.from(context), R.layout.video_player, this, true)
     private val mBindingParams = BindingParams()
-    private var mAutoPlay : Boolean = false
+    private var mAutoPlay = false
 
     /**
      * Binding Data
@@ -188,10 +178,8 @@ class AmvVideoPlayer @JvmOverloads constructor(context: Context, attrs: Attribut
 
     // IAmvVideoPlayer i/f
 
-    override fun setLayoutHint(mode: IAmvVideoPlayer.LayoutMode, width:Float, height:Float) {
-        mLayoutMode = mode
-        mLayoutSize.width = width
-        mLayoutSize.height = height
+    override fun setLayoutHint(mode: FitMode, width:Float, height:Float) {
+        mFitter.setHint(mode, width, height)
     }
 
 
@@ -206,6 +194,7 @@ class AmvVideoPlayer @JvmOverloads constructor(context: Context, attrs: Attribut
         reset(IAmvVideoPlayer.PlayerState.Loading)
         mAutoPlay = autoPlay
         videoView.setVideoPath(source.path)
+        sourceChangedListener.invoke(this, source)
     }
 
     override fun play() {
@@ -236,24 +225,7 @@ class AmvVideoPlayer @JvmOverloads constructor(context: Context, attrs: Attribut
     // Privates
 
     private fun fitSize() {
-        try {
-            when (mLayoutMode) {
-                IAmvVideoPlayer.LayoutMode.Fit -> mPlayerSize.copyFrom(mLayoutSize)
-                IAmvVideoPlayer.LayoutMode.Width -> mPlayerSize.set(mLayoutSize.width, mVideoSize.height * mLayoutSize.width / mVideoSize.width)
-                IAmvVideoPlayer.LayoutMode.Height -> mPlayerSize.set(mVideoSize.width * mLayoutSize.height / mVideoSize.height, mLayoutSize.height)
-                IAmvVideoPlayer.LayoutMode.Inside -> {
-                   val rw = mLayoutSize.width / mVideoSize.width
-                    val rh = mLayoutSize.height / mVideoSize.height
-                    if (rw < rh) {
-                        mPlayerSize.set(mLayoutSize.width, mVideoSize.height * rw)
-                    } else {
-                        mPlayerSize.set(mVideoSize.width * rh, mLayoutSize.height)
-                    }
-                }
-            }
-        } catch(e:Exception) {
-            mPlayerSize.set(0f,0f)
-        }
+        mFitter.fit(mVideoSize, mPlayerSize)
         mBindingParams.updateLayout()
     }
 
@@ -268,4 +240,8 @@ class AmvVideoPlayer @JvmOverloads constructor(context: Context, attrs: Attribut
         playerStateChangedListener.clear()
     }
 
+    override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
+        super.onSizeChanged(w, h, oldw, oldh)
+        sizeChangedListener.invoke(this, w, h)
+    }
 }

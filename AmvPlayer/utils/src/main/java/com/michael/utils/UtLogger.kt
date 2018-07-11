@@ -35,6 +35,15 @@ class UtLogger(val tag:String) {
         fun verbose(s: String, vararg args: Any?) {
             instance.print(Log.VERBOSE, s, *args)
         }
+
+        @JvmStatic
+        fun assert(chk:Boolean, msg:String?) {
+            if(!chk) {
+                if(null!=msg) {
+                    error(msg)
+                }
+            }
+        }
     }
 
     private fun printToSystemOut(tag: String, s: String): Int {

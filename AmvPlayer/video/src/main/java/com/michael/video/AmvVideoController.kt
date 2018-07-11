@@ -19,12 +19,25 @@ import com.michael.utils.UtLogger
 class AmvVideoController @JvmOverloads constructor(context: Context, attrs: AttributeSet? = null, defStyleAttr: Int = 0)
     : ConstraintLayout(context,attrs,defStyleAttr), IAmvVideoController {
 
+    // Constants
+    private val cFRAME_COUNT = 10            // フレームサムネイルの数
+    private val cFRAME_HEIGHT = 160f         // フレームサムネイルの高さ(dp)
+
     companion object {
         @JvmStatic
         @BindingAdapter("srcCompat")
         fun srcCompat(view: ImageButton, resourceId: Int) {
             view.setImageResource(resourceId)
         }
+
+//        @JvmStatic
+//        @BindingAdapter("android:layout_width")
+//        fun setLayoutWidth(view: View, width:Int) {
+//            val params = view.layoutParams
+//            params.width = width
+//            view.layoutParams = params
+//        }
+
     }
 
     private var mBinding : VideoControllerBinding = DataBindingUtil.inflate(LayoutInflater.from(context), R.layout.video_controller, this, true)
@@ -71,6 +84,19 @@ class AmvVideoController @JvmOverloads constructor(context: Context, attrs: Attr
                 }
             }
 
+        @get:Bindable
+        val minControllerWidth : Int = 325
+
+//        @get:Bindable
+//        var controllerWidth : Int = minControllerWidth
+//            set(v) {
+//                val w = if(v<minControllerWidth) minControllerWidth else v
+//                if(field != w) {
+//                    field = w
+//                    notifyPropertyChanged(BR.controllerWidth)
+//                }
+//            }
+
         var playerState:IAmvVideoPlayer.PlayerState = IAmvVideoPlayer.PlayerState.None
             set(v) {
                 if(field != v) {
@@ -90,6 +116,7 @@ class AmvVideoController @JvmOverloads constructor(context: Context, attrs: Attr
                                         val pos = seekPos2SliderPos(seek)
                                         UtLogger.debug("Playing Pos --> Slider ($pos), Seek($seek)")
                                         mBinding.slider.progress = pos
+                                        mBinding.frameList.position = pos
                                     }
                                 }
                                 if(playerState==IAmvVideoPlayer.PlayerState.Playing) {
@@ -116,6 +143,33 @@ class AmvVideoController @JvmOverloads constructor(context: Context, attrs: Attr
         mBindingParams.playerState = player.playerState
         mPlayer.playerStateChangedListener.add("videoController") { _, state ->
             mBindingParams.playerState = state
+        }
+        mPlayer.sizeChangedListener.add("videoController") { _, width, _ ->
+            // Bindingすると、どうしてもエラーになるので、直接変更
+            mBinding.controllerRoot.setLayoutWidth(width)
+            mBinding.frameList.setLayoutWidth(width)
+        }
+
+        mPlayer.sourceChangedListener.add("videoController") {_,source ->
+
+            AmvFrameExtractor().apply {
+                setSizingHint(FitMode.Height, 0f, cFRAME_HEIGHT)
+                onVideoInfoRetrievedListener.add(null) {
+                    UtLogger.debug("AmvFrameExtractor:duration=${it.duration} / ${it.videoSize}")
+                    val thumbnailSize = it.thumbnailSize
+                    mBinding.frameList.prepare(cFRAME_COUNT, thumbnailSize.width, thumbnailSize.height)
+                }
+                onThumbnailRetrievedListener.add( null) {_, index, bmp ->
+                    UtLogger.debug("AmvFrameExtractor:Bitmap($index): width=${bmp.width}, height=${bmp.height}")
+                    mBinding.frameList.add(bmp)
+                }
+                onFinishedListener.add(null) {_,_->
+                    onVideoInfoRetrievedListener.clear()
+                    onThumbnailRetrievedListener.clear()
+                    onFinishedListener.clear()
+                }
+                extract(source, cFRAME_COUNT)
+            }
         }
     }
 
@@ -163,6 +217,7 @@ class AmvVideoController @JvmOverloads constructor(context: Context, attrs: Attr
     @Suppress("UNUSED_PARAMETER")
     fun onSeekBarValueChanged(seekBar: SeekBar, progressValue: Int, fromUser: Boolean) {
         if(fromUser) {
+            mBinding.frameList.position = progressValue
             seekTarget = sliderPos2SeekPos(progressValue)
             mPlayer.seekTo(seekTarget)
             UtLogger.debug("Tracking - Pos = Slider=$progressValue, Seek=${sliderPos2SeekPos(progressValue)}")

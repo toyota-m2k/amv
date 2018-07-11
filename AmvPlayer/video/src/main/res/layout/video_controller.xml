@@ -12,8 +12,9 @@
     </data>
 
     <android.support.constraint.ConstraintLayout
-        android:layout_width="325dp"
-        android:minWidth="325dp"
+        android:id="@+id/controllerRoot"
+        android:layout_width="350dp"
+        android:minWidth="@{params.minControllerWidth}"
         android:layout_height="wrap_content"
         android:background="@color/button_face"
         >
@@ -125,6 +126,13 @@
             app:layout_constraintLeft_toLeftOf="parent"
             app:layout_constraintRight_toRightOf="parent"
             app:layout_constraintTop_toBottomOf="@id/buttons"
+            />
+        <com.michael.video.AmvFrameListView
+            android:id="@+id/frameList"
+            android:layout_width="350dp"
+            android:layout_height="wrap_content"
+            app:layout_constraintLeft_toLeftOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/slider"
             />
 
     </android.support.constraint.ConstraintLayout>
