@@ -60,6 +60,9 @@ dependencies {
     implementation 'org.parceler:parceler-api:1.1.10'
     kapt "org.parceler:parceler:1.1.10"
     implementation project(path: ':utils')
+
+    // Blurry
+    implementation 'jp.wasabeef:blurry:2.1.1'
 }
 
 repositories {

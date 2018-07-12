@@ -6,6 +6,7 @@ import android.databinding.Bindable
 import android.databinding.BindingAdapter
 import android.databinding.DataBindingUtil
 import android.os.Handler
+import android.os.Parcelable
 import android.support.constraint.ConstraintLayout
 import android.util.AttributeSet
 import android.view.LayoutInflater
@@ -244,5 +245,9 @@ class AmvVideoController @JvmOverloads constructor(context: Context, attrs: Attr
             mPlayer.play()
             pausingOnTracking = false
         }
+    }
+
+    override fun onSaveInstanceState(): Parcelable {
+        return super.onSaveInstanceState()
     }
 }

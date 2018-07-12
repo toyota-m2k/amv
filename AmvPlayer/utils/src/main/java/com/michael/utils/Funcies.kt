@@ -60,7 +60,7 @@ interface IFuncy1<T:Any?,R:Any?> : IFuncy<R> {
 /**
  * 引数１個のKotlin関数リテラル
  */
-class Funcy1<T:Any?,R:Any?>(override val func: (T)->R) : Funcy<R>(), IFuncy1<T,R> {
+open class Funcy1<T:Any?,R:Any?>(override val func: (T)->R) : Funcy<R>(), IFuncy1<T,R> {
     override fun invoke(p:T) : R {
         return func(p)
     }
@@ -81,7 +81,7 @@ interface IFuncy2<T1:Any?,T2:Any?,R:Any?> : IFuncy<R> {
 /**
  * 引数２個のKotlin関数リテラル
  */
-class Funcy2<T1:Any?, T2:Any?, R:Any?>(override val func:(T1, T2)->R) : Funcy<R>(), IFuncy2<T1,T2,R> {
+open class Funcy2<T1:Any?, T2:Any?, R:Any?>(override val func:(T1, T2)->R) : Funcy<R>(), IFuncy2<T1,T2,R> {
     override fun invoke(p1:T1, p2:T2) : R {
         return func(p1,p2)
     }
@@ -102,7 +102,7 @@ interface IFuncy3<T1:Any?,T2:Any?,T3:Any?,R:Any?> : IFuncy<R> {
 /**
  * 引数３個のKotlin関数リテラル
  */
-class Funcy3<T1:Any?, T2:Any?, T3:Any?, R:Any?>(override val func: (T1, T2, T3)->R) : Funcy<R>(), IFuncy3<T1,T2,T3,R> {
+open class Funcy3<T1:Any?, T2:Any?, T3:Any?, R:Any?>(override val func: (T1, T2, T3)->R) : Funcy<R>(), IFuncy3<T1,T2,T3,R> {
     override fun invoke(p1:T1, p2:T2, p3:T3) : R {
         return func(p1,p2,p3)
     }
@@ -415,3 +415,36 @@ open class Funcies3<T1:Any?, T2:Any?, T3:Any?, R:Any?> : Funcies<R>(), IFuncy3<T
         invokeWithPredicate_(predicate, p1, p2, p3)
     }
 }
+
+
+/**
+ * 高々１つのリスナーを登録するだけの場合、Funcies を使う必要はないので、簡素化したクラスも用意しておく
+ */
+open class FuncyListener0<R> {
+    var funcy : Funcy0<R>? = null
+    fun set(listener:()->R) { funcy = Funcy0(listener) }
+    fun reset() {funcy = null }
+    fun invoke() : R?  = funcy?.invoke()
+}
+
+open class FuncyListener1<T1,R> {
+    var funcy : Funcy1<T1,R>? = null
+    fun set(listener:(T1)->R) { funcy = Funcy1(listener) }
+    fun reset() {funcy = null }
+    fun invoke(p1:T1) : R? = funcy?.invoke(p1)
+}
+
+open class FuncyListener2<T1,T2,R> {
+    var funcy : Funcy2<T1,T2,R>? = null
+    fun set(listener:(T1,T2)->R) { funcy = Funcy2(listener) }
+    fun reset() {funcy = null }
+    fun invoke(p1:T1, p2:T2) : R? = funcy?.invoke(p1, p2)
+}
+
+open class FuncyListener3<T1,T2,T3,R> {
+    var funcy : Funcy3<T1,T2,T3,R>? = null
+    fun set(listener:(T1,T2,T3)->R) { funcy = Funcy3(listener) }
+    fun reset() {funcy = null }
+    fun invoke(p1:T1, p2:T2, p3:T3) : R? = funcy?.invoke(p1, p2, p3)
+}
+

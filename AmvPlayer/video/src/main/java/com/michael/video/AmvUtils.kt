@@ -1,9 +1,12 @@
 package com.michael.video
 
+import android.content.Context
+import android.graphics.RectF
 import android.util.Size
 import android.util.SizeF
 import android.view.View
 import android.view.ViewGroup
+import kotlin.math.roundToInt
 
 /**
  * MutableなSize型
@@ -39,6 +42,8 @@ data class MuSize(var height: Float, var width: Float) {
         get() = width==0f && height==0f
 }
 
+
+
 fun View.setLayoutWidth(width:Int) {
     val params = layoutParams
     if(null!=params) {
@@ -62,4 +67,12 @@ fun View.setMargin(left:Int, top:Int, right:Int, bottom:Int) {
         layoutParams = p
     }
 
+}
+
+fun Context.dp2px(dp:Float) : Float {
+    return resources.displayMetrics.density * dp
+}
+
+fun Context.dp2px(dp:Int) : Int {
+    return (resources.displayMetrics.density * dp).roundToInt()
 }
