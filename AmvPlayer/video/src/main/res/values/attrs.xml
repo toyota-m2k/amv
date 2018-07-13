@@ -3,6 +3,8 @@
     <declare-styleable name="AmvSlider">
         <!-- 動作モード: true: トリミング用 / false: 通常のスライダー-->
         <attr name="trimmingMode" format="boolean"/>
+        <!-- レールを端から端まで引っ張るモード・・・trimmingMode=false の場合のみ有効：デフォルトは on -->
+        <attr name="endToEndRail" format="boolean"/>
 
         <!-- Drawables -->
         <attr name="thumb" format="integer"/>           <!-- 再生位置操作用 -->
@@ -24,7 +26,7 @@
         <attr name="railOffset" format="dimension"/>        <!-- レール（デフォルト：再生ノブの下端合わせ...thumbOffset+thumb.intrinsicHeight）-->
         <attr name="trimmerOffset" format="dimension"/>     <!-- トリミングノブ（デフォルト：レールの下端合わせ...railOffset+max(rail.?Height) -->
 
-        <attr name="totalLength" format="integer"/>
+        <attr name="valueRange" format="integer"/>
 
     </declare-styleable>
 

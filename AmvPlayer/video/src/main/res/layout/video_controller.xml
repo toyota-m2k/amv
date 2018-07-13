@@ -147,7 +147,7 @@
                 android:layout_height="wrap_content"
                 app:trimmingMode="false"
                 android:background="#004444"
-                app:totalLength="10000"
+                app:valueRange="3210"
                 />
             <com.michael.video.AmvSlider
                 android:id="@+id/trimmer"
@@ -155,7 +155,7 @@
                 android:layout_height="wrap_content"
                 app:trimmingMode="true"
                 android:background="#440044"
-                app:totalLength="10000"
+                app:valueRange="12345"
                 />
 
         </LinearLayout>
