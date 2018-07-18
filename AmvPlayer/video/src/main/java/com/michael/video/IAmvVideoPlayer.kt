@@ -15,15 +15,6 @@ interface IAmvVideoPlayer {
     }
 
     // Event listener class
-    class PlayerStateChangedListener : Funcies2<IAmvVideoPlayer, IAmvVideoPlayer.PlayerState, Unit>() {
-        interface IHandler {    // for Java
-            fun playerStateChanged(vp:IAmvVideoPlayer, state:IAmvVideoPlayer.PlayerState)
-        }
-        @JvmOverloads
-        fun add(listener:IHandler, name:String?=null) = super.add(name, listener::playerStateChanged)
-        fun remove(listener:IHandler) = this.remove(listener::playerStateChanged)
-    }
-
     class SourceChangedListener : Funcies2<IAmvVideoPlayer, File, Unit>() {
         interface IHandler {    // for Java
             fun sourceChanged(vp:IAmvVideoPlayer, source:File)
@@ -33,14 +24,33 @@ interface IAmvVideoPlayer {
         fun remove(listener:IHandler) = this.remove(listener::sourceChanged)
     }
 
-    class SeekCompletedListener : Funcies2<IAmvVideoPlayer, Int, Unit>() {
+    class VideoPreparedListener : Funcies2<IAmvVideoPlayer, Long, Unit>() {
         interface IHandler {    // for Java
-            fun seekCompleted(vp:IAmvVideoPlayer, position:Int)
+            fun videoPrepared(vp:IAmvVideoPlayer, duration:Long)
+        }
+        @JvmOverloads
+        fun add(listener:IHandler, name:String?=null) = super.add(name, listener::videoPrepared)
+        fun remove(listener:IHandler) = this.remove(listener::videoPrepared)
+    }
+
+    class PlayerStateChangedListener : Funcies2<IAmvVideoPlayer, IAmvVideoPlayer.PlayerState, Unit>() {
+        interface IHandler {    // for Java
+            fun playerStateChanged(vp:IAmvVideoPlayer, state:IAmvVideoPlayer.PlayerState)
+        }
+        @JvmOverloads
+        fun add(listener:IHandler, name:String?=null) = super.add(name, listener::playerStateChanged)
+        fun remove(listener:IHandler) = this.remove(listener::playerStateChanged)
+    }
+
+    class SeekCompletedListener : Funcies2<IAmvVideoPlayer, Long, Unit>() {
+        interface IHandler {    // for Java
+            fun seekCompleted(vp:IAmvVideoPlayer, position:Long)
         }
         @JvmOverloads
         fun add(listener:IHandler, name:String?=null) = super.add(name, listener::seekCompleted)
         fun remove(listener:IHandler) = this.remove(listener::seekCompleted)
     }
+
     class SizeChangedListener : Funcies3<IAmvVideoPlayer, Int, Int, Unit>() {
         interface IHandler {    // for Java
             fun sizeChanged(vp:IAmvVideoPlayer, width:Int, height:Int)
@@ -51,16 +61,17 @@ interface IAmvVideoPlayer {
     }
 
     // Event Listener
-    val playerStateChangedListener: PlayerStateChangedListener
     val sourceChangedListener : SourceChangedListener
+    val videoPreparedListener : VideoPreparedListener
+    val playerStateChangedListener: PlayerStateChangedListener
     val seekCompletedListener:SeekCompletedListener
     val sizeChangedListener: SizeChangedListener
 
     val playerState: PlayerState
 
-    val naturalDuration : Int
+    val naturalDuration : Long
 
-    val seekPosition : Int
+    val seekPosition : Long
 
     // Operations
 
@@ -68,7 +79,7 @@ interface IAmvVideoPlayer {
 
     fun reset(state: IAmvVideoPlayer.PlayerState = IAmvVideoPlayer.PlayerState.None)
 
-    fun setSource(source: File, autoPlay:Boolean=false)
+    fun setSource(source: File, autoPlay:Boolean=false, playFrom:Long)
 
     fun play()
 
@@ -76,6 +87,6 @@ interface IAmvVideoPlayer {
 
     fun pause()
 
-    fun seekTo(pos:Int)
+    fun seekTo(pos:Long)
 
 }

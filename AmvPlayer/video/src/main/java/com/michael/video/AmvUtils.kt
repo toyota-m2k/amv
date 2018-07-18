@@ -52,11 +52,27 @@ fun View.setLayoutWidth(width:Int) {
     }
 }
 
+fun View.getLayoutWidth() : Int {
+    return if(layoutParams.width>=0) {
+        layoutParams.width
+    } else {
+        width
+    }
+}
+
 fun View.setLayoutHeight(height:Int) {
     val params = layoutParams
     if(null!=params) {
         params.height = height
         layoutParams = params
+    }
+}
+
+fun View.getLayoutHeight() : Int {
+    return if(layoutParams.height>=0) {
+        layoutParams.height
+    } else {
+        width
     }
 }
 

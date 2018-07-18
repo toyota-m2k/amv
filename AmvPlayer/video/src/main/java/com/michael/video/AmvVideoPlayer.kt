@@ -7,14 +7,18 @@ import android.databinding.DataBindingUtil
 import android.media.MediaPlayer
 import android.media.MediaPlayer.*
 import android.os.Handler
+import android.os.Parcel
+import android.os.Parcelable
 import android.util.AttributeSet
 import android.util.Log
 //import android.util.SizeF
 import android.view.LayoutInflater
+import android.view.View
 import android.widget.FrameLayout
 import android.widget.VideoView
 import com.michael.utils.UtLogger
 import com.michael.video.databinding.VideoPlayerBinding
+import org.parceler.Parcels
 import java.io.File
 
 class AmvVideoPlayer @JvmOverloads constructor(context: Context, attrs: AttributeSet? = null, defStyleAttr: Int = 0)
@@ -25,13 +29,16 @@ class AmvVideoPlayer @JvmOverloads constructor(context: Context, attrs: Attribut
     /**
      * プレーヤーの状態が変化したことを通知するイベント
      */
+    override val sourceChangedListener = IAmvVideoPlayer.SourceChangedListener()
+
+    override val videoPreparedListener = IAmvVideoPlayer.VideoPreparedListener()
+
+    override val sizeChangedListener = IAmvVideoPlayer.SizeChangedListener()
+
     override val playerStateChangedListener = IAmvVideoPlayer.PlayerStateChangedListener()
 
     override val seekCompletedListener= IAmvVideoPlayer.SeekCompletedListener()
 
-    override val sourceChangedListener = IAmvVideoPlayer.SourceChangedListener()
-
-    override val sizeChangedListener = IAmvVideoPlayer.SizeChangedListener()
 
     // Public Properties
     val videoView : VideoView
@@ -45,6 +52,7 @@ class AmvVideoPlayer @JvmOverloads constructor(context: Context, attrs: Attribut
     private var mBinding : VideoPlayerBinding = DataBindingUtil.inflate(LayoutInflater.from(context), R.layout.video_player, this, true)
     private val mBindingParams = BindingParams()
     private var mAutoPlay = false
+    private var mSource : File? = null
 
     /**
      * Binding Data
@@ -112,10 +120,10 @@ class AmvVideoPlayer @JvmOverloads constructor(context: Context, attrs: Attribut
         get() = mBindingParams.playerState
 
 
-    override var naturalDuration: Int = 0
+    override var naturalDuration: Long = 0
 
-    override val seekPosition: Int
-        get() = mBinding.player.currentPosition
+    override val seekPosition: Long
+        get() = mBinding.player.currentPosition.toLong()
 
     // Construction
 
@@ -124,8 +132,13 @@ class AmvVideoPlayer @JvmOverloads constructor(context: Context, attrs: Attribut
         mBinding.player.apply {
             setOnPreparedListener {  mp ->
                 // 動画がロードされた
-                mMediaPlayer = mp
-                naturalDuration = mp.duration
+                if(null==mMediaPlayer) {
+                    // Activityが切り替わって、Activityが破棄される前に戻ってきた場合、同じ動画に対して、preparedがもう一度回呼ばれるので、チェックする
+                    mMediaPlayer = mp
+                    naturalDuration = mp.duration.toLong()
+                    videoPreparedListener.invoke(this@AmvVideoPlayer, naturalDuration.toLong())
+                }
+
                 mVideoSize.height = mp.videoHeight.toFloat()
                 mVideoSize.width = mp.videoWidth.toFloat()
                 fitSize()
@@ -133,7 +146,7 @@ class AmvVideoPlayer @JvmOverloads constructor(context: Context, attrs: Attribut
                 mp.setOnSeekCompleteListener {
                     val pos = it.currentPosition
                     UtLogger.debug("SeekCompleted: $pos")
-                    seekCompletedListener.invoke(this@AmvVideoPlayer, pos)
+                    seekCompletedListener.invoke(this@AmvVideoPlayer, pos.toLong())
                 }
 
                 mBindingParams.errorMessage = ""
@@ -141,7 +154,10 @@ class AmvVideoPlayer @JvmOverloads constructor(context: Context, attrs: Attribut
 
 
                 if(mAutoPlay) {
-                    Handler().postDelayed( {start()}, 100)
+                    Handler().postDelayed( {
+                        this.start()        // VideoView#start()
+                        mBindingParams.playerState = IAmvVideoPlayer.PlayerState.Playing
+                    }, 100)
                 }
             }
             setOnCompletionListener {
@@ -190,11 +206,21 @@ class AmvVideoPlayer @JvmOverloads constructor(context: Context, attrs: Attribut
         mBindingParams.playerState = state
     }
 
-    override fun setSource(source: File, autoPlay:Boolean) {
-        reset(IAmvVideoPlayer.PlayerState.Loading)
+    private fun setSource(source: File, autoPlay:Boolean, playFrom:Long, resetBeforeLoad:Boolean) {
+        if(resetBeforeLoad) {
+            reset(IAmvVideoPlayer.PlayerState.Loading)
+        }
+        mSource = source
         mAutoPlay = autoPlay
         videoView.setVideoPath(source.path)
+        if(playFrom>0) {
+            seekTo(playFrom)
+        }
         sourceChangedListener.invoke(this, source)
+    }
+
+    override fun setSource(source: File, autoPlay:Boolean, playFrom:Long) {
+        setSource(source, autoPlay, playFrom, true)
     }
 
     override fun play() {
@@ -218,8 +244,8 @@ class AmvVideoPlayer @JvmOverloads constructor(context: Context, attrs: Attribut
         }
     }
 
-    override fun seekTo(pos:Int) {
-        videoView.seekTo(pos)
+    override fun seekTo(pos:Long) {
+        videoView.seekTo(pos.toInt())
     }
 
     // Privates
@@ -235,7 +261,7 @@ class AmvVideoPlayer @JvmOverloads constructor(context: Context, attrs: Attribut
      * Windowがビューツリーから切り離される≒ビューが死ぬ（？）
      */
     override fun onDetachedFromWindow() {
-        UtLogger.debug("AmvVideoPlayer ... disposed")
+        UtLogger.debug("LC-View: onDetachedFromWindow")
         super.onDetachedFromWindow()
         playerStateChangedListener.clear()
     }
@@ -244,4 +270,89 @@ class AmvVideoPlayer @JvmOverloads constructor(context: Context, attrs: Attribut
         super.onSizeChanged(w, h, oldw, oldh)
         sizeChangedListener.invoke(this, w, h)
     }
+
+    override fun onSaveInstanceState(): Parcelable {
+        UtLogger.debug("LC-View: onSaveInstanceState")
+        val parent =  super.onSaveInstanceState()
+        return SavedState(parent).apply {
+            data = SavedState.SavingData(mSource, mBindingParams.playerState==IAmvVideoPlayer.PlayerState.Playing, seekPosition)
+        }
+    }
+
+    override fun onRestoreInstanceState(state: Parcelable?) {
+        UtLogger.debug("LC-View: onRestoreInstanceState")
+        if(state is SavedState) {
+            state.apply {
+                super.onRestoreInstanceState(superState)
+                val d = data
+                val source = data?.source
+                if(d!=null && null!=source) {
+                    setSource(source, d.isPlaying, d.seekPosition, false)
+                }
+            }
+        } else {
+            super.onRestoreInstanceState(state)
+        }
+    }
+
+
+    internal class SavedState : View.BaseSavedState {
+
+        @org.parceler.Parcel
+        data class SavingData(
+                var source:File?,
+                var isPlaying:Boolean,
+                var seekPosition:Long
+        ) {
+            constructor() : this(null,false,0)
+        }
+
+        var data : SavingData? = null
+
+        /**
+         * Constructor called from [AmvSlider.onSaveInstanceState]
+         */
+        constructor(superState: Parcelable) : super(superState)
+
+        /**
+         * Constructor called from [.CREATOR]
+         */
+        private constructor(parcel: Parcel) : super(parcel) {
+            val sd = parcel.readParcelable<Parcelable>(Parcelable::class.java.classLoader)
+            if(null!=sd) {
+                data = Parcels.unwrap(sd)
+            }
+
+//            totalLength = parcel.readLong()
+//            trimStartPosition = parcel.readLong()
+//            trimEndPosition = parcel.readLong()
+//            currentPosition = parcel.readLong()
+        }
+
+        override fun writeToParcel(parcel: Parcel, flags: Int) {
+            super.writeToParcel(parcel, flags)
+
+            val pc = Parcels.wrap(data)
+            parcel.writeParcelable(pc,0)
+
+//            parcel.writeLong(totalLength)
+//            parcel.writeLong(trimStartPosition)
+//            parcel.writeLong(trimEndPosition)
+//            parcel.writeLong(currentPosition)
+        }
+
+        companion object {
+            @Suppress("unused")
+            @JvmStatic
+            val CREATOR: Parcelable.Creator<SavedState> = object : Parcelable.Creator<SavedState> {
+                override fun createFromParcel(parcel: Parcel): SavedState {
+                    return SavedState(parcel)
+                }
+                override fun newArray(size: Int): Array<SavedState?> {
+                    return arrayOfNulls(size)
+                }
+            }
+        }
+    }
+
 }

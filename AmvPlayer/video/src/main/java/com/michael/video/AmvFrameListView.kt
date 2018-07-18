@@ -42,7 +42,18 @@ class AmvFrameListView @JvmOverloads constructor(
         mImageContainer.removeAllViews()
     }
 
-    var position : Int = 0
+    private var mTotalRange : Long = 1000L
+
+    val totalRange: Long
+        get() = mTotalRange
+
+    fun resetWithTotalRange(v:Long) {
+        mTotalRange = v
+        position = 0
+        reset()
+    }
+
+    var position : Long = 0
         set(v) {
             if(field != v) {
                 field = v
@@ -52,14 +63,14 @@ class AmvFrameListView @JvmOverloads constructor(
 
 
     fun updateScroll() {
-        val range = mScroller.width
-        val amount = mImageContainer.width - range
+        val range = getLayoutWidth()
+        val amount = mImageContainer.getLayoutWidth() - range
 //        val amount2 = mScroller.maxScrollAmount   これだと、amountより大きい値が返ってきてしまう
-        val scr = Math.round((amount * position) / 1000f)
+        val scr = Math.round((amount * position) / totalRange.toFloat())
 
         mScroller.smoothScrollTo(scr,0)
 
-        val knobPos =Math.round((range-mKnob.width)*position/1000f)
+        val knobPos =Math.round((range-mKnob.width)*position/totalRange.toFloat())
         mKnob.setMargin(knobPos, 0,0,0)
     }
 

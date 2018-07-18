@@ -7,6 +7,7 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.databinding.DataBindingUtil;
 import android.os.Bundle;
+import android.os.PersistableBundle;
 import android.provider.MediaStore;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
@@ -20,6 +21,7 @@ import com.michael.amvplayer.databinding.MainActivityBinding;
 import com.michael.amvplayer.dialog.UxDialogViewModel;
 import com.michael.amvplayer.dialog.UxDlgState;
 import com.michael.amvplayer.dialog.UxFileDialog;
+import com.michael.utils.UtLogger;
 import com.michael.video.AmvVideoPlayer;
 import com.michael.video.FitMode;
 
@@ -43,6 +45,7 @@ public class MainActivity extends AppCompatActivity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        UtLogger.debug("LC-Activity: onCreate");
         super.onCreate(savedInstanceState);
 //        setContentView(R.layout.main_activity);
         mBinding = DataBindingUtil.setContentView(this, R.layout.main_activity);
@@ -54,7 +57,7 @@ public class MainActivity extends AppCompatActivity {
         UxDialogViewModel viewModel = ViewModelProviders.of(this).get(UxDialogViewModel.class);
 
 
-        mBinding.videoPlayer.setSource(new File("/storage/emulated/0/Download/b.mp4"), false);
+        // mBinding.videoPlayer.setSource(new File("/storage/emulated/0/Download/b.mp4"), false);
 
         viewModel.getState().observe(this, new Observer<UxDialogViewModel.State>() {
 
@@ -66,6 +69,74 @@ public class MainActivity extends AppCompatActivity {
             }
         });
     }
+
+    // ---
+
+    @Override
+    protected void onRestart() {
+        UtLogger.debug("LC-Activity: onRestart");
+        super.onRestart();
+    }
+
+    @Override
+    protected void onStart() {
+        UtLogger.debug("LC-Activity: onStart");
+        super.onStart();
+    }
+
+    @Override
+    protected void onRestoreInstanceState(Bundle savedInstanceState) {
+        UtLogger.debug("LC-Activity: onRestoreInstanceState ... legacy style");
+        super.onRestoreInstanceState(savedInstanceState);
+    }
+
+    @Override
+    public void onRestoreInstanceState(Bundle savedInstanceState, PersistableBundle persistentState) {
+        UtLogger.debug("LC-Activity: onRestoreInstanceState with PersistableBundle");
+        super.onRestoreInstanceState(savedInstanceState, persistentState);
+    }
+
+
+    @Override
+    protected void onResume() {
+        UtLogger.debug("LC-Activity: onResume");
+        super.onResume();
+    }
+
+    //----
+
+    @Override
+    protected void onPause() {
+        UtLogger.debug("LC-Activity: onPause");
+        super.onPause();
+    }
+
+
+    @Override
+    protected void onStop() {
+        UtLogger.debug("LC-Activity: onStop");
+        super.onStop();
+    }
+
+
+    @Override
+    protected void onDestroy() {
+        UtLogger.debug("LC-Activity: onDestroy");
+        super.onDestroy();
+    }
+
+    @Override
+    protected void onSaveInstanceState(Bundle outState) {
+        UtLogger.debug("LC-Activity: onSaveInstanceState ... legacy style");
+        super.onSaveInstanceState(outState);
+    }
+    @Override
+    public void onSaveInstanceState(Bundle outState, PersistableBundle outPersistentState) {
+        UtLogger.debug("LC-Activity: onSaveInstanceState ... with PersistableBundle");
+        super.onSaveInstanceState(outState, outPersistentState);
+    }
+
+    // ----
 
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
@@ -98,7 +169,7 @@ public class MainActivity extends AppCompatActivity {
                     Log.d("Amv", String.format("FileDialog ... select \"%s\"", result.getFileName()));
                     File file = result.getFile();
                     if(null!=file) {
-                        mBinding.videoPlayer.setSource(file,false);
+                        mBinding.videoPlayer.setSource(file,false, 0);
                     }
 //                    mBinding.videoPlayer.play();
                 }

@@ -2,6 +2,7 @@ package com.michael.video
 
 import android.annotation.SuppressLint
 import android.content.Context
+import android.databinding.BindingAdapter
 import android.graphics.*
 import android.graphics.drawable.Drawable
 import android.os.Parcel
@@ -25,14 +26,18 @@ class AmvSlider @JvmOverloads constructor(
     /**
      * スライダーのmax値
      */
-    var valueRange : Long = 0      // = Natural Duration
-        set(v) {
-            field = v
-            trimEndPosition = v
-            trimStartPosition = 0
-            currentPosition = 0
-            applyPosition(false)
-        }
+    private var mValueRange = 1000L
+
+    val valueRange : Long    // = Natural Duration
+        get() = mValueRange
+
+    fun resetWithValueRange(v:Long, redraw:Boolean) {
+        mValueRange = v
+        trimEndPosition = v
+        trimStartPosition = 0
+        currentPosition = 0
+        applyPosition(redraw)
+    }
 
     /**
      * トリミング開始位置が変更された
@@ -107,6 +112,12 @@ class AmvSlider @JvmOverloads constructor(
         get() = 0<trimStartPosition || trimEndPosition<valueRange
 
     /**
+     * スライダーのドラッグ操作中か？
+     */
+    val isDragging : Boolean
+        get() = mDraggingInfo.isDragging
+
+    /**
      * true: トリミングモード有効
      * false: 通常のスライダー
      */
@@ -138,7 +149,7 @@ class AmvSlider @JvmOverloads constructor(
     private var paintRailLeft: Paint
     private var paintRailNoSel: Paint
 
-    // dimmensions
+    // dimensions
     private var naturalHeight: Int
     private var railHeight : Int
     private var railLeftHeight : Int
@@ -181,7 +192,7 @@ class AmvSlider @JvmOverloads constructor(
             if(!trimmingEnabled) {
                 endToEndRail = sa.getBoolean(R.styleable.AmvSlider_endToEndRail, true)
             }
-            valueRange = sa.getInteger(R.styleable.AmvSlider_valueRange, 1000).toLong()
+            resetWithValueRange(sa.getInteger(R.styleable.AmvSlider_valueRange, 1000).toLong(), false)
 
             // drawables
             drThumb = sa.getDrawable(R.styleable.AmvSlider_thumb) ?: context.getDrawable(R.drawable.ic_slider_knob)
@@ -193,7 +204,7 @@ class AmvSlider @JvmOverloads constructor(
             val railLeftColor = sa.getColor(R.styleable.AmvSlider_railLeftColor, Color.GRAY)
             val railNoSelColor = sa.getColor(R.styleable.AmvSlider_railNoSelColor, Color.GRAY)
 
-            // dimmensions
+            // dimensions
             railHeight = sa.getDimensionPixelSize(R.styleable.AmvSlider_railHeight, context.dp2px(8))
             railLeftHeight = sa.getDimensionPixelSize(R.styleable.AmvSlider_railLeftHeight, railHeight)
             railNoSelHeight= sa.getDimensionPixelSize(R.styleable.AmvSlider_railNoSelHeight, context.dp2px(2))
@@ -207,7 +218,7 @@ class AmvSlider @JvmOverloads constructor(
             railOffset = sa.getDimensionPixelSize(R.styleable.AmvSlider_railOffset, defRailOffset )
             trimmerOffset = sa.getDimensionPixelSize(R.styleable.AmvSlider_trimmerOffset, railOffset+maxRailHeight)
 
-            fun colordPaint(@ColorInt c:Int) : Paint {
+            fun coloredPaint(@ColorInt c:Int) : Paint {
                 val p = Paint()
                 p.style = Paint.Style.STROKE
                 p.strokeCap = Paint.Cap.BUTT
@@ -216,9 +227,9 @@ class AmvSlider @JvmOverloads constructor(
             }
 
             // paints
-            paintRail = colordPaint(railColor)
-            paintRailLeft = colordPaint(railLeftColor)
-            paintRailNoSel = colordPaint(railNoSelColor)
+            paintRail = coloredPaint(railColor)
+            paintRailLeft = coloredPaint(railLeftColor)
+            paintRailNoSel = coloredPaint(railNoSelColor)
 
             naturalHeight = calcNaturalHeight()
         } finally {
@@ -231,7 +242,7 @@ class AmvSlider @JvmOverloads constructor(
      * 与えられたDrawableやoffset値から、スライダーの中身を表示できる適切な高さを計算する
      *
      */
-    fun calcNaturalHeight() : Int {
+    private fun calcNaturalHeight() : Int {
         return maxOf(
                 thumbOffset + drThumb.intrinsicHeight,
                 railOffset+maxRailHeight,
@@ -263,7 +274,7 @@ class AmvSlider @JvmOverloads constructor(
     /**
      * スライダー値から、ノブの座標値を求める
      */
-    fun value2position(value:Long) : Float {
+    private fun value2position(value:Long) : Float {
         return mSliderRange.min + mSliderRange.range * value.toFloat() / valueRange.toFloat()
     }
 
@@ -277,26 +288,26 @@ class AmvSlider @JvmOverloads constructor(
     /**
      * RectFのX方向の中央を指定座標に移動する
      */
-    fun RectF.moveHorzCenterTo(x:Float) {
+    private fun RectF.moveHorizontalCenterTo(x:Float) {
         offsetTo(x-width() /2f, top)
     }
     /**
      * RectFのX方向の左端を指定座標に移動する
      */
-    fun RectF.moveLeftTo(x:Float) {
+    private fun RectF.moveLeftTo(x:Float) {
         offsetTo(x, top)
     }
     /**
      * RectFのX方向の右端を指定座標に移動する
      */
-    fun RectF.moveRightTo(x:Float) {
+    private fun RectF.moveRightTo(x:Float) {
         offsetTo(x-width(), top)
     }
 
     /**
      * 左上隅とサイズを与えて、RectFの値を初期化する
      */
-    fun RectF.setOffsetSize(left:Float, top:Float, width:Float, height:Float) {
+    private fun RectF.setOffsetSize(left:Float, top:Float, width:Float, height:Float) {
         this.left = left
         this.top = top
         this.right = left + width
@@ -308,14 +319,14 @@ class AmvSlider @JvmOverloads constructor(
 
     // updateLayout()の（同じサイズでの）重複実行を回避するために、前回値を覚えておく
     // もともと↑の用途だったが、endToEndRailモードのときに、widthが必要になるので、現在のビューサイズを覚えておくプロパティに格上げ
-    var viewWidth:Int = 0
-    var viewHeight:Int = 0
+    private var viewWidth:Int = 0
+    private var viewHeight:Int = 0
 
     /**
      * Viewのサイズが変わった場合に、レイアウト用の基本情報を更新する
      * スライダー値((Current|TrimStart|TrimEnd)Position )に依存するプロパティは、applyPosition()で変更する
      */
-    fun updateLayout(width:Int, height:Int) {
+    private fun updateLayout(width:Int, height:Int) {
         if(viewWidth == width && viewHeight==height) {
             // no changed ... return
         }
@@ -347,11 +358,11 @@ class AmvSlider @JvmOverloads constructor(
     /**
      * スライダー値 ((Current|TrimStart|TrimEnd)Position) が変更されたときに、ノブの位置/レールの表示に反映する
      */
-    fun applyPosition(redraw:Boolean) {
+    private fun applyPosition(redraw:Boolean) {
         if(0L==valueRange) {
             return
         }
-        mThumbRect.moveHorzCenterTo(mCurX)
+        mThumbRect.moveHorizontalCenterTo(mCurX)
 
         if(trimmingEnabled) {
             mTrimLeftRect.moveRightTo(mTrimStartX)
@@ -379,12 +390,16 @@ class AmvSlider @JvmOverloads constructor(
              *
              * @param caller イベントを発行したAmvSlider
              * @param position シーク位置
-             * @param completed false:ドラッグ中 / true:ドラッグ終了
+             * @param dragState false:ドラッグ中 / true:ドラッグ終了
              */
-            fun sliderValueChanged(caller:AmvSlider, position:Long, completed:SliderDragState)
+            fun sliderValueChanged(caller:AmvSlider, position:Long, dragState:SliderDragState)
         }
-        fun set(listener:IHandler) {
-            funcy = Funcy3(listener::sliderValueChanged)
+        fun set(listener:IHandler?) {
+            if(null!=listener) {
+                funcy = Funcy3(listener::sliderValueChanged)
+            } else {
+                reset()
+            }
         }
     }
 
@@ -443,7 +458,7 @@ class AmvSlider @JvmOverloads constructor(
     /**
      * サイズが変更されたときの処理
      */
-//    override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
+//    override fun onSizeChanged(w: Int, h: Int, ow: Int, oh: Int) {
 //        updateLayout(w,h)
 //    }
 
@@ -538,16 +553,16 @@ class AmvSlider @JvmOverloads constructor(
         /**
          * 非ドラッグ状態に戻す
          */
-        fun reset() {
+        private fun reset() {
             knob = Knob.NONE
             offset = 0f
         }
 
-//        /**
-//         * ドラッグ中か
-//         */
-//        val isDragging
-//            get() = knob != Knob.NONE
+        /**
+         * ドラッグ中か
+         */
+        val isDragging
+            get() = knob != Knob.NONE
 //
 //        /**
 //         * ドラッグ状態を返す(MOVING or NONE)
@@ -650,7 +665,7 @@ class AmvSlider @JvmOverloads constructor(
         if(state is SavedState) {
             state.apply {
                 super.onRestoreInstanceState(superState)
-                this@AmvSlider.valueRange = totalLength
+                this@AmvSlider.mValueRange = totalLength
                 this@AmvSlider.currentPosition = currentPosition
                 this@AmvSlider.trimStartPosition = trimStartPosition
                 this@AmvSlider.trimEndPosition = trimEndPosition
@@ -669,16 +684,16 @@ class AmvSlider @JvmOverloads constructor(
         /**
          * Constructor called from [AmvSlider.onSaveInstanceState]
          */
-        constructor(superState: Parcelable) : super(superState) {}
+        constructor(superState: Parcelable) : super(superState)
 
         /**
          * Constructor called from [.CREATOR]
          */
-        private constructor(percel: Parcel) : super(percel) {
-            totalLength = percel.readLong()
-            trimStartPosition = percel.readLong()
-            trimEndPosition = percel.readLong()
-            currentPosition = percel.readLong()
+        private constructor(parcel: Parcel) : super(parcel) {
+            totalLength = parcel.readLong()
+            trimStartPosition = parcel.readLong()
+            trimEndPosition = parcel.readLong()
+            currentPosition = parcel.readLong()
         }
 
         override fun writeToParcel(parcel: Parcel, flags: Int) {
@@ -701,5 +716,21 @@ class AmvSlider @JvmOverloads constructor(
                 }
             }
         }
+    }
+
+    companion object {
+        @JvmStatic
+        @BindingAdapter(value = ["onCurrentPositionChanged", "onTrimStartPositionChanged", "onTrimEndPositionChanged"], requireAll = false)
+        fun setOnSliderChangeListener(
+                view: AmvSlider,
+                currentChanged: SliderValueChangedListener.IHandler?,
+                trimStartChanged: SliderValueChangedListener.IHandler?,
+                trimEndChanged: SliderValueChangedListener.IHandler?
+               ) {
+            view.currentPositionChanged.set(currentChanged)
+            view.trimStartPositionChanged.set(trimStartChanged)
+            view.trimEndPositionChanged.set(trimEndChanged)
+        }
+
     }
 }

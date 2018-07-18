@@ -34,6 +34,7 @@
 package com.michael.utils
 
 import android.os.Bundle
+import android.os.Parcelable
 import org.parceler.Parcels
 
 /**

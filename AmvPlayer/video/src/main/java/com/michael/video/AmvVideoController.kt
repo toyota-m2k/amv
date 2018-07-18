@@ -6,23 +6,21 @@ import android.databinding.Bindable
 import android.databinding.BindingAdapter
 import android.databinding.DataBindingUtil
 import android.os.Handler
-import android.os.Parcelable
 import android.support.constraint.ConstraintLayout
 import android.util.AttributeSet
 import android.view.LayoutInflater
 import android.view.View
 import android.widget.ImageButton
-import com.michael.video.databinding.VideoControllerBinding
-import android.widget.SeekBar
 import com.michael.utils.UtLogger
+import com.michael.video.databinding.VideoControllerBinding
 
 
 class AmvVideoController @JvmOverloads constructor(context: Context, attrs: AttributeSet? = null, defStyleAttr: Int = 0)
     : ConstraintLayout(context,attrs,defStyleAttr), IAmvVideoController {
 
     // Constants
-    private val cFRAME_COUNT = 10            // フレームサムネイルの数
-    private val cFRAME_HEIGHT = 160f         // フレームサムネイルの高さ(dp)
+    private val cFrameCount = 10            // フレームサムネイルの数
+    private val cFrameHeight = 160f         // フレームサムネイルの高さ(dp)
 
     companion object {
         @JvmStatic
@@ -45,6 +43,7 @@ class AmvVideoController @JvmOverloads constructor(context: Context, attrs: Attr
     private val mBindingParams = BindingParams()
     private lateinit var mPlayer:IAmvVideoPlayer
     private val mHandler = Handler()
+    private var mFrameExtractor :AmvFrameExtractor? = null
 
     /**
      * Binding Data
@@ -116,7 +115,7 @@ class AmvVideoController @JvmOverloads constructor(context: Context, attrs: Attr
                                         seekTarget = 0
                                         val pos = seekPos2SliderPos(seek)
                                         UtLogger.debug("Playing Pos --> Slider ($pos), Seek($seek)")
-                                        mBinding.slider.progress = pos
+                                        mBinding.slider.currentPosition = pos
                                         mBinding.frameList.position = pos
                                     }
                                 }
@@ -134,49 +133,75 @@ class AmvVideoController @JvmOverloads constructor(context: Context, attrs: Attr
     init {
         mBinding.handlers = this
         mBinding.params = mBindingParams
+        isSaveFromParentEnabled = false         // このビューの状態は、IAmvPlayerView からのイベントによって復元される
+
 //        mBinding.backButton.isEnabled = false
 //        mBinding.forwardButton.isEnabled = true
 //        mBinding.backButton
     }
 
+    val listenerName = "videoController"
+
     override fun setVideoPlayer(player:IAmvVideoPlayer) {
         mPlayer = player
         mBindingParams.playerState = player.playerState
-        mPlayer.playerStateChangedListener.add("videoController") { _, state ->
-            mBindingParams.playerState = state
-        }
-        mPlayer.sizeChangedListener.add("videoController") { _, width, _ ->
-            // Bindingすると、どうしてもエラーになるので、直接変更
-            mBinding.controllerRoot.setLayoutWidth(width)
-            mBinding.frameList.setLayoutWidth(width)
-        }
 
-        mPlayer.sourceChangedListener.add("videoController") {_,source ->
+        // Player Event
+        mPlayer.apply {
+            // 再生状態が変化したときのイベント
+            playerStateChangedListener.add(listenerName) { _, state ->
+                mBindingParams.playerState = state
+            }
 
-            AmvFrameExtractor().apply {
-                setSizingHint(FitMode.Height, 0f, cFRAME_HEIGHT)
-                onVideoInfoRetrievedListener.add(null) {
-                    UtLogger.debug("AmvFrameExtractor:duration=${it.duration} / ${it.videoSize}")
-                    val thumbnailSize = it.thumbnailSize
-                    mBinding.frameList.prepare(cFRAME_COUNT, thumbnailSize.width, thumbnailSize.height)
+            // 動画の画面サイズが変わったときのイベント
+            sizeChangedListener.add(listenerName) { _, width, _ ->
+                // layout_widthをBindingすると、どうしてもエラーになるので、直接変更
+                mBinding.controllerRoot.setLayoutWidth(width)
+                mBinding.frameList.setLayoutWidth(width)
+            }
+
+            // プレーヤー上のビデオの読み込みが完了したときのイベント
+            videoPreparedListener.add(listenerName) { _, duration ->
+                mBinding.slider.resetWithValueRange(duration, true)      // スライダーを初期化
+                mBinding.frameList.resetWithTotalRange(duration)
+            }
+            // 動画ソースが変更されたときのイベント
+            sourceChangedListener.add(listenerName) { _, source ->
+
+                // フレームサムネイルを列挙する
+                mFrameExtractor = AmvFrameExtractor().apply {
+                    setSizingHint(FitMode.Height, 0f, cFrameHeight)
+                    onVideoInfoRetrievedListener.add(null) {
+                        UtLogger.debug("AmvFrameExtractor:duration=${it.duration} / ${it.videoSize}")
+                        val thumbnailSize = it.thumbnailSize
+                        mBinding.frameList.prepare(cFrameCount, thumbnailSize.width, thumbnailSize.height)
+                    }
+                    onThumbnailRetrievedListener.add(null) { _, index, bmp ->
+                        UtLogger.debug("AmvFrameExtractor:Bitmap($index): width=${bmp.width}, height=${bmp.height}")
+                        mBinding.frameList.add(bmp)
+                    }
+                    onFinishedListener.add(null) { _, _ ->
+                        mHandler.post {
+                            // リスナーの中でdispose()を呼ぶのはいかがなものかと思われるので、次のタイミングでお願いする
+                            dispose()
+                            mFrameExtractor = null
+                        }
+                    }
+                    extract(source, cFrameCount)
                 }
-                onThumbnailRetrievedListener.add( null) {_, index, bmp ->
-                    UtLogger.debug("AmvFrameExtractor:Bitmap($index): width=${bmp.width}, height=${bmp.height}")
-                    mBinding.frameList.add(bmp)
+            }
+            seekCompletedListener.add(listenerName) { _, pos ->
+                if(!mBinding.seeker.isDragging) {
+                    mBinding.slider.currentPosition = pos
+                    mBinding.frameList.position = pos
                 }
-                onFinishedListener.add(null) {_,_->
-                    onVideoInfoRetrievedListener.clear()
-                    onThumbnailRetrievedListener.clear()
-                    onFinishedListener.clear()
-                }
-                extract(source, cFRAME_COUNT)
             }
         }
     }
 
     override var isReadOnly: Boolean
         get() = mBindingParams.isReadOnly
-        set(v) { mBindingParams.isReadOnly=v}
+        set(v) { mBindingParams.isReadOnly=v }
 
     @Suppress("UNUSED_PARAMETER")
     fun onPlayClicked(view: View) {
@@ -196,58 +221,76 @@ class AmvVideoController @JvmOverloads constructor(context: Context, attrs: Attr
     }
 
     @Suppress("unused")
-    val seekPosition : Int
+    val seekPosition : Long
         get() = mPlayer.seekPosition
 
-    private fun sliderPos2SeekPos(sliderPos:Int) : Int {
-        return (mPlayer.naturalDuration * sliderPos)/1000
+    private fun sliderPos2SeekPos(sliderPos:Long) : Long {
+        return sliderPos
     }
 
-    private fun seekPos2SliderPos(seekPos:Int) : Int {
-        val nd = mPlayer.naturalDuration
-        return if(nd>0) (1000 * seekPos) / nd else 0
+    private fun seekPos2SliderPos(seekPos:Long) : Long {
+        return seekPos
     }
 
     // Sliderの操作
     private var pausingOnTracking = false       // スライダー操作中は再生を止めておいて、操作が終わったときに必要に応じて再生を再開する
-    private var seekTarget : Int = 0            // seekTo()が成功しても、再生を開始すると、何やら3～5秒くらい戻ることがあるので、ターゲット位置を覚えておいて、それ以前に戻る動作を見せないようにしてみる
+    private var seekTarget : Long = 0            // seekTo()が成功しても、再生を開始すると、何やら3～5秒くらい戻ることがあるので、ターゲット位置を覚えておいて、それ以前に戻る動作を見せないようにしてみる
 
-    /**
-     * Sliderの値が変化した
-     */
-    @Suppress("UNUSED_PARAMETER")
-    fun onSeekBarValueChanged(seekBar: SeekBar, progressValue: Int, fromUser: Boolean) {
-        if(fromUser) {
-            mBinding.frameList.position = progressValue
-            seekTarget = sliderPos2SeekPos(progressValue)
-            mPlayer.seekTo(seekTarget)
-            UtLogger.debug("Tracking - Pos = Slider=$progressValue, Seek=${sliderPos2SeekPos(progressValue)}")
+//    /**
+//     * Sliderの値が変化した
+//     */
+//    @Suppress("UNUSED_PARAMETER")
+//    fun onSeekBarValueChanged(seekBar: SeekBar, progressValue: Int, fromUser: Boolean) {
+//        if(fromUser) {
+//            mBinding.frameList.position = progressValue
+//            seekTarget = sliderPos2SeekPos(progressValue)
+//            mPlayer.seekTo(seekTarget)
+//            UtLogger.debug("Tracking - Pos = Slider=$progressValue, Seek=${sliderPos2SeekPos(progressValue)}")
+//        }
+//    }
+//
+//    /**
+//     * Sliderのトラッキングが開始される
+//     */
+//    @Suppress("UNUSED_PARAMETER")
+//    fun onSeekBarStartTracking(bar:SeekBar) {
+//        pausingOnTracking = mBindingParams.isPlaying
+//        UtLogger.debug("Tracking - Start (playing = $pausingOnTracking) --> pausing")
+//        mPlayer.pause()
+//    }
+//
+//    /**
+//     * Sliderのトラッキングが終了する
+//     */
+//    @Suppress("UNUSED_PARAMETER")
+//    fun onSeekBarEndTracking(bar:SeekBar) {
+//        UtLogger.debug("Tracking - End (restore playing = $pausingOnTracking) <-- pausing")
+//        if(pausingOnTracking) {
+//            mPlayer.play()
+//            pausingOnTracking = false
+//        }
+//    }
+
+    fun onCurrentPositionChanged(@Suppress("UNUSED_PARAMETER") caller:AmvSlider, position:Long, dragState: AmvSlider.SliderDragState) {
+        UtLogger.debug("CurrentPosition: $position ($dragState)")
+        when(dragState) {
+            AmvSlider.SliderDragState.BEGIN-> {
+                pausingOnTracking = mBindingParams.isPlaying
+                mPlayer.pause()
+            }
+            AmvSlider.SliderDragState.MOVING->{
+                mBinding.frameList.position = position
+                seekTarget = sliderPos2SeekPos(position)
+                mPlayer.seekTo(seekTarget)
+            }
+            AmvSlider.SliderDragState.END-> {
+                if(pausingOnTracking) {
+                    mPlayer.play()
+                    pausingOnTracking = false
+                }
+            }
+            else -> {
+            }
         }
-    }
-
-    /**
-     * Sliderのトラッキングが開始される
-     */
-    @Suppress("UNUSED_PARAMETER")
-    fun onSeekBarStartTracking(bar:SeekBar) {
-        pausingOnTracking = mBindingParams.isPlaying
-        UtLogger.debug("Tracking - Start (playing = $pausingOnTracking) --> pausing")
-        mPlayer.pause()
-    }
-
-    /**
-     * Sliderのトラッキングが終了する
-     */
-    @Suppress("UNUSED_PARAMETER")
-    fun onSeekBarEndTracking(bar:SeekBar) {
-        UtLogger.debug("Tracking - End (restore playing = $pausingOnTracking) <-- pausing")
-        if(pausingOnTracking) {
-            mPlayer.play()
-            pausingOnTracking = false
-        }
-    }
-
-    override fun onSaveInstanceState(): Parcelable {
-        return super.onSaveInstanceState()
     }
 }

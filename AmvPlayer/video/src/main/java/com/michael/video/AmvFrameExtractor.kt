@@ -101,4 +101,13 @@ class AmvFrameExtractor : UtAsyncTask() {
         execute()
     }
 
+    /**
+     * 終了・・・UIスレッドから呼び出すこと
+     */
+    fun dispose() {
+        onVideoInfoRetrievedListener.clear()
+        onThumbnailRetrievedListener.clear()
+        onFinishedListener.clear()
+        cancel(true)
+    }
 }
