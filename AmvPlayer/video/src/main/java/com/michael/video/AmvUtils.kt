@@ -92,3 +92,17 @@ fun Context.dp2px(dp:Float) : Float {
 fun Context.dp2px(dp:Int) : Int {
     return (resources.displayMetrics.density * dp).roundToInt()
 }
+
+class AmvTimeSpan(val ms : Long) {
+    val milliseconds: Long
+        get() = ms % 1000
+
+    val seconds: Long
+        get() = (ms / 1000) % 60
+
+    val minutes: Long
+        get() = (ms / 1000 / 60)
+
+    val hours: Long
+        get() = (ms / 1000 / 60 / 60)
+}

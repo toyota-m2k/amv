@@ -66,7 +66,7 @@ class AmvExoVideoPlayer @JvmOverloads constructor(
         }
 
         override fun onLoadingChanged(isLoading: Boolean) {
-            UtLogger.debug("EXO: loading = ${isLoading}")
+            UtLogger.debug("EXO: loading = $isLoading")
             if(isLoading) {
                 mBindings.playerState = IAmvVideoPlayer.PlayerState.Loading
             }
@@ -96,7 +96,7 @@ class AmvExoVideoPlayer @JvmOverloads constructor(
                 }
             }
 
-            UtLogger.debug("EXO: status = ${ppn(playbackState)} / playWhenReady = ${playWhenReady}")
+            UtLogger.debug("EXO: status = ${ppn(playbackState)} / playWhenReady = $playWhenReady")
             if(Player.STATE_READY == playbackState) {
                 mBindings.playerState = if(playWhenReady) { IAmvVideoPlayer.PlayerState.Playing } else {IAmvVideoPlayer.PlayerState.Paused}
             } else if(mBindings.playerState==IAmvVideoPlayer.PlayerState.Playing) {
@@ -110,7 +110,7 @@ class AmvExoVideoPlayer @JvmOverloads constructor(
     // region Initialization / Termination
 
     init {
-        val view = LayoutInflater.from(context).inflate(R.layout.video_exo_player, this)
+        LayoutInflater.from(context).inflate(R.layout.video_exo_player, this)
         val player  = ExoPlayerFactory.newSimpleInstance(
                                             DefaultRenderersFactory(context),
                                             DefaultTrackSelector(),
@@ -151,7 +151,7 @@ class AmvExoVideoPlayer @JvmOverloads constructor(
         val progressBar : ProgressBar by lazy {
             findViewById<ProgressBar>(R.id.progressBar)
         }
-        val errorMessageView: TextView by lazy {
+        private val errorMessageView: TextView by lazy {
             findViewById<TextView>(R.id.errorMessage)
         }
 
@@ -195,7 +195,7 @@ class AmvExoVideoPlayer @JvmOverloads constructor(
         private var mInitial: Boolean = true
         private var mPlayerState = IAmvVideoPlayer.PlayerState.None
 
-        val isReady: Boolean
+        private val isReady: Boolean
             get() = when(mPlayerState) { IAmvVideoPlayer.PlayerState.Paused, IAmvVideoPlayer.PlayerState.Playing -> true else -> false }
 
         val isLoading: Boolean
@@ -269,7 +269,7 @@ class AmvExoVideoPlayer @JvmOverloads constructor(
         mPlayer?.apply {
             val mediaSource = ExtractorMediaSource.Factory(        // ExtractorMediaSource ... non-adaptiveなほとんどのファイルに対応
                     DefaultDataSourceFactory(context, "amv")    //
-            ).createMediaSource(Uri.fromFile(source));
+            ).createMediaSource(Uri.fromFile(source))
             prepare(mediaSource, true, true)
             if (playFrom > 0) {
                 seekTo(playFrom)
@@ -336,12 +336,9 @@ class AmvExoVideoPlayer @JvmOverloads constructor(
         private var mFastMode = false       // 現在、ExoPlayerに設定しているシークモード（true: CLOSEST_SYNC / false: EXACT）
 
         // mInterval毎に実行する処理
-        private val mLoop = object : Runnable {
-            override fun run() {
-                mCheckCounter++
-                checkAndSeek()
-            }
-
+        private val mLoop = Runnable {
+            mCheckCounter++
+            checkAndSeek()
         }
 
         /**
@@ -427,7 +424,7 @@ class AmvExoVideoPlayer @JvmOverloads constructor(
             mPlayer?.seekTo(pos)
         }
     }
-    var seekManager = SeekManager()
+    private var seekManager = SeekManager()
 
     // endregion
 

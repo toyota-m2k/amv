@@ -118,6 +118,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             app:trimmingMode="false"
+            app:showThumbBg="true"
             android:background="#444400"
             app:onCurrentPositionChanged="@{handlers::onCurrentPositionChanged}"
             app:layout_constraintLeft_toLeftOf="parent"
@@ -146,31 +147,20 @@
             app:layout_constraintLeft_toLeftOf="parent"
             app:layout_constraintTop_toBottomOf="@id/slider"
             />
-
-        <LinearLayout
-            android:layout_width="wrap_content"
-            android:layout_height="match_parent"
+        <TextView
+            tools:text="00:00/00:00"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="#000000"
+            android:textColor="#FFFFFF"
+            android:gravity="center_horizontal"
+            android:paddingTop="2dp"
+            android:paddingBottom="2dp"
+            android:text="@{params.counterText}"
+            app:layout_constraintLeft_toLeftOf="parent"
             app:layout_constraintTop_toBottomOf="@id/frameList"
-            android:orientation="vertical"
-            >
-            <com.michael.video.AmvSlider
-                android:id="@+id/seeker"
-                android:layout_width="500dp"
-                android:layout_height="wrap_content"
-                app:trimmingMode="false"
-                android:background="#004444"
-                app:valueRange="3210"
-                />
-            <com.michael.video.AmvSlider
-                android:id="@+id/trimmer"
-                android:layout_width="500dp"
-                android:layout_height="wrap_content"
-                app:trimmingMode="true"
-                android:background="#440044"
-                app:valueRange="12345"
-                />
+            />
 
-        </LinearLayout>
 
     </android.support.constraint.ConstraintLayout>
 </layout>

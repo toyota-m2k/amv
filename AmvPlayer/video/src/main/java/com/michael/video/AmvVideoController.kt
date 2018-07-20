@@ -11,6 +11,7 @@ import android.util.AttributeSet
 import android.view.LayoutInflater
 import android.view.View
 import android.widget.ImageButton
+import android.widget.LinearLayout
 import com.michael.utils.UtLogger
 import com.michael.video.databinding.VideoControllerBinding
 
@@ -29,6 +30,7 @@ class AmvVideoController @JvmOverloads constructor(context: Context, attrs: Attr
             view.setImageResource(resourceId)
         }
 
+
 //        @JvmStatic
 //        @BindingAdapter("android:layout_width")
 //        fun setLayoutWidth(view: View, width:Int) {
@@ -44,6 +46,7 @@ class AmvVideoController @JvmOverloads constructor(context: Context, attrs: Attr
     private lateinit var mPlayer:IAmvVideoPlayer
     private val mHandler = Handler()
     private var mFrameExtractor :AmvFrameExtractor? = null
+    private var mDuration = 0L
 
     /**
      * Binding Data
@@ -127,13 +130,44 @@ class AmvVideoController @JvmOverloads constructor(context: Context, attrs: Attr
                     }
                 }
             }
+        @get:Bindable
+        var counterText:String = ""
+            private set(v) {
+                if(field!=v) {
+                    field = v
+                    notifyPropertyChanged(BR.counterText)
+                }
+            }
 
+        var prevPosition = -1L
+        
+        fun updateCounterText(pos:Long) {
+            if(mDuration<=0 || prevPosition==pos) {
+                return
+            }
+
+            val total = AmvTimeSpan(mDuration)
+            var current = AmvTimeSpan(if(pos>mDuration) mDuration else pos)
+
+
+            counterText =
+                if (total.hours > 0) {
+                    String.format("%02d:%02d:%02d / %02d:%02d:%02d", current.hours, current.minutes, current.seconds, total.hours, total.minutes, total.seconds)
+                } else if (total.minutes > 0) {
+                    String.format("%02d:%02d / %02d:%02d", current.minutes, current.seconds, total.minutes, total.seconds)
+                } else {
+                    String.format("%02d.%02d / %02d.%02d", current.seconds, current.milliseconds/10, total.seconds, total.milliseconds/ 10)
+                }
+        }
     }
 
     init {
         mBinding.handlers = this
         mBinding.params = mBindingParams
         isSaveFromParentEnabled = false         // このビューの状態は、IAmvPlayerView からのイベントによって復元される
+
+        // フレーム一覧のドラッグ操作をSliderのドラッグ操作と同様に扱うための小さな仕掛け
+        mBinding.frameList.touchFriendListener.set(mBinding.slider::onTouchAtFriend)
 
 //        mBinding.backButton.isEnabled = false
 //        mBinding.forwardButton.isEnabled = true
@@ -161,7 +195,10 @@ class AmvVideoController @JvmOverloads constructor(context: Context, attrs: Attr
             }
 
             // プレーヤー上のビデオの読み込みが完了したときのイベント
-            videoPreparedListener.add(listenerName) { _, duration ->
+            videoPreparedListener.add(listenerName) { mp, duration ->
+                mDuration = duration
+                mBindingParams.prevPosition = -1
+                mBindingParams.updateCounterText(mp.seekPosition)
                 mBinding.slider.resetWithValueRange(duration, true)      // スライダーを初期化
                 mBinding.frameList.resetWithTotalRange(duration)
             }
@@ -191,7 +228,7 @@ class AmvVideoController @JvmOverloads constructor(context: Context, attrs: Attr
                 }
             }
             seekCompletedListener.add(listenerName) { _, pos ->
-                if(!mBinding.seeker.isDragging) {
+                if(!mBinding.slider.isDragging) {
                     mBinding.slider.currentPosition = pos
                     mBinding.frameList.position = pos
                 }
@@ -215,6 +252,13 @@ class AmvVideoController @JvmOverloads constructor(context: Context, attrs: Attr
     @Suppress("UNUSED_PARAMETER")
     fun onShowFramesClick(view:View) {
         mBindingParams.showingFrames = !mBindingParams.showingFrames
+        if(!mBindingParams.showingFrames) {
+            mBinding.frameList.visibility = View.GONE
+            mBinding.slider.showThumbBg = false
+        } else {
+            mBinding.frameList.visibility = View.VISIBLE
+            mBinding.slider.showThumbBg = true
+        }
 
         // XML で、android:selected という属性は警告(Unknown attribute)がでるが、ちゃんとバインドできているという謎。
         // mBinding.showFramesButton.isSelected = mBindingParams.showingFrames
@@ -298,5 +342,6 @@ class AmvVideoController @JvmOverloads constructor(context: Context, attrs: Attr
             else -> {
             }
         }
+        mBindingParams.updateCounterText(position)
     }
 }

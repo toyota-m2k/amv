@@ -117,6 +117,14 @@ class AmvSlider @JvmOverloads constructor(
     val isDragging : Boolean
         get() = mDraggingInfo.isDragging
 
+    var showThumbBg : Boolean = true
+        set(v) {
+            if(field != v) {
+                field = v
+                invalidate()
+            }
+        }
+
     /**
      * true: トリミングモード有効
      * false: 通常のスライダー
@@ -144,6 +152,8 @@ class AmvSlider @JvmOverloads constructor(
     private var drThumb : Drawable
     private var drLeft : Drawable
     private var drRight : Drawable
+
+    private var drThumbBg : Drawable
 
     private var paintRail: Paint
     private var paintRailLeft: Paint
@@ -198,6 +208,9 @@ class AmvSlider @JvmOverloads constructor(
             drThumb = sa.getDrawable(R.styleable.AmvSlider_thumb) ?: context.getDrawable(R.drawable.ic_slider_knob)
             drLeft = sa.getDrawable(R.styleable.AmvSlider_startThumb) ?: context.getDrawable(R.drawable.ic_trim_left)
             drRight = sa.getDrawable(R.styleable.AmvSlider_endThumb) ?: context.getDrawable(R.drawable.ic_trim_right)
+
+            drThumbBg = sa.getDrawable(R.styleable.AmvSlider_thumbBg) ?: context.getDrawable(R.drawable.ic_slider_knob_bg)
+            showThumbBg = sa.getBoolean(R.styleable.AmvSlider_showThumbBg, false)
 
             // colors
             val railColor = sa.getColor(R.styleable.AmvSlider_railColor, Color.WHITE)
@@ -495,7 +508,12 @@ class AmvSlider @JvmOverloads constructor(
             .drawRail(canvas, mDrawingRailEnd, paintRailNoSel)
 
         // thumb
-        drThumb.bounds = mThumbRect.toRect(mWorkRect)
+        mThumbRect.toRect(mWorkRect)
+        if(showThumbBg) {
+            drThumbBg.bounds = mWorkRect
+            drThumbBg.draw(canvas)
+        }
+        drThumb.bounds = mWorkRect
         drThumb.draw(canvas)
 
         if(trimmingEnabled) {
@@ -651,6 +669,17 @@ class AmvSlider @JvmOverloads constructor(
         return true
     }
 
+    /**
+     * お友達（AmvFrameListView）のタッチイベントを我がことのように扱うためのi/f
+     */
+    fun onTouchAtFriend(event: MotionEvent) {
+        onTouchEvent(event)
+    }
+
+    /**
+     * 状態保存・・・AmvVideoPlayerが状態の保存・復元を行うことにより、AmvVideoControllerの状態が自動的に復元されるので、
+     * 今回の実装では、これが呼ばれることはない。
+     */
     override fun onSaveInstanceState(): Parcelable {
         val parent = super.onSaveInstanceState()
         return SavedState(parent).apply {

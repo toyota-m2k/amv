@@ -9,7 +9,6 @@ import com.michael.utils.Funcies3
 import com.michael.utils.UtAsyncTask
 import java.io.File
 
-
 class AmvFrameExtractor : UtAsyncTask() {
     var duration:Long = 0           // ms
     val videoSize = MuSize()

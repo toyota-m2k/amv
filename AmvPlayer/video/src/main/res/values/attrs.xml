@@ -11,6 +11,9 @@
         <attr name="startThumb" format="integer"/>      <!-- トリミング（左） -->
         <attr name="endThumb" format="integer"/>        <!-- トリミング（右） -->
 
+        <attr name="thumbBg" format="integer"/>           <!-- 再生位置ノブの後ろに描画する背景 -->
+        <attr name="showThumbBg" format="boolean"/>       <!-- ↑を表示するか (default:false) -->
+
         <!-- レールの色 -->
         <attr name="railColor" format="integer"/>           <!-- 再生位置の右側 -->
         <attr name="railLeftColor" format="integer"/>       <!-- 再生位置の左側 -->

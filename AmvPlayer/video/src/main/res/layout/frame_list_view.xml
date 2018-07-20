@@ -45,9 +45,26 @@
     </com.michael.video.AmvHorzScrollView>
 
     <View
+        android:id="@+id/leftTruncated"
+        android:layout_height="match_parent"
+        android:layout_width="wrap_content"
+        android:background="@drawable/ic_slider_knob_bg"
+        android:alpha="0.5"
+        android:visibility="gone"
+        />
+    <View
+        android:id="@+id/rightTruncated"
+        android:layout_height="match_parent"
+        android:layout_width="wrap_content"
+        android:background="@drawable/ic_slider_knob_bg"
+        android:alpha="0.5"
+        android:visibility="gone"
+        />
+
+    <View
         android:id="@+id/knob"
         android:layout_height="match_parent"
-        android:layout_width="24dp"
-        android:background="#80FFFF00"
+        android:layout_width="26dp"
+        android:background="@drawable/ic_slider_knob_bg"
         />
 </merge>
