@@ -43,6 +43,7 @@ dependencies {
     // Google Support Libraries
     implementation "com.android.support:appcompat-v7:$support_lib_version"
     implementation "com.android.support.constraint:constraint-layout:$c_layout_version"
+    implementation "com.android.support:support-media-compat:$support_lib_version"
 
     implementation "android.arch.lifecycle:extensions:$lifecycle_version"
 
@@ -68,7 +69,7 @@ dependencies {
     // ExoPlayer
     implementation "com.google.android.exoplayer:exoplayer-core:$exoplayer_version"
     implementation "com.google.android.exoplayer:exoplayer-ui:$exoplayer_version"
-//    implementation "com.google.android.exoplayer:exoplayer-dash:$exoplayer_version"
+//      implementation "com.google.android.exoplayer:exoplayer-dash:$exoplayer_version"
 }
 
 

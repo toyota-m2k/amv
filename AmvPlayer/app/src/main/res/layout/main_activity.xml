@@ -62,7 +62,7 @@
             android:onClick="@{mainActivity::onClickPause}"
             />
 
-        <com.michael.video.AmvVideoPlayer
+        <com.michael.video.AmvExoVideoPlayer
             tools:layout_width="300dp"
             tools:layout_height="300dp"
             android:layout_height="wrap_content"

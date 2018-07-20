@@ -41,7 +41,7 @@ fun fitSizeTo(original:MuSize, layout:MuSize, mode:FitMode, result:MuSize) {
     }
 }
 
-class AmvFitter(private var fitMode: FitMode = FitMode.Fit, private var layoutSize: MuSize = MuSize(100f, 100f)) {
+open class AmvFitter(private var fitMode: FitMode = FitMode.Fit, private var layoutSize: MuSize = MuSize(100f, 100f)) {
 
     fun setHint(fitMode:FitMode, width:Float, height:Float) {
         this.fitMode = fitMode

@@ -199,11 +199,15 @@ class AmvVideoPlayer @JvmOverloads constructor(context: Context, attrs: Attribut
     }
 
 
-    override fun reset(state: IAmvVideoPlayer.PlayerState) {
+    private fun reset(state: IAmvVideoPlayer.PlayerState) {
         mMediaPlayer?.stop()
         mMediaPlayer = null
         mBindingParams.errorMessage = ""
         mBindingParams.playerState = state
+    }
+
+    override fun reset() {
+        reset(IAmvVideoPlayer.PlayerState.None)
     }
 
     private fun setSource(source: File, autoPlay:Boolean, playFrom:Long, resetBeforeLoad:Boolean) {
@@ -247,6 +251,11 @@ class AmvVideoPlayer @JvmOverloads constructor(context: Context, attrs: Attribut
     override fun seekTo(pos:Long) {
         videoView.seekTo(pos.toInt())
     }
+
+    override fun setFastSeekMode(fast:Boolean) {
+        // not supported
+    }
+
 
     // Privates
 

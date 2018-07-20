@@ -277,6 +277,7 @@ class AmvVideoController @JvmOverloads constructor(context: Context, attrs: Attr
             AmvSlider.SliderDragState.BEGIN-> {
                 pausingOnTracking = mBindingParams.isPlaying
                 mPlayer.pause()
+                mPlayer.setFastSeekMode(true)
             }
             AmvSlider.SliderDragState.MOVING->{
                 mBinding.frameList.position = position
@@ -284,6 +285,11 @@ class AmvVideoController @JvmOverloads constructor(context: Context, attrs: Attr
                 mPlayer.seekTo(seekTarget)
             }
             AmvSlider.SliderDragState.END-> {
+                mBinding.frameList.position = position
+                seekTarget = sliderPos2SeekPos(position)
+                mPlayer.setFastSeekMode(false)
+                mPlayer.seekTo(seekTarget)
+
                 if(pausingOnTracking) {
                     mPlayer.play()
                     pausingOnTracking = false
