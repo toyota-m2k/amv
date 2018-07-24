@@ -11,7 +11,6 @@ import android.util.AttributeSet
 import android.view.LayoutInflater
 import android.view.View
 import android.widget.ImageButton
-import android.widget.LinearLayout
 import com.michael.utils.UtLogger
 import com.michael.video.databinding.VideoControllerBinding
 
@@ -74,9 +73,9 @@ class AmvVideoController @JvmOverloads constructor(context: Context, attrs: Attr
                 }
             }
 
-        val hasPrev : Boolean = false
-
-        val hasNext : Boolean = true
+//        val hasPrev : Boolean = false
+//
+//        val hasNext : Boolean = true
 
         @get:Bindable
         var showingFrames:Boolean = false
@@ -90,16 +89,6 @@ class AmvVideoController @JvmOverloads constructor(context: Context, attrs: Attr
         @get:Bindable
         val minControllerWidth : Int = 325
 
-//        @get:Bindable
-//        var controllerWidth : Int = minControllerWidth
-//            set(v) {
-//                val w = if(v<minControllerWidth) minControllerWidth else v
-//                if(field != w) {
-//                    field = w
-//                    notifyPropertyChanged(BR.controllerWidth)
-//                }
-//            }
-
         var playerState:IAmvVideoPlayer.PlayerState = IAmvVideoPlayer.PlayerState.None
             set(v) {
                 if(field != v) {
@@ -110,20 +99,15 @@ class AmvVideoController @JvmOverloads constructor(context: Context, attrs: Attr
                     if(v==IAmvVideoPlayer.PlayerState.Playing) {
                         val startPos = mPlayer.seekPosition
                         UtLogger.debug("Start Playing --> Seek($startPos)")
+
+                        // 再生中は定期的にスライダーの位置を更新する
                         mHandler.post (object : Runnable {
                             override fun run() {
                                 if(!pausingOnTracking) {
-                                    val seek = mPlayer.seekPosition
-                                    if(seek>=seekTarget) {
-                                        seekTarget = 0
-                                        val pos = seekPos2SliderPos(seek)
-                                        UtLogger.debug("Playing Pos --> Slider ($pos), Seek($seek)")
-                                        mBinding.slider.currentPosition = pos
-                                        mBinding.frameList.position = pos
-                                    }
+                                    updateSeekPosition(mPlayer.seekPosition, false, true)
                                 }
                                 if(playerState==IAmvVideoPlayer.PlayerState.Playing) {
-                                    mHandler.postDelayed(this, 200)     // Win版は10msで動かしていたが、Androidでは動画が動かなくなるので、200msくらいにしておく。ガタガタなるけど。
+                                    mHandler.postDelayed(this, 100)     // Win版は10msで動かしていたが、Androidでは動画が動かなくなるので、200msくらいにしておく。ガタガタなるけど。
                                 }
                             }
                         })
@@ -147,17 +131,15 @@ class AmvVideoController @JvmOverloads constructor(context: Context, attrs: Attr
             }
 
             val total = AmvTimeSpan(mDuration)
-            var current = AmvTimeSpan(if(pos>mDuration) mDuration else pos)
+            val current = AmvTimeSpan(if(pos>mDuration) mDuration else pos)
 
 
             counterText =
-                if (total.hours > 0) {
-                    String.format("%02d:%02d:%02d / %02d:%02d:%02d", current.hours, current.minutes, current.seconds, total.hours, total.minutes, total.seconds)
-                } else if (total.minutes > 0) {
-                    String.format("%02d:%02d / %02d:%02d", current.minutes, current.seconds, total.minutes, total.seconds)
-                } else {
-                    String.format("%02d.%02d / %02d.%02d", current.seconds, current.milliseconds/10, total.seconds, total.milliseconds/ 10)
-                }
+                    when {
+                        total.hours > 0 -> String.format("%02d:%02d:%02d / %02d:%02d:%02d", current.hours, current.minutes, current.seconds, total.hours, total.minutes, total.seconds)
+                        total.minutes > 0 -> String.format("%02d:%02d / %02d:%02d", current.minutes, current.seconds, total.minutes, total.seconds)
+                        else -> String.format("%02d.%02d / %02d.%02d", current.seconds, current.milliseconds/10, total.seconds, total.milliseconds/ 10)
+                    }
         }
     }
 
@@ -169,15 +151,27 @@ class AmvVideoController @JvmOverloads constructor(context: Context, attrs: Attr
         // フレーム一覧のドラッグ操作をSliderのドラッグ操作と同様に扱うための小さな仕掛け
         mBinding.frameList.touchFriendListener.set(mBinding.slider::onTouchAtFriend)
 
-        mBinding.markerView.markerSelectedListener.set { position, clientData ->
-            mPlayer.seekTo(position)
+        // MarkerView
+        mBinding.markerView.markerSelectedListener.set { position, _ ->
+            updateSeekPosition(position, true, true)
         }
+        mBinding.markerView.markerAddedListener.set { _, _ ->
+
+        }
+        mBinding.markerView.markerRemovedListener.set { _, _ ->
+
+        }
+
+        mBinding.markerView.markerContextQueryListener.set { _, _ ->
+
+        }
+
 //        mBinding.backButton.isEnabled = false
 //        mBinding.forwardButton.isEnabled = true
 //        mBinding.backButton
     }
 
-    val listenerName = "videoController"
+    private val listenerName = "videoController"
 
     override fun setVideoPlayer(player:IAmvVideoPlayer) {
         mPlayer = player
@@ -187,7 +181,9 @@ class AmvVideoController @JvmOverloads constructor(context: Context, attrs: Attr
         mPlayer.apply {
             // 再生状態が変化したときのイベント
             playerStateChangedListener.add(listenerName) { _, state ->
-                mBindingParams.playerState = state
+                if(!pausingOnTracking) {
+                    mBindingParams.playerState = state
+                }
             }
 
             // 動画の画面サイズが変わったときのイベント
@@ -232,12 +228,12 @@ class AmvVideoController @JvmOverloads constructor(context: Context, attrs: Attr
                     extract(source, cFrameCount)
                 }
             }
-            seekCompletedListener.add(listenerName) { _, pos ->
-                if(!mBinding.slider.isDragging) {
-                    mBinding.slider.currentPosition = pos
-                    mBinding.frameList.position = pos
-                }
-            }
+//            seekCompletedListener.add(listenerName) { _, pos ->
+//                if(!mBinding.slider.isDragging) {
+//                    mBinding.slider.currentPosition = pos
+//                    mBinding.frameList.position = pos
+//                }
+//            }
         }
     }
 
@@ -245,7 +241,7 @@ class AmvVideoController @JvmOverloads constructor(context: Context, attrs: Attr
         get() = mBindingParams.isReadOnly
         set(v) { mBindingParams.isReadOnly=v }
 
-    fun onPlayClicked(view: View) {
+    fun onPlayClicked(@Suppress("UNUSED_PARAMETER") view: View) {
         when(mPlayer.playerState) {
             IAmvVideoPlayer.PlayerState.Paused -> mPlayer.play()
             IAmvVideoPlayer.PlayerState.Playing -> mPlayer.pause()
@@ -253,19 +249,20 @@ class AmvVideoController @JvmOverloads constructor(context: Context, attrs: Attr
         }
     }
 
-    fun onPrevMarker(view: View) {
-        mBinding.markerView.prevMark(seekPosition, null)
+    fun onPrevMarker(@Suppress("UNUSED_PARAMETER") view: View) {
+        mBinding.markerView.prevMark(mBinding.slider.currentPosition, null)
     }
 
-    fun onNextMarker(view: View) {
-        mBinding.markerView.nextMark(seekPosition, null)
+    fun onNextMarker(@Suppress("UNUSED_PARAMETER") view: View) {
+        mBinding.markerView.nextMark(mBinding.slider.currentPosition, null)
     }
 
-    fun onAddMarker(view: View) {
-        mBinding.markerView.addMarker(seekPosition, null)
+    fun onAddMarker(@Suppress("UNUSED_PARAMETER") view: View) {
+        //mBinding.markerView.addMarker(seekPosition, null)
+        mBinding.markerView.addMarker(mBinding.slider.currentPosition, null)
     }
 
-    fun onShowFramesClick(view:View) {
+    fun onShowFramesClick(@Suppress("UNUSED_PARAMETER") view:View) {
         mBindingParams.showingFrames = !mBindingParams.showingFrames
 //        if(!mBindingParams.showingFrames) {
 //            mBinding.frameList.visibility = View.GONE
@@ -279,12 +276,12 @@ class AmvVideoController @JvmOverloads constructor(context: Context, attrs: Attr
         // mBinding.showFramesButton.isSelected = mBindingParams.showingFrames
     }
 
-    val seekPosition : Long
-        get() = mPlayer.seekPosition
-
-    private fun sliderPos2SeekPos(sliderPos:Long) : Long {
-        return sliderPos
-    }
+//    private val seekPosition : Long
+//        get() = mPlayer.seekPosition
+//
+//    private fun sliderPos2SeekPos(sliderPos:Long) : Long {
+//        return sliderPos
+//    }
 
     private fun seekPos2SliderPos(seekPos:Long) : Long {
         return seekPos
@@ -338,15 +335,11 @@ class AmvVideoController @JvmOverloads constructor(context: Context, attrs: Attr
                 mPlayer.setFastSeekMode(true)
             }
             AmvSlider.SliderDragState.MOVING->{
-                mBinding.frameList.position = position
-                seekTarget = sliderPos2SeekPos(position)
-                mPlayer.seekTo(seekTarget)
+                updateSeekPosition(position, true, false)
             }
             AmvSlider.SliderDragState.END-> {
-                mBinding.frameList.position = position
-                seekTarget = sliderPos2SeekPos(position)
                 mPlayer.setFastSeekMode(false)
-                mPlayer.seekTo(seekTarget)
+                updateSeekPosition(position, true, false)
 
                 if(pausingOnTracking) {
                     mPlayer.play()
@@ -358,4 +351,15 @@ class AmvVideoController @JvmOverloads constructor(context: Context, attrs: Attr
         }
         mBindingParams.updateCounterText(position)
     }
+
+    fun updateSeekPosition(pos:Long, seek:Boolean, slider:Boolean) {
+        if(seek) {
+            mPlayer.seekTo(pos)
+        }
+        if(slider) {
+            mBinding.slider.currentPosition = pos
+        }
+        mBinding.frameList.position = pos
+    }
+
 }

@@ -42,44 +42,33 @@
             android:onClick="@{mainActivity::onClickFile}"
             />
 
-        <Button
-            android:id="@+id/play_button"
+        <com.michael.video.AmvPlayerUnitView
+            android:id="@+id/playerUnitView"
             android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="@string/play_video"
-            app:layout_constraintTop_toTopOf="parent"
-            app:layout_constraintLeft_toRightOf="@id/file_button"
-            android:onClick="@{mainActivity::onClickPlay}"
-            />
-
-        <Button
-            android:id="@+id/pause_button"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="@string/pause_video"
-            app:layout_constraintTop_toTopOf="parent"
-            app:layout_constraintLeft_toRightOf="@id/play_button"
-            android:onClick="@{mainActivity::onClickPause}"
-            />
-
-        <com.michael.video.AmvExoVideoPlayer
-            tools:layout_width="wrap_content"
-            tools:layout_height="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_width="wrap_content"
-            android:id="@+id/video_player"
+            android:layout_height="match_parent"
             app:layout_constraintTop_toBottomOf="@id/file_button"
             app:layout_constraintLeft_toLeftOf="parent"
             app:layout_constraintRight_toRightOf="parent"
             />
-        <com.michael.video.AmvVideoController
-            android:id="@+id/video_controller"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            app:layout_constraintTop_toBottomOf="@id/video_player"
-            app:layout_constraintLeft_toLeftOf="parent"
-            app:layout_constraintRight_toRightOf="parent"
-            />
+
+        <!--<com.michael.video.AmvExoVideoPlayer-->
+            <!--tools:layout_width="wrap_content"-->
+            <!--tools:layout_height="wrap_content"-->
+            <!--android:layout_height="wrap_content"-->
+            <!--android:layout_width="wrap_content"-->
+            <!--android:id="@+id/video_player"-->
+            <!--app:layout_constraintTop_toBottomOf="@id/file_button"-->
+            <!--app:layout_constraintLeft_toLeftOf="parent"-->
+            <!--app:layout_constraintRight_toRightOf="parent"-->
+            <!--/>-->
+        <!--<com.michael.video.AmvVideoController-->
+            <!--android:id="@+id/video_controller"-->
+            <!--android:layout_width="wrap_content"-->
+            <!--android:layout_height="wrap_content"-->
+            <!--app:layout_constraintTop_toBottomOf="@id/video_player"-->
+            <!--app:layout_constraintLeft_toLeftOf="parent"-->
+            <!--app:layout_constraintRight_toRightOf="parent"-->
+            <!--/>-->
 
     </android.support.constraint.ConstraintLayout>
 </layout>

@@ -7,7 +7,6 @@ import android.os.Parcel
 import android.os.Parcelable
 import android.util.AttributeSet
 import android.view.LayoutInflater
-import android.view.MotionEvent
 import android.view.View
 import android.widget.FrameLayout
 import android.widget.ProgressBar
@@ -36,6 +35,7 @@ class AmvExoVideoPlayer @JvmOverloads constructor(
     private val mBindings = Bindings()
     private var mSource : File? = null
     private var mPlayer : SimpleExoPlayer? = null
+    private var mEnded : Boolean = false                // 動画ファイルの最後まで再生が終わって停止した状態から、Playボタンを押したときに、先頭から再生を開始する動作を実現するためのフラグ
 
     // endregion
 
@@ -100,13 +100,18 @@ class AmvExoVideoPlayer @JvmOverloads constructor(
             }
 
             UtLogger.debug("EXO: status = ${ppn(playbackState)} / playWhenReady = $playWhenReady")
-            if(Player.STATE_READY == playbackState) {
-                mBindings.playerState = if(playWhenReady) { IAmvVideoPlayer.PlayerState.Playing } else {IAmvVideoPlayer.PlayerState.Paused}
-            } else if(mBindings.playerState==IAmvVideoPlayer.PlayerState.Playing) {
-                mBindings.playerState = IAmvVideoPlayer.PlayerState.Paused
+
+            when(playbackState) {
+                Player.STATE_READY -> {
+                    mBindings.playerState = if(playWhenReady) { IAmvVideoPlayer.PlayerState.Playing } else {IAmvVideoPlayer.PlayerState.Paused}
+                }
+                Player.STATE_ENDED -> {
+                    mBindings.playerState = IAmvVideoPlayer.PlayerState.Paused
+                    mEnded = true       // 動画ファイルの最後に達したことを覚えておく
+                }
+                else -> {}
             }
         }
-
     }
 
     // endregion
@@ -147,10 +152,6 @@ class AmvExoVideoPlayer @JvmOverloads constructor(
         super.onDetachedFromWindow()
     }
 
-//    override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
-//        super.onSizeChanged(w, h, oldw, oldh)
-//        sizeChangedListener.invoke(this, w, h)
-//    }
 
     // endregion
 
@@ -270,6 +271,7 @@ class AmvExoVideoPlayer @JvmOverloads constructor(
 
     override fun reset() {
         mSource = null
+        mEnded = false
         mBindings.reset()
         mPlayer?.apply {
             stop()
@@ -295,6 +297,11 @@ class AmvExoVideoPlayer @JvmOverloads constructor(
 
     override fun play() {
         mPlayer?.apply {
+            if(mEnded) {
+                // 動画ファイルの最後まで再生して止まっている場合は、先頭にシークしてから再生を開始する
+                mEnded = false
+                seekTo(0)
+            }
             playWhenReady = true
         }
     }
@@ -305,7 +312,7 @@ class AmvExoVideoPlayer @JvmOverloads constructor(
         }
     }
 
-    fun togglePlay() {
+    private fun togglePlay() {
         if(null!=mSource) {
             mPlayer?.apply {
                 playWhenReady = !playWhenReady
@@ -317,6 +324,13 @@ class AmvExoVideoPlayer @JvmOverloads constructor(
 //        mPlayer?.apply {
 //            seekTo(pos)
 //        }
+        if(mEnded) {
+            // 動画ファイルの最後まで再生して止まっているとき、Playerの内部状態は、playWhenReady == true のままになっている。
+            // そのまま、シークしてしまうと、シーク後に勝手に再生が再開されてしまう。
+            // これを回避するため、シークのタイミングで、mEndedフラグが立っていれば、再生を終了してからシークすることにする。
+            mEnded = false
+            pause()
+        }
         seekManager.request(pos)
     }
 

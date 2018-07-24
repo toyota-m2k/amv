@@ -22,8 +22,6 @@ import com.michael.amvplayer.dialog.UxDialogViewModel;
 import com.michael.amvplayer.dialog.UxDlgState;
 import com.michael.amvplayer.dialog.UxFileDialog;
 import com.michael.utils.UtLogger;
-import com.michael.video.AmvVideoPlayer;
-import com.michael.video.FitMode;
 
 import java.io.File;
 
@@ -51,8 +49,8 @@ public class MainActivity extends AppCompatActivity {
         mBinding = DataBindingUtil.setContentView(this, R.layout.main_activity);
         mBinding.setLifecycleOwner(this);
         mBinding.setMainActivity(this);
-        mBinding.videoPlayer.setLayoutHint(FitMode.Inside, 1000, 1000);
-        mBinding.videoController.setVideoPlayer(mBinding.videoPlayer);
+//        mBinding.videoPlayer.setLayoutHint(FitMode.Inside, 1000, 1000);
+//        mBinding.videoController.setVideoPlayer(mBinding.videoPlayer);
 
         UxDialogViewModel viewModel = ViewModelProviders.of(this).get(UxDialogViewModel.class);
 
@@ -153,12 +151,12 @@ public class MainActivity extends AppCompatActivity {
         //selectFile();
     }
 
-    public void onClickPlay(View view) {
-        mBinding.videoPlayer.play();
-    }
-    public void onClickPause(View view) {
-        mBinding.videoPlayer.pause();
-    }
+//    public void onClickPlay(View view) {
+//        mBinding.videoPlayer.play();
+//    }
+//    public void onClickPause(View view) {
+//        mBinding.videoPlayer.pause();
+//    }
 
     public void onDialogResult(@NonNull UxDialogViewModel.State state) {
         switch(state.getTag()) {
@@ -169,7 +167,7 @@ public class MainActivity extends AppCompatActivity {
                     Log.d("Amv", String.format("FileDialog ... select \"%s\"", result.getFileName()));
                     File file = result.getFile();
                     if(null!=file) {
-                        mBinding.videoPlayer.setSource(file,false, 0);
+                        mBinding.playerUnitView.setSource(file,false, 0);
                     }
 //                    mBinding.videoPlayer.play();
                 }

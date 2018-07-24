@@ -3,10 +3,8 @@ package com.michael.video
 import android.content.Context
 import android.util.AttributeSet
 import android.view.LayoutInflater
-import android.view.View
 import android.widget.LinearLayout
-import com.google.android.exoplayer2.ui.PlayerView
-import java.util.zip.Inflater
+import java.io.File
 
 class AmvPlayerUnitView @JvmOverloads constructor(
         context: Context, attrs: AttributeSet? = null, defStyleAttr: Int = 0
@@ -20,7 +18,7 @@ class AmvPlayerUnitView @JvmOverloads constructor(
             findViewById<AmvVideoController>(R.id.videoController)
         }
         fun init() {
-            controller.setVideoPlayer(player);
+            controller.setVideoPlayer(player)
         }
     }
     val bindings =  Bindings()
@@ -35,4 +33,8 @@ class AmvPlayerUnitView @JvmOverloads constructor(
 
     val videoController : IAmvVideoController
         get() = bindings.controller
+
+    fun setSource(source: File, autoPlay:Boolean, playFrom:Long) {
+        bindings.player.setSource(source, autoPlay,playFrom)
+    }
 }

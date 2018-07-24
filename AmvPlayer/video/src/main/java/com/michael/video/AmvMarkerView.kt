@@ -1,9 +1,9 @@
 package com.michael.video
 
+import android.annotation.SuppressLint
 import android.content.Context
 import android.graphics.Canvas
 import android.graphics.drawable.Drawable
-import android.os.Handler
 import android.util.AttributeSet
 import android.view.MotionEvent
 import android.view.View
@@ -17,22 +17,26 @@ class AmvMarkerView @JvmOverloads constructor(
         context: Context, attrs: AttributeSet? = null, defStyleAttr: Int = 0
 ) : View(context, attrs, defStyleAttr) {
 
-    var totalRange : Long = 1000L       // naturalDuration
-    var minMarkerSpan : Long = 100L     // マーカー設定間隔の最小値（デフォルト：100ms）
 
     var markerAddedListener = FuncyListener2<Long,Any?,Unit>()
     var markerRemovedListener = FuncyListener2<Long,Any?,Unit>()
     var markerSelectedListener = FuncyListener2<Long,Any?,Unit>()
     var markerContextQueryListener = FuncyListener2<Long,Any?,Unit>()
 
+    // dimensions
     private val mDrMarker: Drawable
     private val mNaturalHeight: Int
     private val mMarkerWidth: Int
     private val mMarkerHitLuckyZone : Int
+
     private var mViewWidth = 0
-    private var mLeftInert = 0
-    private var mRightInert = 0
-    private val mMarkers = SortedList<Long>(32, { _ ->0L}, { o0, o1-> if(o0==o1) 0 else if(o0<o1) -1 else 1 }, false)
+    private val mLeftInert: Int
+    private val mRightInert: Int
+
+    // マーカー情報
+    private val mMinMarkerSpan : Long = 100L     // マーカー設定間隔の最小値（100ms）
+    private var mTotalRange : Long = 1000L       // naturalDuration
+    private val mMarkers = SortedList(32, { _ ->0L}, { o0, o1-> if(o0==o1) 0 else if(o0<o1) -1 else 1 }, false)
 
     init {
         val sa = context.theme.obtainStyledAttributes(attrs,R.styleable.AmvMarkerView,defStyleAttr,0)
@@ -81,47 +85,47 @@ class AmvMarkerView @JvmOverloads constructor(
     }
 
     private fun getMarkerLeft(marker:Long) : Float {
-        return (( marker / totalRange.toFloat() ) * (mViewWidth-mLeftInert-mRightInert)) - mMarkerWidth / 2 + mLeftInert
+        return (( marker / mTotalRange.toFloat() ) * (mViewWidth-mLeftInert-mRightInert)) - mMarkerWidth / 2 + mLeftInert
     }
 
     private val mListPos = SortedList.Position()
 
-    private fun hitTestSub(xpos:Int, marker:Long) : Float {
+    private fun hitTestSub(xPos:Int, marker:Long) : Float {
         val l = getMarkerLeft(marker) - mMarkerHitLuckyZone
         val r = l + mMarkerWidth + mMarkerHitLuckyZone*2
-        if(l <= xpos && xpos <= r) {
-            return Math.max(xpos-l, r-xpos)
+        if(xPos in l..r) {
+            return Math.max(xPos-l, r-xPos)
         }
         return -1f
     }
 
-    private fun hitTestIndex(xpos:Int) : Int {
-        val mk = (totalRange * (xpos-mLeftInert) / (mViewWidth-mLeftInert-mRightInert).toFloat()).roundToLong()
+    private fun hitTestIndex(xPos:Int) : Int {
+        val mk = (mTotalRange * (xPos-mLeftInert) / (mViewWidth-mLeftInert-mRightInert).toFloat()).roundToLong()
         mMarkers.find(mk, mListPos)
         if(mListPos.hit>=0) {
             return mListPos.hit
         }
 
-        var cand = -1
+        var candidate = -1
         var diff = 0f
         if(mListPos.next>=0) {
-            val d = hitTestSub(xpos, mMarkers[mListPos.next])
+            val d = hitTestSub(xPos, mMarkers[mListPos.next])
             if(d>=0f) {
                 diff = d
-                cand = mListPos.next
+                candidate = mListPos.next
             }
         }
         if(mListPos.prev>=0) {
-            val d = hitTestSub(xpos, mMarkers[mListPos.prev])
+            val d = hitTestSub(xPos, mMarkers[mListPos.prev])
             if(d>=0f && d < diff) {
-                cand = mListPos.prev
+                candidate = mListPos.prev
             }
         }
-        return cand
+        return candidate
     }
 
     override fun onDraw(canvas: Canvas?) {
-        if(null==canvas||mViewWidth<=0||totalRange<=0) {
+        if(null==canvas||mViewWidth<=0||mTotalRange<=0) {
             return
         }
 
@@ -142,13 +146,13 @@ class AmvMarkerView @JvmOverloads constructor(
     private fun canAddMarker(marker:Long) : Boolean {
         mMarkers.find(marker, mListPos)
         if(mListPos.hit>=0) {
-            return false;
+            return false
         } else if(mListPos.prev>=0) {
-             if((mMarkers[mListPos.prev] - marker).absoluteValue < minMarkerSpan) {
+             if((mMarkers[mListPos.prev] - marker).absoluteValue < mMinMarkerSpan) {
                 return false
             }
         } else if(mListPos.next>=0) {
-            if((mMarkers[mListPos.next] - marker).absoluteValue < minMarkerSpan) {
+            if((mMarkers[mListPos.next] - marker).absoluteValue < mMinMarkerSpan) {
                 return false
             }
         }
@@ -165,6 +169,7 @@ class AmvMarkerView @JvmOverloads constructor(
         }
     }
 
+    @Suppress("unused")
     fun removeMarker(marker:Long, clientData:Any?) {
         if(mMarkers.remove(marker)) {
             invalidate()
@@ -181,12 +186,11 @@ class AmvMarkerView @JvmOverloads constructor(
     fun nextMark(current:Long, clientData:Any?) : Boolean
     {
         mMarkers.find(current, mListPos)
-        if (mListPos.next < 0)
-        {
-            return false;
+        if (mListPos.next < 0) {
+            return false
         }
-        selectMarker(mMarkers[mListPos.next], clientData);
-        return true;
+        selectMarker(mMarkers[mListPos.next], clientData)
+        return true
     }
 
     /**
@@ -198,12 +202,11 @@ class AmvMarkerView @JvmOverloads constructor(
     fun prevMark(current:Long, clientData:Any?) : Boolean
     {
         mMarkers.find(current, mListPos)
-        if (mListPos.prev < 0)
-        {
-            return false;
+        if (mListPos.prev < 0) {
+            return false
         }
-        selectMarker(mMarkers[mListPos.prev], clientData);
-        return true;
+        selectMarker(mMarkers[mListPos.prev], clientData)
+        return true
     }
 
     fun selectMarker(marker:Long, clientData:Any?) {
@@ -215,7 +218,7 @@ class AmvMarkerView @JvmOverloads constructor(
     }
 
     fun resetWithTotalRange(duration: Long) {
-        totalRange = duration
+        mTotalRange = duration
         mMarkers.clear()
         invalidate()
     }
@@ -228,6 +231,7 @@ class AmvMarkerView @JvmOverloads constructor(
         private var y = -1f
         private var tapping = false
 
+        @SuppressLint("ClickableViewAccessibility")
         override fun onTouch(v: View?, event: MotionEvent?): Boolean {
                 when(event?.action) {
                         MotionEvent.ACTION_DOWN -> {
