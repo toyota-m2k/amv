@@ -151,12 +151,22 @@ public class MainActivity extends AppCompatActivity {
         //selectFile();
     }
 
+    public void onTrimming(View view) {
+        Intent intent = new Intent(this, TrimmingActivity.class);
+        if(null!=mCurrentFile) {
+            intent.putExtra("source", mCurrentFile);
+        }
+        startActivity(intent);
+    }
+
 //    public void onClickPlay(View view) {
 //        mBinding.videoPlayer.play();
 //    }
 //    public void onClickPause(View view) {
 //        mBinding.videoPlayer.pause();
 //    }
+
+    private File mCurrentFile = null;
 
     public void onDialogResult(@NonNull UxDialogViewModel.State state) {
         switch(state.getTag()) {
@@ -167,6 +177,7 @@ public class MainActivity extends AppCompatActivity {
                     Log.d("Amv", String.format("FileDialog ... select \"%s\"", result.getFileName()));
                     File file = result.getFile();
                     if(null!=file) {
+                        mCurrentFile = file;
                         mBinding.playerUnitView.setSource(file,false, 0);
                     }
 //                    mBinding.videoPlayer.play();

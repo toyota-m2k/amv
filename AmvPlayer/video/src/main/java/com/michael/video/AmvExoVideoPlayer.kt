@@ -107,7 +107,7 @@ class AmvExoVideoPlayer @JvmOverloads constructor(
                 }
                 Player.STATE_ENDED -> {
                     mBindings.playerState = IAmvVideoPlayer.PlayerState.Paused
-                    mEnded = true       // 動画ファイルの最後に達したことを覚えておく
+                    mEnded = playWhenReady       // 再生しながら動画ファイルの最後に達したことを覚えておく
                 }
                 else -> {}
             }
@@ -328,8 +328,8 @@ class AmvExoVideoPlayer @JvmOverloads constructor(
             // 動画ファイルの最後まで再生して止まっているとき、Playerの内部状態は、playWhenReady == true のままになっている。
             // そのまま、シークしてしまうと、シーク後に勝手に再生が再開されてしまう。
             // これを回避するため、シークのタイミングで、mEndedフラグが立っていれば、再生を終了してからシークすることにする。
-            mEnded = false
             pause()
+            mEnded = false  // pause()の中から onPlayerStateChangedが呼ばれて、mEnded は false にクリアされているはずだが。
         }
         seekManager.request(pos)
     }
@@ -470,19 +470,16 @@ class AmvExoVideoPlayer @JvmOverloads constructor(
     override fun onSaveInstanceState(): Parcelable {
         UtLogger.debug("LC-View: onSaveInstanceState")
         val parent =  super.onSaveInstanceState()
-        return SavedState(parent).apply {
-            data = SavedState.SavingData(mSource, mBindings.isPlaying, seekPosition)
-        }
+        return SavedState(parent, mSource)
     }
 
     override fun onRestoreInstanceState(state: Parcelable?) {
         UtLogger.debug("LC-View: onRestoreInstanceState")
         if(state is SavedState) {
             super.onRestoreInstanceState(state.superState)
-            val data = state.data
-            val source = data?.source
-            if(data!=null && source!=null) {
-                setSource(source, data.isPlaying, data.seekPosition)
+            val source = state.source
+            if(source!=null) {
+                setSource(source, false, 0)
             }
         } else {
             super.onRestoreInstanceState(state)
@@ -491,37 +488,24 @@ class AmvExoVideoPlayer @JvmOverloads constructor(
 
     internal class SavedState : View.BaseSavedState {
 
-        @org.parceler.Parcel
-        data class SavingData(
-                var source:File?,
-                var isPlaying:Boolean,
-                var seekPosition:Long
-        ) {
-            constructor() : this(null,false,0)
-        }
-
-        var data : SavingData? = null
+        val source : File?
 
         /**
          * Constructor called from [AmvSlider.onSaveInstanceState]
          */
-        constructor(superState: Parcelable) : super(superState)
+        constructor(superState: Parcelable, file:File?) : super(superState) {
+            source = file
+        }
 
         /**
          * Constructor called from [.CREATOR]
          */
         private constructor(parcel: Parcel) : super(parcel) {
-            val sd = parcel.readParcelable<Parcelable>(Parcelable::class.java.classLoader)
-            if(null!=sd) {
-                data = Parcels.unwrap(sd)
-            }
+            source = parcel.readSerializable() as? File
         }
 
         override fun writeToParcel(parcel: Parcel, flags: Int) {
-            super.writeToParcel(parcel, flags)
-
-            val pc = Parcels.wrap(data)
-            parcel.writeParcelable(pc,0)
+            parcel.writeSerializable(source)
         }
 
         companion object {

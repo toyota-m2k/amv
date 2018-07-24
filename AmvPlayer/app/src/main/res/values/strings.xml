@@ -9,4 +9,5 @@
     <string name="folder_select_dlg_title">Select Folder</string>
     <string name="play_video">Play</string>
     <string name="pause_video">Pause</string>
+    <string name="trimming">Trimming</string>
 </resources>

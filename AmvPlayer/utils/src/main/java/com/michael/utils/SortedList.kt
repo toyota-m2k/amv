@@ -1,9 +1,10 @@
 package com.michael.utils
 
+import android.os.Parcel
+
 /**
  * addしたときに必ずソートされる配列クラス
  */
-
 class SortedList<T>(capacity:Int, init:(index:Int)->T, private val comparator:(T,T)->Int, private val allowDuplication:Boolean) : List<T>, MutableCollection<T> {
 
     private val mList : ArrayList<T> = ArrayList<T>(capacity)
@@ -164,5 +165,9 @@ class SortedList<T>(capacity:Int, init:(index:Int)->T, private val comparator:(T
         }
     }
 
-
+    /**
+     * Parcelに出力できるように。。。
+     */
+    val asArrayList
+        get() = ArrayList<T>(mList)
 }

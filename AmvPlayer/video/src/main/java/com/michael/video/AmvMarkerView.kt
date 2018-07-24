@@ -4,11 +4,16 @@ import android.annotation.SuppressLint
 import android.content.Context
 import android.graphics.Canvas
 import android.graphics.drawable.Drawable
+import android.os.Parcel
+import android.os.Parcelable
 import android.util.AttributeSet
 import android.view.MotionEvent
 import android.view.View
 import com.michael.utils.FuncyListener2
 import com.michael.utils.SortedList
+import com.michael.utils.UtLogger
+import org.parceler.Parcels
+import java.io.File
 import kotlin.math.absoluteValue
 import kotlin.math.roundToInt
 import kotlin.math.roundToLong
@@ -17,11 +22,17 @@ class AmvMarkerView @JvmOverloads constructor(
         context: Context, attrs: AttributeSet? = null, defStyleAttr: Int = 0
 ) : View(context, attrs, defStyleAttr) {
 
-
     var markerAddedListener = FuncyListener2<Long,Any?,Unit>()
     var markerRemovedListener = FuncyListener2<Long,Any?,Unit>()
     var markerSelectedListener = FuncyListener2<Long,Any?,Unit>()
     var markerContextQueryListener = FuncyListener2<Long,Any?,Unit>()
+
+    var markers : ArrayList<Long>
+        get() = mMarkers.asArrayList
+        set(v) {
+            mMarkers.clear()
+            mMarkers.addAll(v)
+        }
 
     // dimensions
     private val mDrMarker: Drawable
@@ -48,6 +59,7 @@ class AmvMarkerView @JvmOverloads constructor(
             mMarkerWidth = mDrMarker.intrinsicWidth
             mMarkerHitLuckyZone = (context.dp2px(24) - mMarkerWidth ) / 2
             mNaturalHeight = mDrMarker.intrinsicHeight
+            isSaveFromParentEnabled = sa.getBoolean(R.styleable.AmvMarkerView_saveFromParent, true)
         } finally {
             sa.recycle()
         }
@@ -272,4 +284,64 @@ class AmvMarkerView @JvmOverloads constructor(
             return false
         }
     }
+
+
+    // region Saving States
+
+    override fun onSaveInstanceState(): Parcelable {
+        UtLogger.debug("LC-AmvMarkerView: onSaveInstanceState")
+        val parent =  super.onSaveInstanceState()
+        return SavedState(parent, mMarkers)
+    }
+
+    override fun onRestoreInstanceState(state: Parcelable?) {
+        UtLogger.debug("LC-AmvMarkerView: onRestoreInstanceState")
+        if(state is SavedState) {
+            super.onRestoreInstanceState(state.superState)
+            mMarkers.addAll(state.markersList)
+        } else {
+            super.onRestoreInstanceState(state)
+        }
+    }
+
+    internal class SavedState : View.BaseSavedState {
+        val markersList : ArrayList<Long>
+
+        /**
+         * Constructor called from [AmvSlider.onSaveInstanceState]
+         */
+        constructor(superState: Parcelable, markers:SortedList<Long>) : super(superState) {
+            markersList = markers.asArrayList
+        }
+
+        /**
+         * Constructor called from [.CREATOR]
+         */
+        private constructor(parcel: Parcel) : super(parcel) {
+            @Suppress("UNCHECKED_CAST")
+            markersList = parcel.readArrayList(Long::class.java.classLoader) as ArrayList<Long>
+        }
+
+        override fun writeToParcel(parcel: Parcel, flags: Int) {
+            super.writeToParcel(parcel, flags)
+            parcel.writeList(markersList)
+        }
+
+        companion object {
+            @Suppress("unused")
+            @JvmStatic
+            val CREATOR: Parcelable.Creator<SavedState> = object : Parcelable.Creator<SavedState> {
+                override fun createFromParcel(parcel: Parcel): SavedState {
+                    return SavedState(parcel)
+                }
+                override fun newArray(size: Int): Array<SavedState?> {
+                    return arrayOfNulls(size)
+                }
+            }
+        }
+    }
+
+
+
+    // endregion
 }

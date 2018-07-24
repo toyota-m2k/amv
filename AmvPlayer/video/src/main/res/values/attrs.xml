@@ -31,11 +31,14 @@
 
         <attr name="valueRange" format="integer"/>
 
+        <attr name="saveFromParent" format="boolean"/>
+
     </declare-styleable>
 
     <declare-styleable name="AmvMarkerView">
         <attr name="marker" format="integer"/>
         <attr name="leftInert" format="dimension"/>
         <attr name="rightInert" format="dimension"/>
+        <attr name="saveFromParent"/>
     </declare-styleable>
 </resources>

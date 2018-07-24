@@ -231,6 +231,8 @@ class AmvSlider @JvmOverloads constructor(
             railOffset = sa.getDimensionPixelSize(R.styleable.AmvSlider_railOffset, defRailOffset )
             trimmerOffset = sa.getDimensionPixelSize(R.styleable.AmvSlider_trimmerOffset, railOffset+maxRailHeight)
 
+            isSaveFromParentEnabled = sa.getBoolean(R.styleable.AmvSlider_saveFromParent, true)
+
             fun coloredPaint(@ColorInt c:Int) : Paint {
                 val p = Paint()
                 p.style = Paint.Style.STROKE

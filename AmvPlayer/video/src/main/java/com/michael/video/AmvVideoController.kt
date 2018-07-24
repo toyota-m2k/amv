@@ -6,6 +6,8 @@ import android.databinding.Bindable
 import android.databinding.BindingAdapter
 import android.databinding.DataBindingUtil
 import android.os.Handler
+import android.os.Parcel
+import android.os.Parcelable
 import android.support.constraint.ConstraintLayout
 import android.util.AttributeSet
 import android.view.LayoutInflater
@@ -46,6 +48,7 @@ class AmvVideoController @JvmOverloads constructor(context: Context, attrs: Attr
     private val mHandler = Handler()
     private var mFrameExtractor :AmvFrameExtractor? = null
     private var mDuration = 0L
+
 
     /**
      * Binding Data
@@ -89,6 +92,8 @@ class AmvVideoController @JvmOverloads constructor(context: Context, attrs: Attr
         @get:Bindable
         val minControllerWidth : Int = 325
 
+        var isPrepared : Boolean = false
+
         var playerState:IAmvVideoPlayer.PlayerState = IAmvVideoPlayer.PlayerState.None
             set(v) {
                 if(field != v) {
@@ -111,6 +116,8 @@ class AmvVideoController @JvmOverloads constructor(context: Context, attrs: Attr
                                 }
                             }
                         })
+                    } else if(v==IAmvVideoPlayer.PlayerState.None) {
+                        isPrepared = false
                     }
                 }
             }
@@ -146,7 +153,7 @@ class AmvVideoController @JvmOverloads constructor(context: Context, attrs: Attr
     init {
         mBinding.handlers = this
         mBinding.params = mBindingParams
-        isSaveFromParentEnabled = false         // このビューの状態は、IAmvPlayerView からのイベントによって復元される
+//        isSaveFromParentEnabled = false         // このビューの状態は、IAmvPlayerView からのイベントによって復元される
 
         // フレーム一覧のドラッグ操作をSliderのドラッグ操作と同様に扱うための小さな仕掛け
         mBinding.frameList.touchFriendListener.set(mBinding.slider::onTouchAtFriend)
@@ -197,14 +204,17 @@ class AmvVideoController @JvmOverloads constructor(context: Context, attrs: Attr
             // プレーヤー上のビデオの読み込みが完了したときのイベント
             videoPreparedListener.add(listenerName) { mp, duration ->
                 mDuration = duration
-                mBindingParams.prevPosition = -1
+                mBindingParams.prevPosition = -1    // 次回必ずcounterString を更新する
                 mBindingParams.updateCounterText(mp.seekPosition)
                 mBinding.slider.resetWithValueRange(duration, true)      // スライダーを初期化
                 mBinding.frameList.resetWithTotalRange(duration)
                 mBinding.markerView.resetWithTotalRange(duration)
+                mBindingParams.isPrepared = true
+                tryRestoreState()
             }
             // 動画ソースが変更されたときのイベント
             sourceChangedListener.add(listenerName) { _, source ->
+                savedData = null    // 誤って古い情報をリストアしないように。
 
                 // フレームサムネイルを列挙する
                 mFrameExtractor = AmvFrameExtractor().apply {
@@ -362,4 +372,84 @@ class AmvVideoController @JvmOverloads constructor(context: Context, attrs: Attr
         mBinding.frameList.position = pos
     }
 
+
+
+
+    // region Saving States
+    data class SavedData(val seekPosition:Long, val isPlaying:Boolean, val markers:ArrayList<Long>)
+
+    private var savedData: SavedData? = null
+
+    override fun onSaveInstanceState(): Parcelable {
+        UtLogger.debug("LC-View: onSaveInstanceState")
+        val parent =  super.onSaveInstanceState()
+        return SavedState(parent, savedData ?: SavedData(mBinding.slider.currentPosition, mBindingParams.isPlaying, mBinding.markerView.markers))
+    }
+
+    override fun onRestoreInstanceState(state: Parcelable?) {
+        UtLogger.debug("LC-View: onRestoreInstanceState")
+        if(state is SavedState) {
+            super.onRestoreInstanceState(state.superState)
+            savedData = state.savedData
+            tryRestoreState()
+        } else {
+            super.onRestoreInstanceState(state)
+        }
+    }
+
+    private fun tryRestoreState() {
+        if(mBindingParams.isPrepared) {
+            savedData?.apply {
+                    savedData = null
+                    updateSeekPosition(seekPosition, true, true)
+                    if (isPlaying) {
+                        mPlayer.play()
+                    }
+                    mBinding.markerView.markers = markers
+            }
+        }
+    }
+
+    internal class SavedState : View.BaseSavedState {
+
+        val savedData: SavedData
+
+        /**
+         * Constructor called from [AmvSlider.onSaveInstanceState]
+         */
+        constructor(superState: Parcelable, savedData:SavedData) : super(superState) {
+            this.savedData = savedData
+        }
+
+        /**
+         * Constructor called from [.CREATOR]
+         */
+        private constructor(parcel: Parcel) : super(parcel) {
+            @Suppress("UNCHECKED_CAST")
+            savedData = SavedData(parcel.readLong(), parcel.readInt() == 1, parcel.readArrayList(Long::class.java.classLoader) as ArrayList<Long>)
+        }
+
+        override fun writeToParcel(parcel: Parcel, flags: Int) {
+            parcel.writeLong(savedData.seekPosition)
+            parcel.writeInt(if(savedData.isPlaying) 1 else 0)
+            parcel.writeList(savedData.markers)
+        }
+
+        companion object {
+            @Suppress("unused")
+            @JvmStatic
+            val CREATOR: Parcelable.Creator<SavedState> = object : Parcelable.Creator<SavedState> {
+                override fun createFromParcel(parcel: Parcel): SavedState {
+                    return SavedState(parcel)
+                }
+                override fun newArray(size: Int): Array<SavedState?> {
+                    return arrayOfNulls(size)
+                }
+            }
+        }
+    }
+
+
+
+    // endregion
 }
