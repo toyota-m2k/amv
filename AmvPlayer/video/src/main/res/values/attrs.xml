@@ -33,4 +33,9 @@
 
     </declare-styleable>
 
+    <declare-styleable name="AmvMarkerView">
+        <attr name="marker" format="integer"/>
+        <attr name="leftInert" format="dimension"/>
+        <attr name="rightInert" format="dimension"/>
+    </declare-styleable>
 </resources>

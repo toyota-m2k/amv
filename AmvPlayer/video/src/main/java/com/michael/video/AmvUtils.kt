@@ -76,6 +76,15 @@ fun View.getLayoutHeight() : Int {
     }
 }
 
+fun View.setLayoutSize(width:Int, height:Int) {
+    val params = layoutParams
+    if(null!=params) {
+        params.width = width
+        params.height = height
+        layoutParams = params
+    }
+}
+
 fun View.setMargin(left:Int, top:Int, right:Int, bottom:Int) {
     val p = layoutParams as? ViewGroup.MarginLayoutParams
     if(null!=p) {

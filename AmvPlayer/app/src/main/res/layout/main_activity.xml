@@ -63,8 +63,8 @@
             />
 
         <com.michael.video.AmvExoVideoPlayer
-            tools:layout_width="300dp"
-            tools:layout_height="300dp"
+            tools:layout_width="wrap_content"
+            tools:layout_height="wrap_content"
             android:layout_height="wrap_content"
             android:layout_width="wrap_content"
             android:id="@+id/video_player"

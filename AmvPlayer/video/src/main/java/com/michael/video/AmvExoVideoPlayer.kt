@@ -7,6 +7,7 @@ import android.os.Parcel
 import android.os.Parcelable
 import android.util.AttributeSet
 import android.view.LayoutInflater
+import android.view.MotionEvent
 import android.view.View
 import android.widget.FrameLayout
 import android.widget.ProgressBar
@@ -23,6 +24,7 @@ import com.michael.utils.UtLogger
 import org.parceler.Parcels
 import java.io.File
 import kotlin.math.absoluteValue
+import kotlin.math.roundToInt
 
 
 class AmvExoVideoPlayer @JvmOverloads constructor(
@@ -54,6 +56,7 @@ class AmvExoVideoPlayer @JvmOverloads constructor(
         }
 
         override fun onSeekProcessed() {
+            seekCompletedListener.invoke(this@AmvExoVideoPlayer, seekPosition)
         }
 
         override fun onTracksChanged(trackGroups: TrackGroupArray?, trackSelections: TrackSelectionArray?) {
@@ -105,6 +108,7 @@ class AmvExoVideoPlayer @JvmOverloads constructor(
         }
 
     }
+
     // endregion
 
     // region Initialization / Termination
@@ -119,6 +123,16 @@ class AmvExoVideoPlayer @JvmOverloads constructor(
         player.addListener(mEventListener)
         player.addVideoListener(mVideoListener)
         mPlayer = player
+
+        // タッチで再生/一時停止をトグルさせる
+        this.setOnClickListener {
+            if(it is AmvExoVideoPlayer) {
+                it.togglePlay()
+            }
+        }
+//        mBindings.playerView.setOnClickListener {     // ExoPlayer にクリックリスナーをセットしても無駄だった
+//            togglePlay()
+//        }
     }
 
     override fun onDetachedFromWindow() {
@@ -133,10 +147,10 @@ class AmvExoVideoPlayer @JvmOverloads constructor(
         super.onDetachedFromWindow()
     }
 
-    override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
-        super.onSizeChanged(w, h, oldw, oldh)
-        sizeChangedListener.invoke(this, w, h)
-    }
+//    override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
+//        super.onSizeChanged(w, h, oldw, oldh)
+//        sizeChangedListener.invoke(this, w, h)
+//    }
 
     // endregion
 
@@ -210,10 +224,10 @@ class AmvExoVideoPlayer @JvmOverloads constructor(
 
         // Update Views
         private fun updateLayout() {
-            val lp = playerView.layoutParams
-            lp.height = Math.round(mPlayerSize.height)
-            lp.width = Math.round(mPlayerSize.width)
-            playerView.layoutParams = lp
+            val w = mPlayerSize.width.roundToInt()
+            val h = mPlayerSize.height.roundToInt()
+            playerView.setLayoutSize(w,h)
+            sizeChangedListener.invoke(this@AmvExoVideoPlayer, w,h)
         }
 
         // Update States
@@ -255,6 +269,7 @@ class AmvExoVideoPlayer @JvmOverloads constructor(
     }
 
     override fun reset() {
+        mSource = null
         mBindings.reset()
         mPlayer?.apply {
             stop()
@@ -287,6 +302,14 @@ class AmvExoVideoPlayer @JvmOverloads constructor(
     override fun pause() {
         mPlayer?.apply {
             playWhenReady = false
+        }
+    }
+
+    fun togglePlay() {
+        if(null!=mSource) {
+            mPlayer?.apply {
+                playWhenReady = !playWhenReady
+            }
         }
     }
 

@@ -79,7 +79,7 @@ class AmvVideoController @JvmOverloads constructor(context: Context, attrs: Attr
         val hasNext : Boolean = true
 
         @get:Bindable
-        var showingFrames:Boolean = true
+        var showingFrames:Boolean = false
             set(v) {
                 if(field!=v) {
                     field = v
@@ -169,6 +169,9 @@ class AmvVideoController @JvmOverloads constructor(context: Context, attrs: Attr
         // フレーム一覧のドラッグ操作をSliderのドラッグ操作と同様に扱うための小さな仕掛け
         mBinding.frameList.touchFriendListener.set(mBinding.slider::onTouchAtFriend)
 
+        mBinding.markerView.markerSelectedListener.set { position, clientData ->
+            mPlayer.seekTo(position)
+        }
 //        mBinding.backButton.isEnabled = false
 //        mBinding.forwardButton.isEnabled = true
 //        mBinding.backButton
@@ -190,8 +193,9 @@ class AmvVideoController @JvmOverloads constructor(context: Context, attrs: Attr
             // 動画の画面サイズが変わったときのイベント
             sizeChangedListener.add(listenerName) { _, width, _ ->
                 // layout_widthをBindingすると、どうしてもエラーになるので、直接変更
+
                 mBinding.controllerRoot.setLayoutWidth(width)
-                mBinding.frameList.setLayoutWidth(width)
+//                mBinding.frameList.setLayoutWidth(width)
             }
 
             // プレーヤー上のビデオの読み込みが完了したときのイベント
@@ -201,6 +205,7 @@ class AmvVideoController @JvmOverloads constructor(context: Context, attrs: Attr
                 mBindingParams.updateCounterText(mp.seekPosition)
                 mBinding.slider.resetWithValueRange(duration, true)      // スライダーを初期化
                 mBinding.frameList.resetWithTotalRange(duration)
+                mBinding.markerView.resetWithTotalRange(duration)
             }
             // 動画ソースが変更されたときのイベント
             sourceChangedListener.add(listenerName) { _, source ->
@@ -240,7 +245,6 @@ class AmvVideoController @JvmOverloads constructor(context: Context, attrs: Attr
         get() = mBindingParams.isReadOnly
         set(v) { mBindingParams.isReadOnly=v }
 
-    @Suppress("UNUSED_PARAMETER")
     fun onPlayClicked(view: View) {
         when(mPlayer.playerState) {
             IAmvVideoPlayer.PlayerState.Paused -> mPlayer.play()
@@ -249,22 +253,32 @@ class AmvVideoController @JvmOverloads constructor(context: Context, attrs: Attr
         }
     }
 
-    @Suppress("UNUSED_PARAMETER")
+    fun onPrevMarker(view: View) {
+        mBinding.markerView.prevMark(seekPosition, null)
+    }
+
+    fun onNextMarker(view: View) {
+        mBinding.markerView.nextMark(seekPosition, null)
+    }
+
+    fun onAddMarker(view: View) {
+        mBinding.markerView.addMarker(seekPosition, null)
+    }
+
     fun onShowFramesClick(view:View) {
         mBindingParams.showingFrames = !mBindingParams.showingFrames
-        if(!mBindingParams.showingFrames) {
-            mBinding.frameList.visibility = View.GONE
-            mBinding.slider.showThumbBg = false
-        } else {
-            mBinding.frameList.visibility = View.VISIBLE
-            mBinding.slider.showThumbBg = true
-        }
+//        if(!mBindingParams.showingFrames) {
+//            mBinding.frameList.visibility = View.GONE
+//            mBinding.slider.showThumbBg = false
+//        } else {
+//            mBinding.frameList.visibility = View.VISIBLE
+//            mBinding.slider.showThumbBg = true
+//        }
 
         // XML で、android:selected という属性は警告(Unknown attribute)がでるが、ちゃんとバインドできているという謎。
         // mBinding.showFramesButton.isSelected = mBindingParams.showingFrames
     }
 
-    @Suppress("unused")
     val seekPosition : Long
         get() = mPlayer.seekPosition
 

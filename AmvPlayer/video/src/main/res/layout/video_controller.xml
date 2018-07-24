@@ -14,14 +14,14 @@
     <android.support.constraint.ConstraintLayout
         android:id="@+id/controllerRoot"
         android:layout_width="350dp"
-        android:minWidth="@{params.minControllerWidth}"
         android:layout_height="wrap_content"
+        android:minWidth="@{params.minControllerWidth}"
         android:background="@color/button_face"
         >
 
         <LinearLayout
             android:id="@+id/buttons"
-            android:layout_width="wrap_content"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
             app:layout_constraintLeft_toLeftOf="parent"
             app:layout_constraintTop_toTopOf="parent"
@@ -50,9 +50,8 @@
                 android:scaleType="fitXY"
                 app:srcCompat="@drawable/ic_back"
                 android:contentDescription="@string/back"
-                android:alpha="@{params.hasPrev ? 255 : 80 }"
-                android:clickable="@{params.hasPrev}"
                 android:background="?android:selectableItemBackground"
+                android:onClick="@{handlers.onPrevMarker}"
                 />
 
             <ImageButton
@@ -63,9 +62,8 @@
                 android:scaleType="fitXY"
                 app:srcCompat="@drawable/ic_forward"
                 android:contentDescription="@string/next"
-                android:alpha="@{params.hasNext ? 255 : 80 }"
-                android:clickable="@{params.hasNext}"
                 android:background="?android:selectableItemBackground"
+                android:onClick="@{handlers.onNextMarker}"
                 />
 
             <ImageButton
@@ -78,7 +76,9 @@
                 android:alpha="@{params.isReadOnly ? 255 : 80 }"
                 android:clickable="@{params.isReadOnly}"
                 android:background="?android:selectableItemBackground"
-                android:contentDescription="@string/add_marker" />
+                android:contentDescription="@string/add_marker"
+                android:onClick="@{handlers.onAddMarker}"
+                />
             <ImageButton
                 android:id="@+id/pinpButton"
                 android:layout_width="48dp"
@@ -104,7 +104,7 @@
             android:layout_height="48dp"
             android:padding="8dp"
             android:scaleType="fitXY"
-            app:srcCompat="@drawable/ic_film"
+            app:srcCompat="@drawable/ic_frames"
             android:background="?android:selectableItemBackground"
             android:contentDescription="@string/fullscreen"
             android:onClick="@{handlers::onShowFramesClick}"
@@ -113,17 +113,28 @@
             app:layout_constraintRight_toRightOf="parent"
             app:layout_constraintTop_toTopOf="parent"
             />
+        <com.michael.video.AmvMarkerView
+            android:id="@+id/markerView"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="@color/marker_view_bg"
+            app:leftInert="13dp"
+            app:rightInert="13dp"
+            app:layout_constraintLeft_toLeftOf="parent"
+            app:layout_constraintRight_toRightOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/buttons"
+            />
         <com.michael.video.AmvSlider
             android:id="@+id/slider"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             app:trimmingMode="false"
-            app:showThumbBg="true"
+            app:showThumbBg="@{params.showingFrames}"
             android:background="#444400"
             app:onCurrentPositionChanged="@{handlers::onCurrentPositionChanged}"
             app:layout_constraintLeft_toLeftOf="parent"
             app:layout_constraintRight_toRightOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/buttons"
+            app:layout_constraintTop_toBottomOf="@id/markerView"
             />
 
         <!--<SeekBar-->
@@ -142,8 +153,9 @@
             <!--/>-->
         <com.michael.video.AmvFrameListView
             android:id="@+id/frameList"
-            android:layout_width="350dp"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:visibility="@{params.showingFrames ? View.VISIBLE : View.GONE}"
             app:layout_constraintLeft_toLeftOf="parent"
             app:layout_constraintTop_toBottomOf="@id/slider"
             />
