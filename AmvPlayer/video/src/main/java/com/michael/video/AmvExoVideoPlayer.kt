@@ -20,7 +20,6 @@ import com.google.android.exoplayer2.ui.PlayerView
 import com.google.android.exoplayer2.upstream.DefaultDataSourceFactory
 import com.google.android.exoplayer2.video.VideoListener
 import com.michael.utils.UtLogger
-import org.parceler.Parcels
 import java.io.File
 import kotlin.math.absoluteValue
 import kotlin.math.roundToInt
@@ -220,6 +219,7 @@ class AmvExoVideoPlayer @JvmOverloads constructor(
         private val isError: Boolean
             get() = mPlayerState == IAmvVideoPlayer.PlayerState.Error
 
+        @Suppress("unused")
         val isPlaying : Boolean
             get() = mPlayerState == IAmvVideoPlayer.PlayerState.Playing
 

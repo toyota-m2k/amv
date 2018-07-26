@@ -8,6 +8,8 @@ import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
+import android.util.Size;
+import android.view.SurfaceView;
 import android.view.View;
 import android.widget.TextView;
 
@@ -87,10 +89,14 @@ public class TrimmingActivity extends AppCompatActivity {
         mSource = (File)s;
 
         if(null!=mSource) {
-            transcoder = new AmvTranscoder(mSource, (AmvWorkingSurfaceView)findViewById(R.id.surfaceView), getApplicationContext());
+            transcoder = new AmvTranscoder(mSource, getApplicationContext());
 //            AmvMediaInfo mi = new AmvMediaInfo(mSource, getApplicationContext());
-            TextView view = findViewById(R.id.infoText);
-            view.setText(transcoder.getMediaInfo().getSummary());
+            AmvWorkingSurfaceView surfaceView = findViewById(R.id.surfaceView);
+            Size size = transcoder.getMediaInfo().getHd720Size();
+            surfaceView.setVideoSize(size.getWidth(), size.getHeight());
+            transcoder.setSurfaceView(surfaceView);
+
+            ((TextView)findViewById(R.id.infoText)).setText(transcoder.getMediaInfo().getSummary());
         }
 
     }
@@ -121,13 +127,13 @@ public class TrimmingActivity extends AppCompatActivity {
 
     public void onTranscodeButton() {
         //AmvTranscoder tc = new AmvTranscoder(mSource, this);
-        transcoder.getCompletionListener().set(new AmvTranscoder.CompletionListener.IHandler() {
+        transcoder.setCompletionListener(new AmvTranscoder.ICompletionEventHandler() {
             @Override
             public void onCompleted(@NotNull AmvTranscoder sender, boolean result) {
                 UtLogger.debug("Transcode done (%s)", result?"True":"False");
             }
         });
-        transcoder.getProgressListener().set(new AmvTranscoder.ProgressListener.IHandler() {
+        transcoder.setProgressListener(new AmvTranscoder.IProgressEventHandler() {
             @Override
             public void onProgress(@NotNull AmvTranscoder sender, float progress) {
                 UtLogger.debug("Transcode progress %d %%", (int)(progress*100));

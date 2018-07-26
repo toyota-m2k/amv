@@ -1,9 +1,10 @@
 package com.michael.video
 
 class AmvError {
-    var mMessage: String? = null
-    var mException: Throwable? = null
+    private var mMessage: String? = null
+    private var mException: Throwable? = null
 
+    @Suppress("MemberVisibilityCanBePrivate")
     val hasError: Boolean
         get() = (mMessage != null || mException != null)
 
@@ -11,6 +12,7 @@ class AmvError {
         get() = mMessage ?: mException?.message ?: ""
 
 
+    @Suppress("unused")
     fun reset() {
         mException = null
         mMessage = null
@@ -28,20 +30,19 @@ class AmvError {
         }
     }
 
+    @Suppress("unused")
     fun copyFrom(e:AmvError) {
         if (!hasError) {
-            mException = e.mException;
-            mMessage = e.mMessage;
+            mException = e.mException
+            mMessage = e.mMessage
         }
     }
 
     override fun toString(): String {
-        return if(null!=mException) {
-            mException.toString()
-        } else if(null!=mMessage) {
-            message
-        } else {
-            "No error."
+        return when {
+            null!=mException -> mException.toString()
+            null!=mMessage -> message
+            else -> "No error."
         }
     }
 }

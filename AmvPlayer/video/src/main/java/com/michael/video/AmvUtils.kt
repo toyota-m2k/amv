@@ -1,7 +1,6 @@
 package com.michael.video
 
 import android.content.Context
-import android.graphics.RectF
 import android.util.Size
 import android.util.SizeF
 import android.view.View
@@ -69,6 +68,7 @@ fun View.setLayoutHeight(height:Int) {
     }
 }
 
+@Suppress("unused")
 fun View.getLayoutHeight() : Int {
     return if(layoutParams.height>=0) {
         layoutParams.height
@@ -95,6 +95,7 @@ fun View.setMargin(left:Int, top:Int, right:Int, bottom:Int) {
 
 }
 
+@Suppress("unused")
 fun Context.dp2px(dp:Float) : Float {
     return resources.displayMetrics.density * dp
 }
@@ -103,7 +104,7 @@ fun Context.dp2px(dp:Int) : Int {
     return (resources.displayMetrics.density * dp).roundToInt()
 }
 
-class AmvTimeSpan(val ms : Long) {
+class AmvTimeSpan(private val ms : Long) {
     val milliseconds: Long
         get() = ms % 1000
 
@@ -118,11 +119,10 @@ class AmvTimeSpan(val ms : Long) {
 }
 
 fun <T> ignoreErrorCall(def:T, f:()->T): T {
-    try {
-        return f()
-    }
-    catch(e:Exception) {
+    return try {
+        f()
+    } catch(e:Exception) {
         UtLogger.debug("SafeCall: ${e.message}")
-        return def
+        def
     }
 }
