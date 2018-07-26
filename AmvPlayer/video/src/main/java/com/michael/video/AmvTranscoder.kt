@@ -15,40 +15,220 @@ import java.lang.ref.WeakReference
 import java.nio.ByteBuffer
 import kotlin.math.roundToInt
 
+/**
+ * トランスコード / トリミングを行うクラス
+ *
+ */
 
-class AmvTranscoder(val source:File, val surfaceView:AmvWorkingSurfaceView, context:Context) : SurfaceHolder.Callback{
+class AmvTranscoder(val source:File, context:Context) : SurfaceHolder.Callback{
 
+    // region Public Properties
+
+    /**
+     * メディアファイルの情報
+     */
     val mediaInfo = AmvMediaInfo(source, context)
+
+    /**
+     * エラーが発生した場合に、その情報がセットされる
+     */
     val error = AmvError()
 
-    init {
-        surfaceView.holder.addCallback(this)
-        val size = mediaInfo.hd720Size
-        surfaceView.setVideoSize(size.width, size.height)
+    /**
+     * Transcode/Trimming 時に、外部からSurfaceViewを与えておくと、処理中に（時々。。。とりあえず５％毎に）フレームが描画される。
+     * その分、処理が遅くなるけど。
+     */
+    var surfaceView: SurfaceView? = null
+        set(v) {
+            if(null!=v) {
+                field = v
+                mediaInfo.mediaFileInfo.setOutputSurface(AndroidMediaObjectFactory.Converter.convert(v.holder.surface))
+                v.holder.addCallback(this)
+            }
+        }
+    // endregion -----------------------------------------------------------------------------
+
+    // region Event Listeners (for Kotlin)
+
+    /**
+     * 処理が終了したときのイベント
+     */
+    val completionListener = FuncyListener2<AmvTranscoder, Boolean, Unit>()
+    /**
+     * プログレス通知
+     */
+    val progressListener = FuncyListener2<AmvTranscoder, Float, Unit>()
+
+    // endregion -----------------------------------------------------------------------------
+
+    // region Event Listeners for Java API
+
+    interface ICompletionEventHandler {
+        fun onCompleted(sender: AmvTranscoder, result: Boolean)
     }
 
-    private fun terminate() {
+    @Suppress("unused")
+    fun setCompletionListener(listener:ICompletionEventHandler) {
+        completionListener.set(listener::onCompleted)
+    }
+
+    interface IProgressEventHandler {
+       fun onProgress(sender: AmvTranscoder, progress: Float)
+    }
+
+    @Suppress("unused")
+    fun setProgressListener(listener:IProgressEventHandler) {
+        progressListener.set(listener::onProgress)
+    }
+
+    // endregion -----------------------------------------------------------------------------
+
+    // region Public Methods
+
+    /**
+     * トランスコードを開始
+     * @param  distFile     出力ファイル
+     */
+    fun transcode(distFile:File) {
+        mTrimmingRange = null
+        prepare(distFile) {
+            start()
+        }
+    }
+
+    /**
+     * トリミングを開始
+     * @param  distFile     出力ファイル
+     */
+    @Suppress("unused")
+    fun truncate(distFile:File, start:Long, end:Long) {
+        prepare(distFile) {
+            mTrimmingRange = TrimmingRange(start,end)
+            sourceFiles[0].addSegment(mTrimmingRange!!.pair)
+            start()
+        }
+    }
+
+    /**
+     * 処理を中止
+     */
+    @Suppress("unused")
+    fun cancel() {
+        error.setError("cancelled")
+        mMediaComposer?.stop()
+    }
+
+    /**
+     * 処理を一時停止
+     */
+    fun pause() {
+        mMediaComposer?.pause()
+    }
+
+    /**
+     * 一時停止した処理を再開
+     */
+    @Suppress("unused")
+    fun resume() {
+        mMediaComposer?.resume()
+    }
+
+    /**
+     * 後処理
+     */
+    fun dispose() {
         val composer = mMediaComposer
         if(null!=composer) {
+            mediaInfo.mediaFileInfo.setOutputSurface(null)
             mMediaComposer = null
             composer.stop()
         }
     }
 
+
+    /**
+     * surfaceView（外部から与えられたサーフェス）にフレームを表示する
+     * 呼び出し側から、SurfaceView初期化前に surfaceView プロパティにセットしておくと、自動的に先頭のフレームを表示するが、
+     * それより後からセットするような場合には、このメソッドを呼ぶ必要があるかもしれない。
+     *
+     * @param position  表示するフレーム位置（全体を 1 としたときの比率で指定）
+     */
+    fun displayVideoFrame(position:Float) {
+
+        if (surfaceView != null && mediaInfo.hasVideo && position in 0f..1f) {
+            try {
+                //val surface = AndroidMediaObjectFactory.Converter.convert(holder.surface)
+//                mediaInfo.mediaFileInfo.setOutputSurface(surface)
+                val tm = if(mTrimmingRange==null) {
+                    (mediaInfo.duration*position).toLong()
+                } else {
+                    mTrimmingRange!!.timeAtPosition(position)
+                }
+
+                val buffer = ByteBuffer.allocate(1)
+                mediaInfo.mediaFileInfo.getFrameAtPosition(tm, buffer)
+
+            } catch (e: Exception) {
+                UtLogger.error(e.toString())
+            }
+
+        }
+    }
+
+    // endregion -----------------------------------------------------------------------------
+
+    // region Privates
+
+    init {
+        if (!mediaInfo.hasVideo) {
+            throw AmvException("source format error.")
+        }
+        UtLogger.debug(mediaInfo.summary)
+    }
+
+    private val mContext = WeakReference<Context>(context)              // MediaComposerやInternalSurfaceViewを生成するために必要（Weakで持っておこう）
+    private var mMediaComposer: MediaComposer? = null                   // コンポーザー
+    private var mInternalSurfaceView: AmvWorkingSurfaceView? = null     // surfaceViewが与えられなかったときに、自力で代用品を用意できるようにしておく。
+    private var mTrimmingRange :TrimmingRange? = null                   // トリミング用の範囲を保持する（フレーム描画のため）
+
+    /**
+     * トリミング範囲を保持するデータクラス
+     */
+    private data class TrimmingRange(val start:Long, val end:Long) {
+        val range : Long
+            get() = end-start
+        val pair : Pair<Long,Long>
+            get() = Pair(start,end)
+        fun timeAtPosition(p:Float) : Long {
+            return start + (range * p).toLong()
+        }
+    }
+
+    /**
+     * Transcode/Trimmingの進捗を受け取るコールバックi/fインスタンス
+     */
     private val mListener = object : IProgressListener {
+        var lenderFrame = 5
+
         override fun onMediaStart() {
             UtLogger.debug("AmvTranscoder: started")
+            lenderFrame = 5
         }
 
         override fun onMediaProgress(progress: Float) {
             UtLogger.debug("AmvTranscoder: progressing ${(progress*100).roundToInt()}")
             progressListener.invoke(this@AmvTranscoder, progress)
+
+            if(lenderFrame<(progress*100).toInt()) {
+                lenderFrame += 5        // 5%ずつ表示
+                displayVideoFrame(progress)
+            }
         }
 
         override fun onMediaDone() {
             UtLogger.debug("AmvTranscoder: done")
             completionListener.invoke(this@AmvTranscoder, true)
-            terminate()
+            dispose()
         }
 
         override fun onMediaPause() {
@@ -57,8 +237,10 @@ class AmvTranscoder(val source:File, val surfaceView:AmvWorkingSurfaceView, cont
 
         override fun onMediaStop() {
             UtLogger.debug("AmvTranscoder: stopped")
-//            completionListener.invoke(this@AmvTranscoder, false)
-            terminate()
+            if(error.message=="cancelled") {
+                completionListener.invoke(this@AmvTranscoder, false)
+            }
+            dispose()
         }
 
         override fun onError(exception: Exception?) {
@@ -69,105 +251,36 @@ class AmvTranscoder(val source:File, val surfaceView:AmvWorkingSurfaceView, cont
             }
             UtLogger.debug("AmvTranscoder: error\n${error.toString()}")
             completionListener.invoke(this@AmvTranscoder, false)
-            terminate()
+            dispose()
         }
-
-    }
-    private val mContext = WeakReference<Context>(context)
-//    private var mSurfaceView: AmvWorkingSurfaceView? = null
-    private var mMediaComposer: MediaComposer? = null
-
-    init {
-        if (!mediaInfo.hasVideo) {
-            throw AmvException("source format error.")
-        }
-        UtLogger.debug(mediaInfo.summary)
     }
 
-    class CompletionListener : FuncyListener2<AmvTranscoder, Boolean, Unit>() {
-        interface IHandler {
-            fun onCompleted(sender: AmvTranscoder, result: Boolean)
-        }
-        fun set(listener: IHandler) = this.set(listener::onCompleted)
-    }
-
-    class ProgressListener : FuncyListener2<AmvTranscoder, Float, Unit>(){
-        interface IHandler {
-            fun onProgress(sender: AmvTranscoder, progress: Float)
-        }
-        fun set(listener: IHandler) = this.set(listener::onProgress)
-    }
-
-    val completionListener = CompletionListener()
-    val progressListener = ProgressListener()
-
+    /**
+     * Transcode/Truncate共通のコンポーザー初期化処理
+     */
     private fun prepare(distFile:File, fn:MediaComposer.()->Unit) {
         if(!mediaInfo.hasVideo) {
             throw AmvException("No Video")
         }
-        val context = mContext.get()
-        if(context==null) {
-            throw AmvException("Context has gone")
-        }
+        val context = mContext.get() ?: throw AmvException("Context has gone")
         val composer = MediaComposer(AndroidMediaObjectFactory(context), mListener)
         mMediaComposer = composer
         mediaInfo.applyHD720TranscodeParameters(mMediaComposer!!, distFile)
 
-//        mSurfaceView = AmvWorkingSurfaceView(context)
-//        mediaInfo.mediaFileInfo.setOutputSurface(AndroidMediaObjectFactory.Converter.convert(mSurfaceView!!.holder.surface))
+        if(null==surfaceView) {
+            mInternalSurfaceView = AmvWorkingSurfaceView(context)
+            mInternalSurfaceView!!.setVideoSize(mediaInfo.hd720Size.width, mediaInfo.hd720Size.height)
+            mediaInfo.mediaFileInfo.setOutputSurface(AndroidMediaObjectFactory.Converter.convert(mInternalSurfaceView!!.holder.surface))
+        }
         composer.fn()
     }
 
-    /**
-     * トランスコード
-     */
-    fun transcode(distFile:File) {
-        prepare(distFile) {
-            start()
-        }
-    }
-
-    /**
-     * トリミング
-     */
-    fun truncate(distFile:File, start:Long, end:Long) {
-        prepare(distFile) {
-            sourceFiles[0].addSegment(Pair(start,end))
-            start()
-        }
-    }
-
-    fun cancel() {
-        mMediaComposer?.stop()
-    }
-
-    fun pause() {
-        mMediaComposer?.pause()
-    }
-    fun resume() {
-        mMediaComposer?.resume()
-    }
-
-    private fun displayVideoFrame(holder: SurfaceHolder) {
-
-        if (mediaInfo.hasVideo) {
-            try {
-                val surface = AndroidMediaObjectFactory.Converter.convert(holder.surface)
-                mediaInfo.mediaFileInfo.setOutputSurface(surface)
-
-                val buffer = ByteBuffer.allocate(1)
-                mediaInfo.mediaFileInfo.getFrameAtPosition(100, buffer)
-
-            } catch (e: Exception) {
-                UtLogger.error(e.toString())
-            }
-
-        }
-    }
+    // endregion -----------------------------------------------------------------------------
 
     // region SurfaceHolder.Callback i/f
+
     override fun surfaceCreated(holder: SurfaceHolder) {
-        displayVideoFrame(holder)
+        displayVideoFrame(0.01f)
         UtLogger.debug("AmvTranscoder: surfaceCreated")
     }
 
@@ -179,4 +292,5 @@ class AmvTranscoder(val source:File, val surfaceView:AmvWorkingSurfaceView, cont
         UtLogger.debug("AmvTranscoder: surfaceChanged")
     }
 
+    // endregion -----------------------------------------------------------------------------
 }

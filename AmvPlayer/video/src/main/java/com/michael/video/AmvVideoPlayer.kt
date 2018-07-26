@@ -136,7 +136,7 @@ class AmvVideoPlayer @JvmOverloads constructor(context: Context, attrs: Attribut
                     // Activityが切り替わって、Activityが破棄される前に戻ってきた場合、同じ動画に対して、preparedがもう一度回呼ばれるので、チェックする
                     mMediaPlayer = mp
                     naturalDuration = mp.duration.toLong()
-                    videoPreparedListener.invoke(this@AmvVideoPlayer, naturalDuration.toLong())
+                    videoPreparedListener.invoke(this@AmvVideoPlayer, naturalDuration)
                 }
 
                 mVideoSize.height = mp.videoHeight.toFloat()

@@ -21,7 +21,7 @@ class AmvPlayerUnitView @JvmOverloads constructor(
             controller.setVideoPlayer(player)
         }
     }
-    val bindings =  Bindings()
+    private val bindings =  Bindings()
 
     init {
         LayoutInflater.from(context).inflate(R.layout.player_unit_view, this)

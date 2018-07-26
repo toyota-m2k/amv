@@ -11,15 +11,16 @@ import java.io.File
 import java.lang.Exception
 import kotlin.math.roundToInt
 
+@Suppress("MemberVisibilityCanBePrivate")
 data class AmvMediaInfo(val mediaFileInfo: MediaFileInfo) {
     constructor(source: File, context: Context) : this(MediaFileInfo(AndroidMediaObjectFactory(context)).apply { uri = Uri(source.toURI().toString()) })
 
     val duration: Long
-        get() = mediaFileInfo.getDurationInMicroSec()
+        get() = mediaFileInfo.durationInMicroSec
     val audioFormat: AudioFormat?
-        get() = mediaFileInfo.getAudioFormat() as? AudioFormat
+        get() = mediaFileInfo.audioFormat as? AudioFormat
     val videoFormat: VideoFormat?
-        get() = mediaFileInfo.getVideoFormat() as? VideoFormat
+        get() = mediaFileInfo.videoFormat as? VideoFormat
 
     val hasVideo: Boolean
         get() = videoFormat != null
@@ -83,16 +84,14 @@ data class AmvMediaInfo(val mediaFileInfo: MediaFileInfo) {
     val audioProfile
         get() = ignoreErrorCall(-1) {audioFormat?.audioProfile ?: -1}
 
-    val MAX_BITRATE : Int = 4000     // 4000K bps = 4M bps
+    val cMaxBitRate : Int = 4000     // 4000K bps = 4M bps
 
     val hd720Size : Size
         get() {
-            var r = 1f
-            if (size.width > size.height) { // 横長
-                r = Math.min(1280f / size.width, 720f / size.height)
-            }
-            else { // 縦長
-                r = Math.min(720f / size.width, 1280f / size.height)
+            var r = if (size.width > size.height) { // 横長
+                Math.min(1280f / size.width, 720f / size.height)
+            } else { // 縦長
+                Math.min(720f / size.width, 1280f / size.height)
             }
             if (r > 1) { // 拡大はしない
                 r = 1f
@@ -105,8 +104,8 @@ data class AmvMediaInfo(val mediaFileInfo: MediaFileInfo) {
         val videoFormat = VideoFormatAndroid(VideoFormat.MIME_TYPE, size.width, size.height)
 
         // オリジナルのビットレートより大きいビットレートにならないように。
-        val orgBitrate = if (bitRate > 0) bitRate else MAX_BITRATE   // avi (divx/xvid) のときに、prop.Bitrate==0になっていて、トランスコードに失敗することがあった。#5812:2
-        val maxBitrate = Math.min(orgBitrate, MAX_BITRATE) // 最大４Mbpsとする #5812
+        val orgBitrate = if (bitRate > 0) bitRate else cMaxBitRate   // avi (divx/xvid) のときに、prop.Bitrate==0になっていて、トランスコードに失敗することがあった。#5812:2
+        val maxBitrate = Math.min(orgBitrate, cMaxBitRate) // 最大4M bpsとする #5812
         videoFormat.videoBitRateInKBytes = maxBitrate
 
         // フレームレートはソースに合わせる。
@@ -120,7 +119,7 @@ data class AmvMediaInfo(val mediaFileInfo: MediaFileInfo) {
             val audioFormat = AudioFormatAndroid("audio/mp4a-latm", audioSamplingRate, audioChannelCount)
             audioFormat.audioBitrateInBytes = if(audioBitRate>0) audioBitRate else 96000        // ソースから情報が取れなくても、なにか値を入れておかないとエラーになるみたい。
             audioFormat.audioProfile = if(audioProfile>0) audioProfile else MediaCodecInfo.CodecProfileLevel.AACObjectLC
-            composer.setTargetAudioFormat(audioFormat)
+            composer.targetAudioFormat = audioFormat
         }
     }
 
