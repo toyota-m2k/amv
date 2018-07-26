@@ -6,6 +6,7 @@ import android.util.Size
 import android.util.SizeF
 import android.view.View
 import android.view.ViewGroup
+import com.michael.utils.UtLogger
 import kotlin.math.roundToInt
 
 /**
@@ -114,4 +115,14 @@ class AmvTimeSpan(val ms : Long) {
 
     val hours: Long
         get() = (ms / 1000 / 60 / 60)
+}
+
+fun <T> ignoreErrorCall(def:T, f:()->T): T {
+    try {
+        return f()
+    }
+    catch(e:Exception) {
+        UtLogger.debug("SafeCall: ${e.message}")
+        return def
+    }
 }
