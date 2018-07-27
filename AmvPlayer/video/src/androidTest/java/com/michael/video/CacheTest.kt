@@ -29,7 +29,7 @@ class AmvCacheManagerTest {
     }
 
     @Test
-    fun CacheManagerTest() {
+    fun cacheManagerTest() {
         // Context of the app under test.
         val appContext = InstrumentationRegistry.getTargetContext()
         assertEquals("com.michael.video.test", appContext.packageName)
@@ -45,7 +45,7 @@ class AmvCacheManagerTest {
             assertTrue(AmvCacheManager.hasCache(uri2,null))
             assertTrue(AmvCacheManager.hasCache(uri3,null))
             val c4 = AmvCacheManager.getCache(uri4, null)
-            c4.getFile {cache, file->
+            c4.getFile { _, _ ->
                 assertEquals(AmvCacheManager.cacheCount, 3)
             }
             assertTrue(AmvCacheManager.hasCache(uri4, null))
@@ -64,7 +64,7 @@ class AmvCacheManagerTest {
         c1.release()
         assertEquals(c1.refCount,1)
 
-        c1.getFile { cache, file ->
+        c1.getFile { _, file ->
             assertNotNull(file)
             if(null!=file) {
                 assertTrue(file.exists())
@@ -75,7 +75,7 @@ class AmvCacheManagerTest {
         }
 
         val c2 = AmvCacheManager.getCache(uri2, null)
-        c2.getFile { cache, file->
+        c2.getFile { _, file->
             assertNotNull(file)
             if(null!=file) {
                 assertTrue(file.exists())
@@ -86,7 +86,7 @@ class AmvCacheManagerTest {
         }
 
         val c3 = AmvCacheManager.getCache(uri3, null)
-        c3.getFile { cache, file->
+        c3.getFile { _, file->
             assertNotNull(file)
             if(null!=file) {
                 assertTrue(file.exists())

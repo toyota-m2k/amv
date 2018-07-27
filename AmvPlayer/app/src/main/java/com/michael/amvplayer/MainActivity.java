@@ -6,7 +6,9 @@ import android.arch.lifecycle.ViewModelProviders;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.databinding.DataBindingUtil;
+import android.net.Uri;
 import android.os.Bundle;
+import android.os.Handler;
 import android.os.PersistableBundle;
 import android.provider.MediaStore;
 import android.support.annotation.NonNull;
@@ -23,6 +25,9 @@ import com.michael.amvplayer.dialog.UxDlgState;
 import com.michael.amvplayer.dialog.UxFileDialog;
 import com.michael.utils.UtLogger;
 import com.michael.video.AmvCacheManager;
+import com.michael.video.IAmvCache;
+
+import org.jetbrains.annotations.NotNull;
 
 import java.io.File;
 
@@ -42,6 +47,15 @@ public class MainActivity extends AppCompatActivity {
 
     MainActivityBinding mBinding = null;
 
+    Uri[] mSourceUris = new Uri[] {
+            Uri.parse("https://video.twimg.com/ext_tw_video/1003088826422603776/pu/vid/1280x720/u7R7uUhgWjPalQ0F.mp4?tag=3"),
+            Uri.parse("https://video.twimg.com/ext_tw_video/1002595428049645570/pu/vid/720x1280/WNxL-rxdrGlM9wu_.mp4?tag=3"),
+            Uri.parse("https://video.twimg.com/ext_tw_video/1021604619271557120/pu/vid/720x1280/2ffcbsSgNcZyXtMx.mp4?tag=3"),
+            Uri.parse("https://video.twimg.com/ext_tw_video/1021376906610978816/pu/vid/720x1280/MiOHJiJJcMXBdUoq.mp4?tag=3") };
+
+    Handler mHandler = new Handler();
+
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         UtLogger.debug("LC-Activity: onCreate");
@@ -58,13 +72,35 @@ public class MainActivity extends AppCompatActivity {
 
         AmvCacheManager.INSTANCE.initialize(new File(getCacheDir(), ".video"));
 
+        if(null==savedInstanceState) {
+            Uri randomUri = mSourceUris[(int) (Math.random() * 4.0)];
+            IAmvCache cache = AmvCacheManager.INSTANCE.getCache(randomUri, null);
+            cache.getFile(new IAmvCache.IGotFileCallback() {
+                @Override
+                public void onGotFile(@NotNull IAmvCache cache, @org.jetbrains.annotations.Nullable final File file) {
+                    if (null != file) {
+                        UtLogger.debug("file retrieved");
+                        mHandler.post(new Runnable() {
+                            @Override
+                            public void run() {
+                                mCurrentFile = file;
+                                mBinding.playerUnitView.setSource(file, false, 0);
+                            }
+                        });
+                    } else {
+                        UtLogger.error("file not retrieved.\n" + cache.getError().getMessage());
+                    }
+                }
+            });
+        }
+
         // mBinding.videoPlayer.setSource(new File("/storage/emulated/0/Download/b.mp4"), false);
 
         viewModel.getState().observe(this, new Observer<UxDialogViewModel.State>() {
 
             @Override
             public void onChanged(@Nullable UxDialogViewModel.State state) {
-                if(null!=state && state.getState() == UxDlgState.OK) {
+                if (null != state && state.getState() == UxDlgState.OK) {
                     onDialogResult(state);
                 }
             }
