@@ -22,6 +22,7 @@ import com.michael.amvplayer.dialog.UxDialogViewModel;
 import com.michael.amvplayer.dialog.UxDlgState;
 import com.michael.amvplayer.dialog.UxFileDialog;
 import com.michael.utils.UtLogger;
+import com.michael.video.AmvCacheManager;
 
 import java.io.File;
 
@@ -54,6 +55,8 @@ public class MainActivity extends AppCompatActivity {
 
         UxDialogViewModel viewModel = ViewModelProviders.of(this).get(UxDialogViewModel.class);
 
+
+        AmvCacheManager.INSTANCE.initialize(new File(getCacheDir(), ".video"));
 
         // mBinding.videoPlayer.setSource(new File("/storage/emulated/0/Download/b.mp4"), false);
 

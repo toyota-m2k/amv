@@ -44,6 +44,13 @@ class UtLogger(val tag:String) {
                 }
             }
         }
+
+        @JvmStatic
+        fun stackTrace(e:Throwable, message:String?) {
+            if(null!=message) {
+                error("${message}\n${e.message}\n${e.stackTrace}")
+            }
+        }
     }
 
     private fun printToSystemOut(tag: String, s: String): Int {
