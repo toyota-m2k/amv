@@ -15,6 +15,8 @@ import java.lang.ref.WeakReference
 import java.nio.ByteBuffer
 import kotlin.math.roundToInt
 
+private const val FRAME_REFRESH_PERCENT = 5     // 5%毎にフレーム表示を更新
+
 /**
  * トランスコード / トリミングを行うクラス
  *
@@ -40,10 +42,12 @@ class AmvTranscoder(val source:File, context:Context) : SurfaceHolder.Callback{
      */
     var surfaceView: SurfaceView? = null
         set(v) {
+            field = v
             if(null!=v) {
-                field = v
                 mediaInfo.mediaFileInfo.setOutputSurface(AndroidMediaObjectFactory.Converter.convert(v.holder.surface))
                 v.holder.addCallback(this)
+            } else {
+                mediaInfo.mediaFileInfo.setOutputSurface(null)
             }
         }
     // endregion -----------------------------------------------------------------------------
@@ -188,7 +192,7 @@ class AmvTranscoder(val source:File, context:Context) : SurfaceHolder.Callback{
 
     private val mContext = WeakReference<Context>(context)              // MediaComposerやInternalSurfaceViewを生成するために必要（Weakで持っておこう）
     private var mMediaComposer: MediaComposer? = null                   // コンポーザー
-    private var mInternalSurfaceView: AmvWorkingSurfaceView? = null     // surfaceViewが与えられなかったときに、自力で代用品を用意できるようにしておく。
+//    private var mInternalSurfaceView: AmvWorkingSurfaceView? = null     // surfaceViewが与えられなかったときに、自力で代用品を用意できるようにしておく。
     private var mTrimmingRange :TrimmingRange? = null                   // トリミング用の範囲を保持する（フレーム描画のため）
 
     /**
@@ -208,11 +212,11 @@ class AmvTranscoder(val source:File, context:Context) : SurfaceHolder.Callback{
      * Transcode/Trimmingの進捗を受け取るコールバックi/fインスタンス
      */
     private val mListener = object : IProgressListener {
-        var lenderFrame = 5
+        var lenderFrame = FRAME_REFRESH_PERCENT
 
         override fun onMediaStart() {
             UtLogger.debug("AmvTranscoder: started")
-            lenderFrame = 5
+            lenderFrame = FRAME_REFRESH_PERCENT
         }
 
         override fun onMediaProgress(progress: Float) {
@@ -220,7 +224,7 @@ class AmvTranscoder(val source:File, context:Context) : SurfaceHolder.Callback{
             progressListener.invoke(this@AmvTranscoder, progress)
 
             if(lenderFrame<(progress*100).toInt()) {
-                lenderFrame += 5        // 5%ずつ表示
+                lenderFrame += FRAME_REFRESH_PERCENT        // 5%ずつ表示
                 displayVideoFrame(progress)
             }
         }
@@ -267,11 +271,11 @@ class AmvTranscoder(val source:File, context:Context) : SurfaceHolder.Callback{
         mMediaComposer = composer
         mediaInfo.applyHD720TranscodeParameters(mMediaComposer!!, distFile)
 
-        if(null==surfaceView) {
-            mInternalSurfaceView = AmvWorkingSurfaceView(context)
-            mInternalSurfaceView!!.setVideoSize(mediaInfo.hd720Size.width, mediaInfo.hd720Size.height)
-            mediaInfo.mediaFileInfo.setOutputSurface(AndroidMediaObjectFactory.Converter.convert(mInternalSurfaceView!!.holder.surface))
-        }
+//        if(null==surfaceView) {
+//            mInternalSurfaceView = AmvWorkingSurfaceView(context)
+//            mInternalSurfaceView!!.setVideoSize(mediaInfo.hd720Size.width, mediaInfo.hd720Size.height)
+//            mediaInfo.mediaFileInfo.setOutputSurface(AndroidMediaObjectFactory.Converter.convert(mInternalSurfaceView!!.holder.surface))
+//        }
         composer.fn()
     }
 

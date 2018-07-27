@@ -13,7 +13,14 @@ interface IAmvCache
      * キャッシュファイルを取得する。
      * @param callback  結果を返すコールバック fn(sender, file)    エラー発生時はfile==null / sender.error でエラー情報を取得
      */
-    fun getFile(callback: IFuncy2<IAmvCache, File?, Unit>)
+    // for Kotlin
+    fun getFile(callback: (IAmvCache,File?)->Unit)
+
+    // for Java i/f
+    interface IGotFileCallback {
+        fun onGotFile(cache:IAmvCache, file:File?)
+    }
+    fun getFile(callback: IGotFileCallback)
 
     /**
      * エラー情報

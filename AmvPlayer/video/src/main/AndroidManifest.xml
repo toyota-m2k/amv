@@ -1,2 +1,5 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="com.michael.video" />
+    package="com.michael.video">
+    <uses-permission android:name="android.permission.INTERNET" />
+
+</manifest>

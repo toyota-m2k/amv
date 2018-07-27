@@ -95,7 +95,6 @@ public class TrimmingActivity extends AppCompatActivity {
             Size size = transcoder.getMediaInfo().getHd720Size();
             surfaceView.setVideoSize(size.getWidth(), size.getHeight());
             transcoder.setSurfaceView(surfaceView);
-
             ((TextView)findViewById(R.id.infoText)).setText(transcoder.getMediaInfo().getSummary());
         }
 
