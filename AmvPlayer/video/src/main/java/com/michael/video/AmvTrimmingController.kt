@@ -47,7 +47,8 @@ class AmvTrimmingController @JvmOverloads constructor(context: Context, attrs: A
             // Playボタンの状態を更新
                 IAmvVideoPlayer.PlayerState.Paused-> {
                     playButton.alpha = 1f
-                    playButton.setImageDrawable(drPause)
+                    playButton.setImageDrawable(drPlay)
+                    playButton.isClickable = true
                 }
                 IAmvVideoPlayer.PlayerState.Playing-> {
                     playButton.alpha = 1f

@@ -24,7 +24,7 @@ class AmvTrimmingPlayerView @JvmOverloads constructor(
 
 
     init {
-        LayoutInflater.from(context).inflate(R.layout.player_unit_view, this)
+        LayoutInflater.from(context).inflate(R.layout.trimming_player, this)
         mControls.initialize()
     }
 

@@ -22,5 +22,6 @@
         </activity>
         <activity android:name=".TranscodeActivity">
         </activity>
+        <activity android:name=".TrimmingActivity" />
     </application>
 </manifest>

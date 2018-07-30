@@ -63,7 +63,7 @@
 
     <View
         android:id="@+id/knob"
-        android:layout_height="match_parent"
+        android:layout_height="80dp"
         android:layout_width="26dp"
         android:background="@drawable/ic_slider_knob_bg"
         />

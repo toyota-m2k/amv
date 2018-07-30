@@ -229,7 +229,7 @@ class AmvSlider @JvmOverloads constructor(
             }
 
             railOffset = sa.getDimensionPixelSize(R.styleable.AmvSlider_railOffset, defRailOffset )
-            trimmerOffset = sa.getDimensionPixelSize(R.styleable.AmvSlider_trimmerOffset, railOffset+maxRailHeight)
+            trimmerOffset = sa.getDimensionPixelSize(R.styleable.AmvSlider_trimmerOffset, railOffset)
 
             isSaveFromParentEnabled = sa.getBoolean(R.styleable.AmvSlider_saveFromParent, true)
 

@@ -199,7 +199,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void onTrimming(View view) {
-        Intent intent = new Intent(this, TranscodeActivity.class);
+        Intent intent = new Intent(this, TrimmingActivity.class);
         if(null!=mCurrentFile) {
             intent.putExtra("source", mCurrentFile);
         }
