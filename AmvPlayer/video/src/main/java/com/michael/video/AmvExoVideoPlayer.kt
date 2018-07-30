@@ -157,7 +157,7 @@ class AmvExoVideoPlayer @JvmOverloads constructor(
 
     // region Binding to view
 
-    inner class Bindings : AmvFitter() {
+    private inner class Bindings : AmvFitter() {
         // Controls
         val playerView: PlayerView by lazy {
             findViewById<PlayerView>(R.id.playerView)

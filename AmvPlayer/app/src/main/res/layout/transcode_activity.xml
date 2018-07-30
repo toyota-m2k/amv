@@ -4,8 +4,8 @@
     <!--xmlns:tools="http://schemas.android.com/tools"-->
     <!--xmlns:app="http://schemas.android.com/apk/res-auto">-->
     <!--<data>-->
-        <!--<variable name="trimmingActivity" type="com.michael.amvplayer.TrimmingActivity"/>-->
-        <!--&lt;!&ndash;<variable name="params" type="com.michael.amvplayer.TrimmingActivity.BindingParams"/>&ndash;&gt;-->
+        <!--<variable name="trimmingActivity" type="com.michael.amvplayer.TranscodeActivityy"/>-->
+        <!--&lt;!&ndash;<variable name="params" type="com.michael.amvplayer.TranscodeActivityy.BindingParams"/>&ndash;&gt;-->
     <!--</data>-->
     <android.support.constraint.ConstraintLayout
         xmlns:android="http://schemas.android.com/apk/res/android"

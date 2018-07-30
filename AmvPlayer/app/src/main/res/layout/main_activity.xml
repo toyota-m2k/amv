@@ -42,13 +42,23 @@
             />
 
         <Button
+            android:id="@+id/transcode_button"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:onClick="@{mainActivity::onTranscode}"
+            android:text="@string/transcode"
+            app:layout_constraintStart_toEndOf="@+id/file_button"
+            />
+
+        <Button
             android:id="@+id/trimming_button"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginStart="8dp"
             android:onClick="@{mainActivity::onTrimming}"
             android:text="@string/trimming"
-            app:layout_constraintStart_toEndOf="@+id/file_button"
+            app:layout_constraintStart_toEndOf="@+id/transcode_button"
             />
 
         <com.michael.video.AmvPlayerUnitView

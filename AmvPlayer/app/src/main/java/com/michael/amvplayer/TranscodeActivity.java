@@ -9,7 +9,6 @@ import android.support.annotation.NonNull;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.util.Size;
-import android.view.SurfaceView;
 import android.view.View;
 import android.widget.TextView;
 
@@ -26,23 +25,17 @@ import org.jetbrains.annotations.Nullable;
 import java.io.File;
 import java.io.Serializable;
 
-//import com.michael.amvplayer.databinding.TrimmingActivityBinding;
-
-public class TrimmingActivity extends AppCompatActivity {
-
-//    private TrimmingActivityBinding mBinding;
+public class TranscodeActivity extends AppCompatActivity {
 
     public class BindingParams extends BaseObservable {
         private String _mediaInfoString;
 
-//        @Bindable
         public String getMediaInfoString() {
             return _mediaInfoString;
         }
 
         public void setMediaInfoString(String v) {
             _mediaInfoString = v;
-//            notifyPropertyChanged(BR.mediaInfoString);
         }
     }
     public BindingParams bindingParams = new BindingParams();
@@ -50,14 +43,10 @@ public class TrimmingActivity extends AppCompatActivity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
-        UtLogger.debug("LC-TrimmingActivity: onCreate");
+        UtLogger.debug("LC-TranscodeActivity: onCreate");
 
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.trimming_activity);
-//        mBinding = DataBindingUtil.setContentView(this, R.layout.trimming_activity);
-//        mBinding.setLifecycleOwner(this);
-//        mBinding.setTrimmingActivity(this);
-//        mBinding.setParams(bindingParams);
+        setContentView(R.layout.transcode_activity);
 
         findViewById(R.id.closeButton).setOnClickListener(new View.OnClickListener() {
             @Override

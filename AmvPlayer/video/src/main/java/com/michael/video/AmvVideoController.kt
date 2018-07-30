@@ -299,7 +299,7 @@ class AmvVideoController @JvmOverloads constructor(context: Context, attrs: Attr
 
     // Sliderの操作
     private var pausingOnTracking = false       // スライダー操作中は再生を止めておいて、操作が終わったときに必要に応じて再生を再開する
-    private var seekTarget : Long = 0            // seekTo()が成功しても、再生を開始すると、何やら3～5秒くらい戻ることがあるので、ターゲット位置を覚えておいて、それ以前に戻る動作を見せないようにしてみる
+//    private var seekTarget : Long = 0            // seekTo()が成功しても、再生を開始すると、何やら3～5秒くらい戻ることがあるので、ターゲット位置を覚えておいて、それ以前に戻る動作を見せないようにしてみる
 
 //    /**
 //     * Sliderの値が変化した

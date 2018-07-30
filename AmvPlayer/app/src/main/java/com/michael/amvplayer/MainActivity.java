@@ -190,8 +190,16 @@ public class MainActivity extends AppCompatActivity {
         //selectFile();
     }
 
+    public void onTranscode(View view) {
+        Intent intent = new Intent(this, TranscodeActivity.class);
+        if(null!=mCurrentFile) {
+            intent.putExtra("source", mCurrentFile);
+        }
+        startActivity(intent);
+    }
+
     public void onTrimming(View view) {
-        Intent intent = new Intent(this, TrimmingActivity.class);
+        Intent intent = new Intent(this, TranscodeActivity.class);
         if(null!=mCurrentFile) {
             intent.putExtra("source", mCurrentFile);
         }
