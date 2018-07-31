@@ -38,6 +38,7 @@ class AmvTrimmingPlayerView @JvmOverloads constructor(
         mControls.player.setSource(source, false, 0)
     }
 
-    val range:TrimmingRange
+    @Suppress("unused")
+    val range: IAmvVideoPlayer.Clipping
         get() = mControls.controller.trimmingRange
 }

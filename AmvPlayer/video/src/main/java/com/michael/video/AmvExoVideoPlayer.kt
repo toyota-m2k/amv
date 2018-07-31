@@ -12,7 +12,9 @@ import android.widget.FrameLayout
 import android.widget.ProgressBar
 import android.widget.TextView
 import com.google.android.exoplayer2.*
+import com.google.android.exoplayer2.source.ClippingMediaSource
 import com.google.android.exoplayer2.source.ExtractorMediaSource
+import com.google.android.exoplayer2.source.MediaSource
 import com.google.android.exoplayer2.source.TrackGroupArray
 import com.google.android.exoplayer2.trackselection.DefaultTrackSelector
 import com.google.android.exoplayer2.trackselection.TrackSelectionArray
@@ -35,6 +37,10 @@ class AmvExoVideoPlayer @JvmOverloads constructor(
     private var mSource : File? = null
     private var mPlayer : SimpleExoPlayer? = null
     private var mEnded : Boolean = false                // 動画ファイルの最後まで再生が終わって停止した状態から、Playボタンを押したときに、先頭から再生を開始する動作を実現するためのフラグ
+    private var mMediaSource:MediaSource? = null
+    private var mClipping : IAmvVideoPlayer.Clipping? = null
+
+
 
     // endregion
 
@@ -154,7 +160,6 @@ class AmvExoVideoPlayer @JvmOverloads constructor(
 
     // endregion
 
-
     // region Binding to view
 
     private inner class Bindings : AmvFitter() {
@@ -253,6 +258,7 @@ class AmvExoVideoPlayer @JvmOverloads constructor(
     override val playerStateChangedListener = IAmvVideoPlayer.PlayerStateChangedListener()
     override val seekCompletedListener = IAmvVideoPlayer.SeekCompletedListener()
     override val sizeChangedListener = IAmvVideoPlayer.SizeChangedListener()
+    override val clipChangedListener = IAmvVideoPlayer.ClipChangedListener()
 
     // Properties
     override val naturalDuration: Long
@@ -270,6 +276,7 @@ class AmvExoVideoPlayer @JvmOverloads constructor(
     }
 
     override fun reset() {
+        mMediaSource = null
         mSource = null
         mEnded = false
         mBindings.reset()
@@ -277,6 +284,26 @@ class AmvExoVideoPlayer @JvmOverloads constructor(
             stop()
         }
     }
+
+    override val isClipping : Boolean
+        get() = null!=mClipping
+
+    override fun clip(clipping:IAmvVideoPlayer.Clipping?) {
+        if(mClipping == clipping) {
+            return
+        }
+        mClipping = clipping
+        mPlayer?.apply {
+            val source = createClippingSource()
+            if(null!=source) {
+                prepare(source, true, true)
+                if(null!=clipping) {
+                    playerSeek(clipping.start)
+                }
+            }
+        }
+    }
+
 
     override fun setSource(source: File, autoPlay: Boolean, playFrom: Long) {
         reset()
@@ -287,9 +314,10 @@ class AmvExoVideoPlayer @JvmOverloads constructor(
             val mediaSource = ExtractorMediaSource.Factory(        // ExtractorMediaSource ... non-adaptiveなほとんどのファイルに対応
                     DefaultDataSourceFactory(context, "amv")    //
             ).createMediaSource(Uri.fromFile(source))
-            prepare(mediaSource, true, true)
-            if (playFrom > 0) {
-                seekTo(playFrom)
+            mMediaSource = mediaSource
+            prepare(createClippingSource(mediaSource), true, true)
+            if(null!=mClipping ||playFrom > 0) {
+                playerSeek(playFrom)
             }
             playWhenReady = autoPlay
         }
@@ -300,7 +328,7 @@ class AmvExoVideoPlayer @JvmOverloads constructor(
             if(mEnded) {
                 // 動画ファイルの最後まで再生して止まっている場合は、先頭にシークしてから再生を開始する
                 mEnded = false
-                seekTo(0)
+                playerSeek(0)
             }
             playWhenReady = true
         }
@@ -312,18 +340,7 @@ class AmvExoVideoPlayer @JvmOverloads constructor(
         }
     }
 
-    private fun togglePlay() {
-        if(null!=mSource) {
-            mPlayer?.apply {
-                playWhenReady = !playWhenReady
-            }
-        }
-    }
-
     override fun seekTo(pos: Long) {
-//        mPlayer?.apply {
-//            seekTo(pos)
-//        }
         if(mEnded) {
             // 動画ファイルの最後まで再生して止まっているとき、Playerの内部状態は、playWhenReady == true のままになっている。
             // そのまま、シークしてしまうと、シーク後に勝手に再生が再開されてしまう。
@@ -335,13 +352,64 @@ class AmvExoVideoPlayer @JvmOverloads constructor(
     }
 
     override fun setFastSeekMode(fast: Boolean) {
-//        mPlayer?.apply {
-//            setSeekParameters(if(fast) SeekParameters.CLOSEST_SYNC else SeekParameters.EXACT)
-//        }
         if(fast) {
             seekManager.begin(naturalDuration)
         } else {
             seekManager.end()
+        }
+    }
+    // endregion
+
+    // region Private methods
+
+    /**
+     * 再生/停止をトグル
+     */
+    private fun togglePlay() {
+        if(null!=mSource) {
+            mPlayer?.apply {
+                playWhenReady = !playWhenReady
+            }
+        }
+    }
+
+    /**
+     * シーク位置をクリッピング範囲に制限する
+     */
+    private fun clipPos(pos:Long) : Long {
+        return mClipping?.clipPos(pos) ?: pos
+    }
+
+    /**
+     * クリップ範囲を考慮してシークする
+     * mPlayer.seekTo()を直接呼び出してはいけない。
+     */
+    private fun playerSeek(pos:Long) {
+        mPlayer?.seekTo(clipPos(pos))
+    }
+
+    /**
+     * クリッピングソースを作成する
+     * クリッピングが指定されていなければ、元のMediaSourceを返す
+     */
+    private fun createClippingSource(orgSource:MediaSource) : MediaSource {
+        clipChangedListener.invoke(this, mClipping)
+        val clipping = mClipping
+        return if (null != clipping && clipping.isValid) {
+            // ClippingMediaSource に start をセットすると、IllegalClippingExceptionが出て使えないので、
+            // endだけを指定し、startは、シークして使うようにする
+            ClippingMediaSource(orgSource, 0/*clipping.start * 1000*/, clipping.end * 1000)
+        } else {
+            orgSource
+        }
+    }
+
+    private fun createClippingSource() : MediaSource? {
+        val orgSource = mMediaSource
+        return if(null==orgSource) {
+            null
+        } else {
+            createClippingSource(orgSource)
         }
     }
     // endregion
@@ -448,7 +516,7 @@ class AmvExoVideoPlayer @JvmOverloads constructor(
                 mFastMode = true
                 mPlayer?.setSeekParameters(SeekParameters.CLOSEST_SYNC)
             }
-            mPlayer?.seekTo(pos)
+            playerSeek(pos)
         }
 
         private fun exactSeek(pos:Long) {
@@ -458,7 +526,7 @@ class AmvExoVideoPlayer @JvmOverloads constructor(
                 mFastMode = false
                 mPlayer?.setSeekParameters(SeekParameters.EXACT)
             }
-            mPlayer?.seekTo(pos)
+            playerSeek(pos)
         }
     }
     private var seekManager = SeekManager()

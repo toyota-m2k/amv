@@ -14,6 +14,19 @@ interface IAmvVideoPlayer {
         Paused
     }
 
+    data class Clipping (val start:Long, val end:Long=-1) {
+        val isValid
+            get() = end>start
+
+        fun clipPos(pos:Long) : Long {
+            return if(end>start) {
+                Math.min(Math.max(start, pos), end)
+            } else {
+                Math.max(start, pos)
+            }
+        }
+    }
+
     // Event listener class
     class SourceChangedListener : Funcies2<IAmvVideoPlayer, File, Unit>() {
         interface IHandler {    // for Java
@@ -60,12 +73,22 @@ interface IAmvVideoPlayer {
         fun remove(listener:IHandler) = this.remove(listener::sizeChanged)
     }
 
+    class ClipChangedListener : Funcies2<IAmvVideoPlayer, Clipping?, Unit>() {
+        interface IHandler {    // for Java
+            fun clipChanged(vp:IAmvVideoPlayer, clipping:Clipping?)
+        }
+        @JvmOverloads
+        fun add(listener:IHandler, name:String?=null) = super.add(name, listener::clipChanged)
+        fun remove(listener:IHandler) = this.remove(listener::clipChanged)
+    }
+
     // Event Listener
     val sourceChangedListener : SourceChangedListener
     val videoPreparedListener : VideoPreparedListener
     val playerStateChangedListener: PlayerStateChangedListener
     val seekCompletedListener:SeekCompletedListener
     val sizeChangedListener: SizeChangedListener
+    val clipChangedListener: ClipChangedListener
 
     val playerState: PlayerState
 
@@ -79,7 +102,11 @@ interface IAmvVideoPlayer {
 
     fun reset()
 
-    fun setSource(source: File, autoPlay:Boolean=false, playFrom:Long)
+    fun setSource(source: File, autoPlay:Boolean=false, playFrom:Long=0)
+
+    fun clip(clipping:Clipping?)
+
+    val isClipping : Boolean
 
     fun play()
 

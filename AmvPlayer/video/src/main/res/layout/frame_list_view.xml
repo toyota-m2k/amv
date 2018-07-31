@@ -8,7 +8,7 @@
     <com.michael.video.AmvHorzScrollView
         android:id="@+id/scroller"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
+        android:layout_height="80dp"
         android:clickable="false"
         >
         <LinearLayout
@@ -47,24 +47,39 @@
     <View
         android:id="@+id/leftTruncated"
         android:layout_height="match_parent"
-        android:layout_width="wrap_content"
-        android:background="@drawable/ic_slider_knob_bg"
+        android:layout_width="0dp"
+        android:background="@color/white"
         android:alpha="0.5"
         android:visibility="gone"
         />
     <View
         android:id="@+id/rightTruncated"
         android:layout_height="match_parent"
-        android:layout_width="wrap_content"
-        android:background="@drawable/ic_slider_knob_bg"
+        android:layout_width="0dp"
+        android:background="@color/white"
         android:alpha="0.5"
         android:visibility="gone"
         />
 
     <View
         android:id="@+id/knob"
-        android:layout_height="80dp"
+        android:layout_height="match_parent"
         android:layout_width="26dp"
         android:background="@drawable/ic_slider_knob_bg"
+        />
+
+    <View
+        android:id="@+id/leftTruncatedBar"
+        android:layout_height="match_parent"
+        android:layout_width="8dp"
+        android:background="@color/trimming_sel"
+        android:visibility="gone"
+        />
+    <View
+        android:id="@+id/rightTruncatedBar"
+        android:layout_height="match_parent"
+        android:layout_width="8dp"
+        android:background="@color/trimming_sel"
+        android:visibility="gone"
         />
 </merge>

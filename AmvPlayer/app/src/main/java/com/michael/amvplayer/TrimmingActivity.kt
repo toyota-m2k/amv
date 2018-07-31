@@ -23,7 +23,7 @@ class TrimmingActivity : AppCompatActivity() {
 
         val intent = intent
         val s = intent.getSerializableExtra("source")
-        mSource = s as File
+        mSource = s as? File
         if (null != mSource) {
             controls.trimmingPlayer.setSource(mSource!!)
         }

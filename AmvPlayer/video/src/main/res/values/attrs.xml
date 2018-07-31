@@ -35,10 +35,16 @@
 
     </declare-styleable>
 
+    <declare-styleable name="AmvFrameListView">
+        <!-- 動作モード: true: トリミング用 / false: 通常のスライダー-->
+        <attr name="trimmingMode"/>
+    </declare-styleable>
+
     <declare-styleable name="AmvMarkerView">
         <attr name="marker" format="integer"/>
         <attr name="leftInert" format="dimension"/>
         <attr name="rightInert" format="dimension"/>
         <attr name="saveFromParent"/>
     </declare-styleable>
+
 </resources>

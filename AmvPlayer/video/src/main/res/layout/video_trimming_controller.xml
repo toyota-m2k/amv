@@ -14,6 +14,7 @@
         android:layout_marginLeft="26dp"
         android:layout_marginRight="26dp"
         app:layout_constraintTop_toTopOf="parent"
+        app:trimmingMode="true"
         tools:layout_height="50dp"
         />
 
@@ -23,6 +24,7 @@
         android:layout_height="wrap_content"
         app:layout_constraintTop_toTopOf="parent"
         app:trimmingMode="true"
+        app:railColor="@color/trimming_sel"
         />
 
     <ImageButton
