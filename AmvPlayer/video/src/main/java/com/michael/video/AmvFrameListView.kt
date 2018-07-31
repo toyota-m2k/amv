@@ -12,6 +12,7 @@ import android.widget.HorizontalScrollView
 import android.widget.ImageView
 import android.widget.LinearLayout
 import com.michael.utils.FuncyListener1
+import com.michael.utils.UtLogger
 import kotlin.math.roundToInt
 
 class AmvFrameListView @JvmOverloads constructor(
@@ -25,8 +26,8 @@ class AmvFrameListView @JvmOverloads constructor(
         val imageContainer: LinearLayout by lazy {
             findViewById<LinearLayout>(R.id.imageList)
         }
-        val scroller: HorizontalScrollView by lazy {
-            findViewById<HorizontalScrollView>(R.id.scroller)
+        val scroller: AmvHorzScrollView by lazy {
+            findViewById<AmvHorzScrollView>(R.id.scroller)
         }
         val knob: View by lazy {
             findViewById<View>(R.id.knob)
@@ -77,7 +78,7 @@ class AmvFrameListView @JvmOverloads constructor(
                 }
             }
 
-        fun reset(duration:Long) {
+        fun setDuration(duration:Long) {
             naturalDuration = duration
             position = 0L
             trimStart = 0L
@@ -110,8 +111,14 @@ class AmvFrameListView @JvmOverloads constructor(
     }
 
     fun prepare(frameCount: Int, frameWidth: Int, frameHeight: Int) {
+        controls.imageContainer.removeAllViews()
         controls.imageContainer.setLayoutWidth(frameCount * frameWidth)
         this.setLayoutHeight(frameHeight)
+        updateScroll()
+        if(models.trimmingEnabled) {
+            updateTrimStart()
+            updateTrimEnd()
+        }
     }
 
     fun add(bmp: Bitmap) {
@@ -119,19 +126,15 @@ class AmvFrameListView @JvmOverloads constructor(
             setImageBitmap(bmp)
             layoutParams = FrameLayout.LayoutParams(bmp.width, bmp.height)
             controls.imageContainer.addView(this)
+            UtLogger.debug("AmvFrameList: added ... count=${controls.imageContainer.childCount}")
         }
-    }
-
-    private fun reset() {
-        controls.imageContainer.removeAllViews()
     }
 
     private val totalRange: Long
         get() = models.naturalDuration
 
-    fun resetWithTotalRange(v: Long) {
-        models.reset(v)
-        reset()
+    fun setTotalRange(v: Long) {
+        models.setDuration(v)
     }
 
     var position: Long
@@ -168,7 +171,7 @@ class AmvFrameListView @JvmOverloads constructor(
         controls.knob.setMargin(knobPos.roundToInt(), 0, 0, 0)
     }
 
-    fun updateTrimStart() {
+    private fun updateTrimStart() {
         val range = getLayoutWidth()
         var pos =   (range * trimStart / totalRange.toFloat()).roundToInt()
         if(pos<0) {
@@ -178,7 +181,7 @@ class AmvFrameListView @JvmOverloads constructor(
         controls.leftTruncatedBar.setMargin(pos - controls.leftTruncatedBar.getLayoutWidth(),0,0,0)
     }
 
-    fun updateTrimEnd() {
+    private fun updateTrimEnd() {
         val range = getLayoutWidth()
         var pos =   (range * trimEnd / totalRange.toFloat()).roundToInt()
 
@@ -193,8 +196,10 @@ class AmvFrameListView @JvmOverloads constructor(
     override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
         super.onSizeChanged(w, h, oldw, oldh)
         updateScroll()
-        updateTrimStart()
-        updateTrimEnd()
+        if(models.trimmingEnabled) {
+            updateTrimStart()
+            updateTrimEnd()
+        }
     }
 
     @SuppressLint("ClickableViewAccessibility")

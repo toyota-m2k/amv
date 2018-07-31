@@ -7,6 +7,7 @@ import android.util.Size
 import com.michael.utils.Funcies1
 import com.michael.utils.Funcies3
 import com.michael.utils.UtAsyncTask
+import com.michael.utils.UtLogger
 import java.io.File
 
 class AmvFrameExtractor : UtAsyncTask() {
@@ -65,6 +66,7 @@ class AmvFrameExtractor : UtAsyncTask() {
                 val step = duration / mThumbnailCount
                 var tm = step / 2
                 for (idx in 0.until(mThumbnailCount)) {
+                    UtLogger.debug("AmvFrameExtractor: processing ${idx+1} - frame.")
                     assert(tm<duration)
                     if (isCancelled) {
                         return
@@ -75,6 +77,7 @@ class AmvFrameExtractor : UtAsyncTask() {
                 }
             }
         } finally {
+            UtLogger.debug("AmvFrameExtractor: analizer releasing.")
             analyzer.release()
         }
 
