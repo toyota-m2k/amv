@@ -104,11 +104,11 @@ class AmvTranscoder(val source:File, context:Context) : SurfaceHolder.Callback{
      * トリミングを開始
      * @param  distFile     出力ファイル
      */
-    @Suppress("unused")
     fun truncate(distFile:File, start:Long, end:Long) {
         prepare(distFile) {
-            mTrimmingRange = TrimmingRange(start,end)
-            sourceFiles[0].addSegment(mTrimmingRange!!.pair)
+            val range = TrimmingRange(start*1000,end*1000)
+            mTrimmingRange = range
+            sourceFiles[0].addSegment(range.pair)
             start()
         }
     }
@@ -269,7 +269,7 @@ class AmvTranscoder(val source:File, context:Context) : SurfaceHolder.Callback{
         val context = mContext.get() ?: throw AmvException("Context has gone")
         val composer = MediaComposer(AndroidMediaObjectFactory(context), mListener)
         mMediaComposer = composer
-        mediaInfo.applyHD720TranscodeParameters(mMediaComposer!!, distFile)
+        mediaInfo.applyHD720TranscodeParameters(composer, distFile)
 
 //        if(null==surfaceView) {
 //            mInternalSurfaceView = AmvWorkingSurfaceView(context)

@@ -7,4 +7,5 @@
     <color name="marker_view_bg">#808080</color>
     <color name="trimming_sel">#30C0C0</color>
     <color name="white">#FFFFFF</color>
+    <color name="controller_bg">#303030</color>
 </resources>

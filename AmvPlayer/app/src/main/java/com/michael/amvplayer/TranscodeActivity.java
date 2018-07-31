@@ -128,7 +128,7 @@ public class TranscodeActivity extends AppCompatActivity {
             }
         });
         try {
-            File path = File.createTempFile("TC_TEST", ".mp4", mSource.getParentFile());
+            File path = File.createTempFile("TCOD_TEST", ".mp4", MainActivity.getWorkFolder());
             transcoder.transcode(path);
         } catch (Exception e) {
             e.printStackTrace();

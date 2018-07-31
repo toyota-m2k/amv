@@ -9,7 +9,7 @@
     <com.michael.video.AmvFrameListView
         android:id="@+id/frameList"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
+        android:layout_height="80dp"
         android:layout_marginTop="48dp"
         android:layout_marginLeft="26dp"
         android:layout_marginRight="26dp"
@@ -26,6 +26,7 @@
         app:trimmingMode="true"
         app:railColor="@color/trimming_sel"
         />
+
 
     <ImageButton
         android:id="@+id/playButton"

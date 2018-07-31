@@ -20,6 +20,9 @@ class AmvTrimmingController @JvmOverloads constructor(context: Context, attrs: A
     val trimmingRange: IAmvVideoPlayer.Clipping
         get() = IAmvVideoPlayer.Clipping(mControls.slider.trimStartPosition, mControls.slider.trimEndPosition)
 
+    val isTrimmed : Boolean
+        get() = mDataModel.isPrepared && mDataModel.naturalDuration>0 && mControls.slider.isTrimmed
+
     // endregion
 
     // region Private fields

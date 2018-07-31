@@ -56,6 +56,14 @@ public class MainActivity extends AppCompatActivity {
     Handler mHandler = new Handler();
 
 
+    public static @NonNull File getWorkFolder() {
+        File file = new File("/storage/emulated/0/Movies/amv");
+        if(!file.exists()) {
+            file.mkdir();
+        }
+        return file;
+    }
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         UtLogger.debug("LC-Activity: onCreate");
@@ -70,7 +78,7 @@ public class MainActivity extends AppCompatActivity {
         UxDialogViewModel viewModel = ViewModelProviders.of(this).get(UxDialogViewModel.class);
 
 
-        AmvCacheManager.INSTANCE.initialize(new File(getCacheDir(), ".video"));
+        AmvCacheManager.INSTANCE.initialize(new File("/storage/emulated/0/Movies", ".video"));
 
         if(null==savedInstanceState) {
             Uri randomUri = mSourceUris[(int) (Math.random() * 4.0)];

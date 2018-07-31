@@ -107,7 +107,6 @@ class AmvSlider @JvmOverloads constructor(
     /**
      * トリミングされているか？
      */
-    @Suppress("unused")
     val isTrimmed : Boolean
         get() = 0<trimStartPosition || trimEndPosition<valueRange
 

@@ -46,7 +46,7 @@ class AmvFrameListView @JvmOverloads constructor(
 
     }
 
-    private inner class Models() {
+    private inner class Models {
         var trimmingEnabled:Boolean = false
         var naturalDuration: Long = 1000
 
@@ -101,7 +101,7 @@ class AmvFrameListView @JvmOverloads constructor(
         }
 
         if(models.trimmingEnabled) {
-            controls.knob.setBackground(context.getDrawable(R.drawable.ic_slider_trim_guide))
+            controls.knob.background = context.getDrawable(R.drawable.ic_slider_trim_guide)
             controls.leftTruncated.visibility = View.VISIBLE
             controls.rightTruncated.visibility = View.VISIBLE
             controls.leftTruncatedBar.visibility = View.VISIBLE
