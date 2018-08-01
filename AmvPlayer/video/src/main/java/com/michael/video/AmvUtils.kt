@@ -117,14 +117,14 @@ class AmvTimeSpan(private val ms : Long) {
     val hours: Long
         get() = (ms / 1000 / 60 / 60)
 
-    fun formatH() {
-        String.format("%02d:%02d:%02d", hours, minutes, seconds)
+    fun formatH() : String {
+        return String.format("%02d:%02d:%02d", hours, minutes, seconds)
     }
-    fun formatM() {
-        String.format("%02d:%02d", minutes, seconds)
+    fun formatM() : String {
+        return String.format("%02d:%02d", minutes, seconds)
     }
-    fun formatS() {
-        String.format("%02d.%02d", seconds, milliseconds/10)
+    fun formatS() : String {
+        return String.format("%02d.%02d", seconds, milliseconds/10)
     }
 }
 
