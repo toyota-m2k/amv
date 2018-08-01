@@ -7,6 +7,7 @@ import android.support.constraint.ConstraintLayout
 import android.util.AttributeSet
 import android.view.LayoutInflater
 import android.widget.ImageButton
+import android.widget.TextView
 import com.michael.utils.UtLogger
 
 class AmvTrimmingController @JvmOverloads constructor(context: Context, attrs: AttributeSet? = null, defStyleAttr: Int = 0)
@@ -18,10 +19,10 @@ class AmvTrimmingController @JvmOverloads constructor(context: Context, attrs: A
      * トリミング範囲を取得
      */
     val trimmingRange: IAmvVideoPlayer.Clipping
-        get() = IAmvVideoPlayer.Clipping(mControls.slider.trimStartPosition, mControls.slider.trimEndPosition)
+        get() = IAmvVideoPlayer.Clipping(controls.slider.trimStartPosition, controls.slider.trimEndPosition)
 
     val isTrimmed : Boolean
-        get() = mDataModel.isPrepared && mDataModel.naturalDuration>0 && mControls.slider.isTrimmed
+        get() = models.isPrepared && models.naturalDuration>0 && controls.slider.isTrimmed
 
     // endregion
 
@@ -32,8 +33,8 @@ class AmvTrimmingController @JvmOverloads constructor(context: Context, attrs: A
     private val cFrameHeight = 160f         // フレームサムネイルの高さ(dp)
     private val listenerName = "trimmingController"
 
-    private val mDataModel = DataModel()
-    private val mControls = Controls()
+    private val models = Models()
+    private val controls = Controls()
 
     private val drPlay:Drawable
     private val drPause:Drawable
@@ -52,7 +53,7 @@ class AmvTrimmingController @JvmOverloads constructor(context: Context, attrs: A
         drPlay = context.getDrawable(R.drawable.ic_play)
         drPause = context.getDrawable(R.drawable.ic_pause)
 
-        mControls.initialize()
+        controls.initialize()
     }
 
     // endregion
@@ -70,6 +71,13 @@ class AmvTrimmingController @JvmOverloads constructor(context: Context, attrs: A
         }
         val playButton: ImageButton by lazy {
             findViewById<ImageButton>(R.id.playButton)
+        }
+
+        val trimStartText: TextView by lazy {
+            findViewById<TextView>(R.id.trimStartText)
+        }
+        val trimEndText: TextView by lazy {
+            findViewById<TextView>(R.id.trimEndText)
         }
 
         fun onUpdatePlayerState(state:IAmvVideoPlayer.PlayerState) {
@@ -94,6 +102,24 @@ class AmvTrimmingController @JvmOverloads constructor(context: Context, attrs: A
             }
         }
 
+        fun formatTime(time:Long) : String {
+            val v = AmvTimeSpan(time)
+            val t = AmvTimeSpan(slider.valueRange)
+            return when {
+                t.hours>0 -> v.formatH()
+                t.minutes>0 -> v.formatM()
+                else -> v.formatS()
+            }
+        }
+
+        fun updateTrimStartText() {
+            trimStartText.text = formatTime(slider.trimStartPosition)
+        }
+        fun updateTrimEndText() {
+            trimStartText.text = formatTime(slider.trimEndPosition)
+        }
+
+
         fun initialize() {
             playButton.setOnClickListener {
                 when(mPlayer.playerState) {
@@ -114,27 +140,31 @@ class AmvTrimmingController @JvmOverloads constructor(context: Context, attrs: A
             slider.trimStartPositionChanged.set { _, position, state ->
                 mPlayer.clip(null)
                 sliderPositionChanged(position, state, AmvSlider.Knob.LEFT)
-                mControls.frameList.trimStart = position
+                controls.frameList.trimStart = position
+                updateTrimStartText()
             }
             slider.trimEndPositionChanged.set { _, position, state ->
                 mPlayer.clip(null)
                 sliderPositionChanged(position, state, AmvSlider.Knob.RIGHT)
-                mControls.frameList.trimEnd = position
+                controls.frameList.trimEnd = position
+                updateTrimEndText()
             }
         }
 
         fun resetWithDuration(duration:Long) {
             slider.resetWithValueRange(duration, true)      // スライダーを初期化
             frameList.totalRange = duration
+            updateTrimStartText()
+            updateTrimEndText()
         }
     }
 
     // Models
-    inner class DataModel {
+    inner class Models {
         var playerState:IAmvVideoPlayer.PlayerState = IAmvVideoPlayer.PlayerState.None
             set(v) {
                 field = v
-                mControls.onUpdatePlayerState(v)
+                controls.onUpdatePlayerState(v)
             }
         var playerWidth: Int = 0
 
@@ -154,13 +184,13 @@ class AmvTrimmingController @JvmOverloads constructor(context: Context, attrs: A
 
     override fun setVideoPlayer(player: IAmvVideoPlayer) {
         mPlayer = player
-        mDataModel.playerState = player.playerState
+        models.playerState = player.playerState
 
         // Player Event
         // 再生状態が変化したときのイベント
         mPlayer.playerStateChangedListener.add(listenerName) { _, state ->
             if (!pausingOnTracking) {
-                mDataModel.playerState = state
+                models.playerState = state
             }
             if(state == IAmvVideoPlayer.PlayerState.Playing) {
                 mHandler.post(mSliderSeekerOnPlaying)
@@ -170,14 +200,14 @@ class AmvTrimmingController @JvmOverloads constructor(context: Context, attrs: A
         // 動画の画面サイズが変わったときのイベント
         mPlayer.sizeChangedListener.add(listenerName) { _, width, _ ->
             // layout_widthをBindingすると、どうしてもエラーになるので、直接変更
-            mDataModel.playerWidth = width
+            models.playerWidth = width
         }
 
         // プレーヤー上のビデオの読み込みが完了したときのイベント
         mPlayer.videoPreparedListener.add(listenerName) { _, duration ->
-            mDataModel.naturalDuration = duration
-            mDataModel.isPrepared = true
-            mControls.resetWithDuration(duration)
+            models.naturalDuration = duration
+            models.isPrepared = true
+            controls.resetWithDuration(duration)
             tryRestoreState()
         }
 
@@ -191,11 +221,11 @@ class AmvTrimmingController @JvmOverloads constructor(context: Context, attrs: A
                 onVideoInfoRetrievedListener.add(null) {
                     UtLogger.debug("AmvFrameExtractor:duration=${it.duration} / ${it.videoSize}")
                     val thumbnailSize = it.thumbnailSize
-                    mControls.frameList.prepare(cFrameCount, thumbnailSize.width, thumbnailSize.height)
+                    controls.frameList.prepare(cFrameCount, thumbnailSize.width, thumbnailSize.height)
                 }
                 onThumbnailRetrievedListener.add(null) { _, index, bmp ->
                     UtLogger.debug("AmvFrameExtractor:Bitmap(${index+1}): width=${bmp.width}, height=${bmp.height}")
-                    mControls.frameList.add(bmp)
+                    controls.frameList.add(bmp)
                 }
                 onFinishedListener.add(null) { _, _ ->
                     post {
@@ -225,7 +255,7 @@ class AmvTrimmingController @JvmOverloads constructor(context: Context, attrs: A
             if(!pausingOnTracking) {
                 updateSeekPosition(mPlayer.seekPosition, false, AmvSlider.Knob.NONE)
             }
-            if(mDataModel.playerState==IAmvVideoPlayer.PlayerState.Playing) {
+            if(models.playerState==IAmvVideoPlayer.PlayerState.Playing) {
                 mHandler.postDelayed(this, 100)     // Win版は10ms・・・Androidでは無理
             }
         }
@@ -243,11 +273,11 @@ class AmvTrimmingController @JvmOverloads constructor(context: Context, attrs: A
             mPlayer.seekTo(pos)
         }
         when(knob) {
-            AmvSlider.Knob.LEFT, AmvSlider.Knob.NONE-> mControls.slider.currentPosition = pos
-            AmvSlider.Knob.RIGHT->mControls.slider.currentPosition = mControls.slider.trimStartPosition
+            AmvSlider.Knob.LEFT, AmvSlider.Knob.NONE-> controls.slider.currentPosition = pos
+            AmvSlider.Knob.RIGHT->controls.slider.currentPosition = controls.slider.trimStartPosition
             else -> {}
         }
-        mControls.frameList.position = pos
+        controls.frameList.position = pos
     }
 
     /**
@@ -262,10 +292,10 @@ class AmvTrimmingController @JvmOverloads constructor(context: Context, attrs: A
         when(dragState) {
             AmvSlider.SliderDragState.BEGIN-> {
                 mHandlingKnob = knob
-                pausingOnTracking = knob == AmvSlider.Knob.THUMB && mDataModel.isPlaying
+                pausingOnTracking = knob == AmvSlider.Knob.THUMB && models.isPlaying
                 mPlayer.pause()
                 mPlayer.setFastSeekMode(true)
-                mControls.frameList.showKnob = knob == AmvSlider.Knob.THUMB
+                controls.frameList.showKnob = knob == AmvSlider.Knob.THUMB
             }
             AmvSlider.SliderDragState.MOVING->{
                 if(knob==mHandlingKnob) {
@@ -277,7 +307,7 @@ class AmvTrimmingController @JvmOverloads constructor(context: Context, attrs: A
                 updateSeekPosition(position, true, knob)
 
                 mHandlingKnob = AmvSlider.Knob.NONE
-                mControls.frameList.showKnob = pausingOnTracking
+                controls.frameList.showKnob = pausingOnTracking
                 if(pausingOnTracking) {
                     mPlayer.play()
                     pausingOnTracking = false
@@ -299,7 +329,7 @@ class AmvTrimmingController @JvmOverloads constructor(context: Context, attrs: A
     private var savedData: SavedData? = null
 
     private fun tryRestoreState() {
-//        if(mDataModel.isPrepared) {
+//        if(models.isPrepared) {
 //            savedData?.apply {
 //                savedData = null
 //                updateSeekPosition(seekPosition, true, true)
