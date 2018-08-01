@@ -208,7 +208,7 @@ class AmvVideoController @JvmOverloads constructor(context: Context, attrs: Attr
                 mBindingParams.prevPosition = -1    // 次回必ずcounterString を更新する
                 mBindingParams.updateCounterText(mp.seekPosition)
                 mBinding.slider.resetWithValueRange(duration, true)      // スライダーを初期化
-                mBinding.frameList.setTotalRange(duration)
+                mBinding.frameList.totalRange = duration
                 mBinding.markerView.resetWithTotalRange(duration)
                 mBindingParams.isPrepared = true
                 tryRestoreState()

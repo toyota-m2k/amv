@@ -123,7 +123,7 @@ class AmvTrimmingController @JvmOverloads constructor(context: Context, attrs: A
 
         fun resetWithDuration(duration:Long) {
             slider.resetWithValueRange(duration, true)      // スライダーを初期化
-            frameList.setTotalRange(duration)
+            frameList.totalRange = duration
         }
     }
 
