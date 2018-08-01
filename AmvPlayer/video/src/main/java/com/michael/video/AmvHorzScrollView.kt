@@ -18,7 +18,9 @@ class AmvHorzScrollView @JvmOverloads constructor(
         context: Context, attrs: AttributeSet? = null, defStyleAttr: Int = 0
         ) : FrameLayout(context, attrs, defStyleAttr) {
 
-    inner class Controls {
+    // Region Internals
+
+    private inner class Controls {
         val container : LinearLayout by lazy { findViewById<LinearLayout>(R.id.imageList) }
         val leftTruncated: View by lazy { findViewById<View>(R.id.leftTruncated) }
         val rightTruncated: View by lazy { findViewById<View>(R.id.rightTruncated) }
@@ -27,7 +29,7 @@ class AmvHorzScrollView @JvmOverloads constructor(
 
     }
 
-    inner class Models {
+    private inner class Models {
 
         var trimmingEnabled = false
         var position:Long = 0           // スライダーのスクロール位置
@@ -51,9 +53,16 @@ class AmvHorzScrollView @JvmOverloads constructor(
         }
     }
 
-    val controls = Controls()
-    val models = Models()
+    private val controls = Controls()
+    private val models = Models()
 
+    // endregion
+
+    // region Publics (refered from AmvFrameListView)
+
+    /**
+     * トリミングは有効か？
+     */
     var trimmingEnabled:Boolean
         get() = models.trimmingEnabled
         set(enabled) {
@@ -66,6 +75,9 @@ class AmvHorzScrollView @JvmOverloads constructor(
             controls.rightTruncatedBar.visibility = visibility
         }
 
+    /**
+     * スクロールレンジ（＝natural duration)(ms)
+     */
     var totalRange : Long
         get() = models.totalRange
         set(v) {
@@ -73,6 +85,9 @@ class AmvHorzScrollView @JvmOverloads constructor(
             updateScroll()
         }
 
+    /**
+     * スクロール位置(ms)
+     */
     var position: Long
         get() = models.position
         set(v) {
@@ -80,6 +95,9 @@ class AmvHorzScrollView @JvmOverloads constructor(
             updateScroll()
         }
 
+    /**
+     * トリミング開始位置(ms)
+     */
     var trimStart:Long
         get() = models.leftMask
         set(v) {
@@ -90,6 +108,9 @@ class AmvHorzScrollView @JvmOverloads constructor(
             updateScroll()
         }
 
+    /**
+     * トリミング終了位置(ms)
+     */
     var trimEnd:Long
         get() = models.rightMask
         set(v) {
@@ -101,11 +122,18 @@ class AmvHorzScrollView @JvmOverloads constructor(
         }
 
 
-    fun prepare(frameCount: Int, frameWidth: Int) {
+    /**
+     * フレーム数、サイズを指定する
+     */
+    fun prepare(frameCount: Int, frameWidth: Int, frameHeight: Int) {
         controls.container.removeAllViews()
         controls.container.setLayoutWidth(frameCount * frameWidth)
+        controls.container.setLayoutHeight(frameHeight)
     }
 
+    /**
+     * フレームのビットマップ（を持ったImageView）を追加する
+     */
     fun addImage(img: ImageView) {
         controls.container.addView(img)
     }
@@ -117,14 +145,22 @@ class AmvHorzScrollView @JvmOverloads constructor(
         return ((v * controls.container.getLayoutWidth())/models.totalRange.toFloat()).toInt()
     }
 
+    /**
+     * スクロール可動範囲（ピクセル）
+     */
     private val scrollablePixel: Int
         get() = controls.container.getLayoutWidth() - this.getLayoutWidth()
 
+    /**
+     * スクロール位置(ms)に対するスクロール量（ピクセル）を取得
+     */
     private fun scrollValueInPixel(position:Long) : Int {
         return ((position * scrollablePixel) / models.totalRange.toFloat()).toInt()
     }
 
-
+    /**
+     * スクロールを実行
+     */
     private fun updateScroll() {
         val scr = models.scrollPixel
         controls.container.setMargin(-scr, 0, 0, 0)

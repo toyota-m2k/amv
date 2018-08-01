@@ -8,11 +8,8 @@ import android.view.LayoutInflater
 import android.view.MotionEvent
 import android.view.View
 import android.widget.FrameLayout
-import android.widget.HorizontalScrollView
 import android.widget.ImageView
-import android.widget.LinearLayout
 import com.michael.utils.FuncyListener1
-import com.michael.utils.UtLogger
 import kotlin.math.roundToInt
 
 class AmvFrameListView @JvmOverloads constructor(
@@ -53,7 +50,7 @@ class AmvFrameListView @JvmOverloads constructor(
     }
 
     fun prepare(frameCount: Int, frameWidth: Int, frameHeight: Int) {
-        controls.scroller.prepare(frameCount,frameWidth)
+        controls.scroller.prepare(frameCount,frameWidth, frameHeight)
         this.setLayoutHeight(frameHeight)
         updateScroll()
     }
@@ -67,7 +64,7 @@ class AmvFrameListView @JvmOverloads constructor(
     }
 
 
-    val trimmingEnabled:Boolean
+    private val trimmingEnabled:Boolean
         get() = controls.scroller.trimmingEnabled
 
     var totalRange: Long
