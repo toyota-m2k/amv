@@ -5,7 +5,6 @@ import android.databinding.BaseObservable
 import android.databinding.Bindable
 import android.databinding.BindingAdapter
 import android.databinding.DataBindingUtil
-import android.graphics.Bitmap
 import android.os.Handler
 import android.os.Parcel
 import android.os.Parcelable
@@ -91,7 +90,7 @@ class AmvVideoController @JvmOverloads constructor(context: Context, attrs: Attr
             }
 
         @get:Bindable
-        val minControllerWidth : Int = 325
+        val minControllerWidth : Int = context.dp2px(325)
 
         var isPrepared : Boolean = false
 
@@ -122,6 +121,7 @@ class AmvVideoController @JvmOverloads constructor(context: Context, attrs: Attr
                     }
                 }
             }
+
         @get:Bindable
         var counterText:String = ""
             private set(v) {
@@ -153,7 +153,7 @@ class AmvVideoController @JvmOverloads constructor(context: Context, attrs: Attr
     init {
         mBinding.handlers = this
         mBinding.params = mBindingParams
-//        isSaveFromParentEnabled = false         // このビューの状態は、IAmvPlayerView からのイベントによって復元される
+        mBinding.slider.isSaveFromParentEnabled = false         // スライダーの状態は、AmvVideoController側で復元する
 
         // フレーム一覧のドラッグ操作をSliderのドラッグ操作と同様に扱うための小さな仕掛け
         mBinding.frameList.touchFriendListener.set(mBinding.slider::onTouchAtFriend)
@@ -197,7 +197,7 @@ class AmvVideoController @JvmOverloads constructor(context: Context, attrs: Attr
             sizeChangedListener.add(listenerName) { _, width, _ ->
                 // layout_widthをBindingすると、どうしてもエラーになるので、直接変更
 
-                mBinding.controllerRoot.setLayoutWidth(width)
+                mBinding.controllerRoot.setLayoutWidth(Math.max(width, mBindingParams.minControllerWidth))
 //                mBinding.frameList.setLayoutWidth(width)
             }
 
@@ -214,7 +214,7 @@ class AmvVideoController @JvmOverloads constructor(context: Context, attrs: Attr
             }
             // 動画ソースが変更されたときのイベント
             sourceChangedListener.add(listenerName) { _, source ->
-                savedData = null    // 誤って古い情報をリストアしないように。
+//                data = null    // 誤って古い情報をリストアしないように。
 
                 // フレームサムネイルを列挙する
                 mFrameExtractor = AmvFrameExtractor().apply {
@@ -378,21 +378,22 @@ class AmvVideoController @JvmOverloads constructor(context: Context, attrs: Attr
 
 
     // region Saving States
-    data class SavedData(val seekPosition:Long, val isPlaying:Boolean, val markers:ArrayList<Long>)
+    data class SavedData(val seekPosition:Long, val isPlaying:Boolean, val showingFrames:Boolean, val markers:ArrayList<Long>)
 
-    private var savedData: SavedData? = null
+    private var restoringData: SavedData? = null
 
     override fun onSaveInstanceState(): Parcelable {
         UtLogger.debug("LC-View: onSaveInstanceState")
         val parent =  super.onSaveInstanceState()
-        return SavedState(parent, savedData ?: SavedData(mBinding.slider.currentPosition, mBindingParams.isPlaying, mBinding.markerView.markers))
+        return SavedState(parent, restoringData ?: SavedData(mBinding.slider.currentPosition, mBindingParams.isPlaying, mBindingParams.showingFrames, mBinding.markerView.markers))
     }
 
     override fun onRestoreInstanceState(state: Parcelable?) {
         UtLogger.debug("LC-View: onRestoreInstanceState")
         if(state is SavedState) {
             super.onRestoreInstanceState(state.superState)
-            savedData = state.savedData
+            restoringData = state.savedData
+            mBindingParams.showingFrames = state.savedData.showingFrames
             tryRestoreState()
         } else {
             super.onRestoreInstanceState(state)
@@ -401,8 +402,8 @@ class AmvVideoController @JvmOverloads constructor(context: Context, attrs: Attr
 
     private fun tryRestoreState() {
         if(mBindingParams.isPrepared) {
-            savedData?.apply {
-                    savedData = null
+            restoringData?.apply {
+                    restoringData = null
                     updateSeekPosition(seekPosition, true, true)
                     if (isPlaying) {
                         mPlayer.play()
@@ -428,12 +429,13 @@ class AmvVideoController @JvmOverloads constructor(context: Context, attrs: Attr
          */
         private constructor(parcel: Parcel) : super(parcel) {
             @Suppress("UNCHECKED_CAST")
-            savedData = SavedData(parcel.readLong(), parcel.readInt() == 1, parcel.readArrayList(Long::class.java.classLoader) as ArrayList<Long>)
+            savedData = SavedData(parcel.readLong(), parcel.readInt() == 1, parcel.readInt()==1, parcel.readArrayList(Long::class.java.classLoader) as ArrayList<Long>)
         }
 
         override fun writeToParcel(parcel: Parcel, flags: Int) {
             parcel.writeLong(savedData.seekPosition)
             parcel.writeInt(if(savedData.isPlaying) 1 else 0)
+            parcel.writeInt(if(savedData.showingFrames) 1 else 0)
             parcel.writeList(savedData.markers)
         }
 

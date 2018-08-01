@@ -132,6 +132,7 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onRestoreInstanceState(Bundle savedInstanceState) {
         UtLogger.debug("LC-Activity: onRestoreInstanceState ... legacy style");
+        mCurrentFile = (File)savedInstanceState.getSerializable(keyCurrentFile);
         super.onRestoreInstanceState(savedInstanceState);
     }
 
@@ -170,9 +171,12 @@ public class MainActivity extends AppCompatActivity {
         super.onDestroy();
     }
 
+    private final String keyCurrentFile = "currentFile";
+
     @Override
     protected void onSaveInstanceState(Bundle outState) {
         UtLogger.debug("LC-Activity: onSaveInstanceState ... legacy style");
+        outState.putSerializable(keyCurrentFile, mCurrentFile);
         super.onSaveInstanceState(outState);
     }
     @Override
@@ -202,16 +206,16 @@ public class MainActivity extends AppCompatActivity {
         Intent intent = new Intent(this, TranscodeActivity.class);
         if(null!=mCurrentFile) {
             intent.putExtra("source", mCurrentFile);
+            startActivity(intent);
         }
-        startActivity(intent);
     }
 
     public void onTrimming(View view) {
         Intent intent = new Intent(this, TrimmingActivity.class);
         if(null!=mCurrentFile) {
             intent.putExtra("source", mCurrentFile);
+            startActivity(intent);
         }
-        startActivity(intent);
     }
 
 //    public void onClickPlay(View view) {

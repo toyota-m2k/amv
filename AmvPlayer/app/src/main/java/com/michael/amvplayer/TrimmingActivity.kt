@@ -65,7 +65,7 @@ class TrimmingActivity : AppCompatActivity() {
         val intent = intent
         val s = intent.getSerializableExtra("source")
         mSource = s as? File
-        if (null != mSource) {
+        if (null != mSource && null == savedInstanceState) {
             controls.trimmingPlayer.setSource(mSource!!)
         }
         controls.initialize()

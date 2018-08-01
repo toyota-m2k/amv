@@ -3,12 +3,18 @@ package com.michael.video
 import android.content.Context
 import android.graphics.drawable.Drawable
 import android.os.Handler
+import android.os.Parcel
+import android.os.Parcelable
 import android.support.constraint.ConstraintLayout
 import android.util.AttributeSet
 import android.view.LayoutInflater
+import android.view.View
 import android.widget.ImageButton
 import android.widget.TextView
 import com.michael.utils.UtLogger
+import com.michael.utils.readParceler
+import com.michael.utils.writeParceler
+import org.parceler.ParcelConstructor
 
 class AmvTrimmingController @JvmOverloads constructor(context: Context, attrs: AttributeSet? = null, defStyleAttr: Int = 0)
     : ConstraintLayout(context,attrs,defStyleAttr), IAmvVideoController {
@@ -87,13 +93,13 @@ class AmvTrimmingController @JvmOverloads constructor(context: Context, attrs: A
                     playButton.alpha = 1f
                     playButton.setImageDrawable(drPlay)
                     playButton.isClickable = true
-                    frameList.showKnob = false
+                    updateKnobVisibility()
                 }
                 IAmvVideoPlayer.PlayerState.Playing-> {
                     playButton.alpha = 1f
                     playButton.setImageDrawable(drPause)
                     playButton.isClickable = true
-                    frameList.showKnob = true
+                    updateKnobVisibility()
                 }
                 else -> {
                     playButton.alpha = 0.4f
@@ -116,7 +122,7 @@ class AmvTrimmingController @JvmOverloads constructor(context: Context, attrs: A
             trimStartText.text = formatTime(slider.trimStartPosition)
         }
         fun updateTrimEndText() {
-            trimStartText.text = formatTime(slider.trimEndPosition)
+            trimEndText.text = formatTime(slider.trimEndPosition)
         }
 
 
@@ -149,6 +155,8 @@ class AmvTrimmingController @JvmOverloads constructor(context: Context, attrs: A
                 controls.frameList.trimEnd = position
                 updateTrimEndText()
             }
+            slider.isSaveFromParentEnabled = false         // スライダーの状態は、AmvTrimmingController側で復元する
+
         }
 
         fun resetWithDuration(duration:Long) {
@@ -205,15 +213,16 @@ class AmvTrimmingController @JvmOverloads constructor(context: Context, attrs: A
 
         // プレーヤー上のビデオの読み込みが完了したときのイベント
         mPlayer.videoPreparedListener.add(listenerName) { _, duration ->
-            models.naturalDuration = duration
             models.isPrepared = true
-            controls.resetWithDuration(duration)
-            tryRestoreState()
+            if(!tryRestoreState()) {
+                models.naturalDuration = duration
+                controls.resetWithDuration(duration)
+            }
         }
 
             // 動画ソースが変更されたときのイベント
         mPlayer.sourceChangedListener.add(listenerName) { _, source ->
-            savedData = null    // 誤って古い情報をリストアしないように。
+//            data = null    // 誤って古い情報をリストアしないように。
 
             // フレームサムネイルを列挙する
             mFrameExtractor = AmvFrameExtractor().apply {
@@ -288,6 +297,10 @@ class AmvTrimmingController @JvmOverloads constructor(context: Context, attrs: A
      * @param knob          変更のあったノブ種別
      */
     private fun sliderPositionChanged(position:Long, dragState: AmvSlider.SliderDragState, knob:AmvSlider.Knob) {
+        if(isRestoring) {
+            return
+        }
+
         UtLogger.debug("CurrentPosition: $position ($dragState)")
         when(dragState) {
             AmvSlider.SliderDragState.BEGIN-> {
@@ -295,7 +308,7 @@ class AmvTrimmingController @JvmOverloads constructor(context: Context, attrs: A
                 pausingOnTracking = knob == AmvSlider.Knob.THUMB && models.isPlaying
                 mPlayer.pause()
                 mPlayer.setFastSeekMode(true)
-                controls.frameList.showKnob = knob == AmvSlider.Knob.THUMB
+                updateKnobVisibility()
             }
             AmvSlider.SliderDragState.MOVING->{
                 if(knob==mHandlingKnob) {
@@ -305,13 +318,12 @@ class AmvTrimmingController @JvmOverloads constructor(context: Context, attrs: A
             AmvSlider.SliderDragState.END-> {
                 mPlayer.setFastSeekMode(false)
                 updateSeekPosition(position, true, knob)
-
                 mHandlingKnob = AmvSlider.Knob.NONE
-                controls.frameList.showKnob = pausingOnTracking
                 if(pausingOnTracking) {
                     mPlayer.play()
                     pausingOnTracking = false
                 }
+                updateKnobVisibility(true)
             }
             else -> {
 
@@ -320,27 +332,108 @@ class AmvTrimmingController @JvmOverloads constructor(context: Context, attrs: A
         //mBindingParams.updateCounterText(position)
     }
 
+    fun updateKnobVisibility(dragEnd:Boolean=false) {
+        controls.frameList.showKnob = (!dragEnd && controls.slider.isKnobDragging(AmvSlider.Knob.THUMB)) || models.isPlaying
+    }
+
     // endregion
 
     // region Saving States
+    @org.parceler.Parcel
+    internal class SavedData @ParcelConstructor constructor(
+            var isPlaying:Boolean,
+            var seekPosition: Long,
+            var naturalDuration:Long,
+            var current: Long,
+            var trimStart: Long,
+            var trimEnd: Long) {
 
-    data class SavedData(val seekPosition:Long, val isPlaying:Boolean, val trimStart:Long, val trimEnd:Long)
-
-    private var savedData: SavedData? = null
-
-    private fun tryRestoreState() {
-//        if(models.isPrepared) {
-//            savedData?.apply {
-//                savedData = null
-//                updateSeekPosition(seekPosition, true, true)
-//                if (isPlaying) {
-//                    mPlayer.play()
-//                }
-//                mBinding.markerView.markers = markers
-//            }
-//        }
+        @Suppress("unused")
+        constructor() : this(false, 0,0,0, 0, -1)
     }
 
+    private var restoringData: SavedData? = null
+    private val isRestoring : Boolean
+        get() = restoringData != null
+
+    override fun onSaveInstanceState(): Parcelable {
+        UtLogger.debug("LC-TrimmingController: onSaveInstanceState")
+        val parent =  super.onSaveInstanceState()
+        return SavedState(parent, SavedData(models.isPlaying, mPlayer.seekPosition, models.naturalDuration, controls.slider.currentPosition, controls.slider.trimStartPosition, controls.slider.trimEndPosition))
+    }
+
+    override fun onRestoreInstanceState(state: Parcelable?) {
+        UtLogger.debug("LC-TrimmingController: onRestoreInstanceState")
+        if(state is SavedState) {
+            super.onRestoreInstanceState(state.superState)
+            val data = state.data
+            if(null!=data) {
+                restoringData = data
+            }
+        } else {
+            super.onRestoreInstanceState(state)
+        }
+    }
+
+    private fun tryRestoreState() : Boolean {
+        if(models.isPrepared) {
+            restoringData?.apply {
+                models.naturalDuration = naturalDuration
+                controls.resetWithDuration(naturalDuration)
+                controls.slider.trimStartPosition = trimStart
+                if(trimEnd>trimStart) {
+                    controls.slider.trimEndPosition = trimEnd
+                }
+                if(trimStart<=current && current<=trimEnd) {
+                    controls.slider.currentPosition = current
+                }
+                restoringData = null
+                mPlayer.seekTo(seekPosition)
+                if(isPlaying) {
+                    mPlayer.clip(trimmingRange)
+                    mPlayer.play()
+                }
+                return true
+            }
+        }
+        return false
+    }
+
+    internal class SavedState : View.BaseSavedState {
+        val data : SavedData?
+
+        /**
+         * Constructor called from [AmvSlider.onSaveInstanceState]
+         */
+        constructor(superState: Parcelable, savedData: AmvTrimmingController.SavedData) : super(superState) {
+            this.data = savedData
+        }
+
+        /**
+         * Constructor called from [.CREATOR]
+         */
+        private constructor(parcel: Parcel) : super(parcel) {
+            @Suppress("UNCHECKED_CAST")
+            data = parcel.readParceler<SavedData>()
+        }
+
+        override fun writeToParcel(parcel: Parcel, flags: Int) {
+            parcel.writeParceler(data)
+        }
+
+        companion object {
+            @Suppress("unused")
+            @JvmStatic
+            val CREATOR: Parcelable.Creator<AmvTrimmingController.SavedState> = object : Parcelable.Creator<AmvTrimmingController.SavedState> {
+                override fun createFromParcel(parcel: Parcel): AmvTrimmingController.SavedState {
+                    return SavedState(parcel)
+                }
+                override fun newArray(size: Int): Array<AmvTrimmingController.SavedState?> {
+                    return arrayOfNulls(size)
+                }
+            }
+        }
+    }
     // endregion
 
 }

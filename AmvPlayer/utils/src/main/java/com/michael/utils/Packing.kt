@@ -34,6 +34,7 @@
 package com.michael.utils
 
 import android.os.Bundle
+import android.os.Parcel
 import android.os.Parcelable
 import org.parceler.Parcels
 
@@ -72,3 +73,15 @@ interface Packing {
     }
 }
 
+fun <T> Parcel.readParceler() : T? {
+    val p = this.readParcelable<Parcelable>(Parcelable::class.java.classLoader)
+    return if(null!=p) {
+        Parcels.unwrap<T>(p)
+    } else {
+        null
+    }
+}
+
+fun <T> Parcel.writeParceler(v:T?) {
+    this.writeParcelable(Parcels.wrap(v), 0)
+}

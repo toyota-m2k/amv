@@ -71,7 +71,9 @@ class AmvFrameListView @JvmOverloads constructor(
     var totalRange: Long
         get() = controls.scroller.totalRange
         set(v) {
+            mKnobPosition = 0
             controls.scroller.totalRange = v
+            updateScroll()
         }
 
     var position: Long

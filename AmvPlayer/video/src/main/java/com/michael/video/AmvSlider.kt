@@ -532,6 +532,10 @@ class AmvSlider @JvmOverloads constructor(
         NONE, THUMB, LEFT, RIGHT
     }
 
+    fun isKnobDragging(knob:Knob) : Boolean {
+        return mDraggingInfo.draggingStateWithKnob(knob) == SliderDragState.MOVING
+    }
+
     /**
      * ドラッグ操作を管理するクラス
      */

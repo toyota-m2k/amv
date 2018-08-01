@@ -22,6 +22,7 @@ import com.google.android.exoplayer2.ui.PlayerView
 import com.google.android.exoplayer2.upstream.DefaultDataSourceFactory
 import com.google.android.exoplayer2.video.VideoListener
 import com.michael.utils.UtLogger
+import org.parceler.ParcelConstructor
 import java.io.File
 import kotlin.math.absoluteValue
 import kotlin.math.roundToInt
@@ -39,8 +40,9 @@ class AmvExoVideoPlayer @JvmOverloads constructor(
     private var mEnded : Boolean = false                // 動画ファイルの最後まで再生が終わって停止した状態から、Playボタンを押したときに、先頭から再生を開始する動作を実現するためのフラグ
     private var mMediaSource:MediaSource? = null
     private var mClipping : IAmvVideoPlayer.Clipping? = null
-
-
+    private val mHandler : Handler by lazy {
+        Handler()
+    }
 
     // endregion
 
@@ -304,10 +306,8 @@ class AmvExoVideoPlayer @JvmOverloads constructor(
         }
     }
 
-
     override fun setSource(source: File, autoPlay: Boolean, playFrom: Long) {
         reset()
-
         mSource = source
         sourceChangedListener.invoke(this, source)
         mPlayer?.apply {
@@ -433,7 +433,6 @@ class AmvExoVideoPlayer @JvmOverloads constructor(
         private val mInterval = 100L        // スライダーの動きを監視するためのタイマーインターバル
         private val mWaitCount = 5          // 上のインターバルで何回チェックし、動きがないことが確認されたらEXACTシークするか？　mInterval*mWaitCount (ms)
         private val mPercent = 1            // 微動（移動していない）とみなす移動量・・・全Durationに対するパーセント
-        private val mHandler = Handler()    // タイマー的に使用するHandler
         private var mSeekTarget: Long = -1L // 目標シーク位置
         private var mSeeking = false        // スライダーによるシーク中はtrue / それ以外は false
         private var mCheckCounter = 0       // チェックカウンタ （この値がmWaitCountを超えたら、EXACTシークする）
@@ -541,7 +540,7 @@ class AmvExoVideoPlayer @JvmOverloads constructor(
     override fun onSaveInstanceState(): Parcelable {
         UtLogger.debug("LC-View: onSaveInstanceState")
         val parent =  super.onSaveInstanceState()
-        return SavedState(parent, mSource)
+        return SavedState(parent, mSource, mClipping)
     }
 
     override fun onRestoreInstanceState(state: Parcelable?) {
@@ -550,22 +549,30 @@ class AmvExoVideoPlayer @JvmOverloads constructor(
             super.onRestoreInstanceState(state.superState)
             val source = state.source
             if(source!=null) {
-                setSource(source, false, 0)
+                // このタイミング（リストア中）に setSource()すると、ExoPlayerにファイルは読み込まれるが、読み込んだ後のイベントが返ってこないことがあり、
+                // ビューが更新されなかったりしたので、少し遅延させて回避する。
+                mHandler.post {
+                    mSource = source
+                    setSource(source, false, 0)
+                    clip(state.clipping)
+                }
             }
         } else {
             super.onRestoreInstanceState(state)
         }
     }
 
-    internal class SavedState : View.BaseSavedState {
+    private class SavedState : View.BaseSavedState {
 
         val source : File?
+        val clipping: IAmvVideoPlayer.Clipping?
 
         /**
          * Constructor called from [AmvSlider.onSaveInstanceState]
          */
-        constructor(superState: Parcelable, file:File?) : super(superState) {
-            source = file
+        constructor(superState: Parcelable, file:File?, clipping: IAmvVideoPlayer.Clipping?) : super(superState) {
+            this.source = file
+            this.clipping = clipping
         }
 
         /**
@@ -573,10 +580,22 @@ class AmvExoVideoPlayer @JvmOverloads constructor(
          */
         private constructor(parcel: Parcel) : super(parcel) {
             source = parcel.readSerializable() as? File
+            clipping = if(parcel.readInt()==1) {
+                IAmvVideoPlayer.Clipping(parcel.readLong(), parcel.readLong())
+            } else {
+                null
+            }
         }
 
         override fun writeToParcel(parcel: Parcel, flags: Int) {
             parcel.writeSerializable(source)
+            if(null!=clipping) {
+                parcel.writeInt(1)
+                parcel.writeLong(clipping.start)
+                parcel.writeLong(clipping.end)
+            } else {
+                parcel.writeInt(0)
+            }
         }
 
         companion object {
