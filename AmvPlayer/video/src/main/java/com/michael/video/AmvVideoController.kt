@@ -5,6 +5,7 @@ import android.databinding.BaseObservable
 import android.databinding.Bindable
 import android.databinding.BindingAdapter
 import android.databinding.DataBindingUtil
+import android.graphics.Bitmap
 import android.os.Handler
 import android.os.Parcel
 import android.os.Parcelable
@@ -207,7 +208,7 @@ class AmvVideoController @JvmOverloads constructor(context: Context, attrs: Attr
                 mBindingParams.prevPosition = -1    // 次回必ずcounterString を更新する
                 mBindingParams.updateCounterText(mp.seekPosition)
                 mBinding.slider.resetWithValueRange(duration, true)      // スライダーを初期化
-                mBinding.frameList.resetWithTotalRange(duration)
+                mBinding.frameList.totalRange = duration
                 mBinding.markerView.resetWithTotalRange(duration)
                 mBindingParams.isPrepared = true
                 tryRestoreState()
@@ -229,6 +230,8 @@ class AmvVideoController @JvmOverloads constructor(context: Context, attrs: Attr
                         mBinding.frameList.add(bmp)
                     }
                     onFinishedListener.add(null) { _, _ ->
+                        // サブスレッドの処理がすべて終了しても、UIスレッド側でのビットマップ追加処理待ちになっていることがあり、
+                        // このイベントハンドラから、dispose()してしまうと、待ち中のビットマップが破棄されてしまう。
                         mHandler.post {
                             // リスナーの中でdispose()を呼ぶのはいかがなものかと思われるので、次のタイミングでお願いする
                             dispose()

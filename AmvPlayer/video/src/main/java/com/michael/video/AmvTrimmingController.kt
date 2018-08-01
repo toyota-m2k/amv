@@ -123,7 +123,7 @@ class AmvTrimmingController @JvmOverloads constructor(context: Context, attrs: A
 
         fun resetWithDuration(duration:Long) {
             slider.resetWithValueRange(duration, true)      // スライダーを初期化
-            frameList.resetWithTotalRange(duration)
+            frameList.totalRange = duration
         }
     }
 
@@ -192,7 +192,7 @@ class AmvTrimmingController @JvmOverloads constructor(context: Context, attrs: A
                     mControls.frameList.prepare(cFrameCount, thumbnailSize.width, thumbnailSize.height)
                 }
                 onThumbnailRetrievedListener.add(null) { _, index, bmp ->
-                    UtLogger.debug("AmvFrameExtractor:Bitmap($index): width=${bmp.width}, height=${bmp.height}")
+                    UtLogger.debug("AmvFrameExtractor:Bitmap(${index+1}): width=${bmp.width}, height=${bmp.height}")
                     mControls.frameList.add(bmp)
                 }
                 onFinishedListener.add(null) { _, _ ->

@@ -202,8 +202,8 @@ class AmvExoVideoPlayer @JvmOverloads constructor(
 
         fun reset() {
             mInitial = true
-            errorMessage = ""
             playerState = IAmvVideoPlayer.PlayerState.None
+            errorMessage = ""
         }
 
         // Rendering Parameters
@@ -485,7 +485,10 @@ class AmvExoVideoPlayer @JvmOverloads constructor(
             UtLogger.debug("EXO-Seek: end")
             if(mSeeking) {
                 mSeeking = false
-                exactSeek(mSeekTarget)
+                if(mSeekTarget>=0) {
+                    exactSeek(mSeekTarget)
+                    mSeekTarget = -1
+                }
             }
         }
 
