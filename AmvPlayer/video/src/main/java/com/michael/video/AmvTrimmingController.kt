@@ -79,11 +79,13 @@ class AmvTrimmingController @JvmOverloads constructor(context: Context, attrs: A
                     playButton.alpha = 1f
                     playButton.setImageDrawable(drPlay)
                     playButton.isClickable = true
+                    frameList.showKnob = false
                 }
                 IAmvVideoPlayer.PlayerState.Playing-> {
                     playButton.alpha = 1f
                     playButton.setImageDrawable(drPause)
                     playButton.isClickable = true
+                    frameList.showKnob = true
                 }
                 else -> {
                     playButton.alpha = 0.4f
@@ -263,6 +265,7 @@ class AmvTrimmingController @JvmOverloads constructor(context: Context, attrs: A
                 pausingOnTracking = knob == AmvSlider.Knob.THUMB && mDataModel.isPlaying
                 mPlayer.pause()
                 mPlayer.setFastSeekMode(true)
+                mControls.frameList.showKnob = knob == AmvSlider.Knob.THUMB
             }
             AmvSlider.SliderDragState.MOVING->{
                 if(knob==mHandlingKnob) {
@@ -274,6 +277,7 @@ class AmvTrimmingController @JvmOverloads constructor(context: Context, attrs: A
                 updateSeekPosition(position, true, knob)
 
                 mHandlingKnob = AmvSlider.Knob.NONE
+                mControls.frameList.showKnob = pausingOnTracking
                 if(pausingOnTracking) {
                     mPlayer.play()
                     pausingOnTracking = false

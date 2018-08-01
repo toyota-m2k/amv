@@ -46,6 +46,7 @@ class AmvFrameListView @JvmOverloads constructor(
 
         if(controls.scroller.trimmingEnabled) {
             controls.knob.background = context.getDrawable(R.drawable.ic_slider_trim_guide)
+            controls.knob.visibility = View.GONE
         }
     }
 
@@ -93,6 +94,12 @@ class AmvFrameListView @JvmOverloads constructor(
         set(v) {
             controls.scroller.trimEnd = v
             updateScroll()
+        }
+
+    var showKnob:Boolean
+        get() = controls.knob.visibility == View.VISIBLE
+        set(v) {
+            controls.knob.visibility = if(v) View.VISIBLE else View.GONE
         }
 
     private fun updateScroll() {

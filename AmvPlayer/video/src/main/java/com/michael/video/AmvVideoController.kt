@@ -141,12 +141,11 @@ class AmvVideoController @JvmOverloads constructor(context: Context, attrs: Attr
             val total = AmvTimeSpan(mDuration)
             val current = AmvTimeSpan(if(pos>mDuration) mDuration else pos)
 
-
             counterText =
                     when {
-                        total.hours > 0 -> String.format("%02d:%02d:%02d / %02d:%02d:%02d", current.hours, current.minutes, current.seconds, total.hours, total.minutes, total.seconds)
-                        total.minutes > 0 -> String.format("%02d:%02d / %02d:%02d", current.minutes, current.seconds, total.minutes, total.seconds)
-                        else -> String.format("%02d.%02d / %02d.%02d", current.seconds, current.milliseconds/10, total.seconds, total.milliseconds/ 10)
+                        total.hours > 0 -> "${current.formatH()} / ${total.formatH()}"
+                        total.minutes > 0 -> "${current.formatM()} / ${total.formatM()}"
+                        else -> "${current.formatS()} / ${total.formatS()}"
                     }
         }
     }
