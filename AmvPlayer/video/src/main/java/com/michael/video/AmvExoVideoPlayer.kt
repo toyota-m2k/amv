@@ -432,7 +432,7 @@ class AmvExoVideoPlayer @JvmOverloads constructor(
     inner class SeekManager {
         private val mInterval = 100L        // スライダーの動きを監視するためのタイマーインターバル
         private val mWaitCount = 5          // 上のインターバルで何回チェックし、動きがないことが確認されたらEXACTシークするか？　mInterval*mWaitCount (ms)
-        private val mPercent = 2            // 微動（移動していない）とみなす移動量・・・全Durationに対するパーセント
+        private val mPercent = 1            // 微動（移動していない）とみなす移動量・・・全Durationに対するパーセント
         private val mHandler = Handler()    // タイマー的に使用するHandler
         private var mSeekTarget: Long = -1L // 目標シーク位置
         private var mSeeking = false        // スライダーによるシーク中はtrue / それ以外は false
@@ -452,7 +452,7 @@ class AmvExoVideoPlayer @JvmOverloads constructor(
         private fun checkAndSeek() {
             if(mSeeking) {
                 if(mCheckCounter>=mWaitCount && mSeekTarget>=0 ) {
-                    if(!mBindings.isLoading) {
+                    if(mBindings.isLoading) {
                         UtLogger.debug("EXO-Seek: checked ok, but loading now")
                     } else {
                         UtLogger.debug("EXO-Seek: checked ok")
@@ -501,8 +501,8 @@ class AmvExoVideoPlayer @JvmOverloads constructor(
                 if (mSeekTarget < 0 || (pos - mSeekTarget).absoluteValue > mThreshold) {
                     UtLogger.debug("EXO-Seek: reset check count - $pos ($mCheckCounter)")
                     mCheckCounter = 0
-                    fastSeek(pos)
                 }
+                fastSeek(pos)
                 mSeekTarget = pos
             } else {
                 exactSeek(pos)
