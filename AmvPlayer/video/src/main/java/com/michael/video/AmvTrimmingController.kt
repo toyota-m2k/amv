@@ -28,7 +28,7 @@ class AmvTrimmingController @JvmOverloads constructor(context: Context, attrs: A
         get() = IAmvVideoPlayer.Clipping(controls.slider.trimStartPosition, controls.slider.trimEndPosition)
 
     val isTrimmed : Boolean
-        get() = models.isPrepared && models.naturalDuration>0 && controls.slider.isTrimmed
+        get() = models.isPlayerPrepared && models.naturalDuration>0 && controls.slider.isTrimmed
 
     // endregion
 
@@ -108,7 +108,7 @@ class AmvTrimmingController @JvmOverloads constructor(context: Context, attrs: A
             }
         }
 
-        fun formatTime(time:Long) : String {
+        private fun formatTime(time:Long) : String {
             val v = AmvTimeSpan(time)
             val t = AmvTimeSpan(slider.valueRange)
             return when {
@@ -118,10 +118,10 @@ class AmvTrimmingController @JvmOverloads constructor(context: Context, attrs: A
             }
         }
 
-        fun updateTrimStartText() {
+        private fun updateTrimStartText() {
             trimStartText.text = formatTime(slider.trimStartPosition)
         }
-        fun updateTrimEndText() {
+        private fun updateTrimEndText() {
             trimEndText.text = formatTime(slider.trimEndPosition)
         }
 
@@ -178,7 +178,8 @@ class AmvTrimmingController @JvmOverloads constructor(context: Context, attrs: A
 
         var naturalDuration: Long = 0
 
-        var isPrepared: Boolean = false
+        var isPlayerPrepared = false
+        var isVideoInfoPrepared = false
 
         val isPlaying: Boolean
             get() = playerState == IAmvVideoPlayer.PlayerState.Playing
@@ -203,6 +204,9 @@ class AmvTrimmingController @JvmOverloads constructor(context: Context, attrs: A
             if(state == IAmvVideoPlayer.PlayerState.Playing) {
                 mHandler.post(mSliderSeekerOnPlaying)
             }
+            else if(state == IAmvVideoPlayer.PlayerState.Error) {
+                restoringData?.onFatalError()
+            }
         }
 
         // 動画の画面サイズが変わったときのイベント
@@ -212,17 +216,17 @@ class AmvTrimmingController @JvmOverloads constructor(context: Context, attrs: A
         }
 
         // プレーヤー上のビデオの読み込みが完了したときのイベント
-        mPlayer.videoPreparedListener.add(listenerName) { _, duration ->
-            models.isPrepared = true
-            if(!tryRestoreState()) {
-                models.naturalDuration = duration
-                controls.resetWithDuration(duration)
-            }
+        mPlayer.videoPreparedListener.add(listenerName) { _, _ ->
+            models.isPlayerPrepared = true
+            restoringData?.tryRestoring()
         }
 
             // 動画ソースが変更されたときのイベント
         mPlayer.sourceChangedListener.add(listenerName) { _, source ->
 //            data = null    // 誤って古い情報をリストアしないように。
+            models.isPlayerPrepared = false
+            models.isVideoInfoPrepared = false
+
 
             // フレームサムネイルを列挙する
             mFrameExtractor = AmvFrameExtractor().apply {
@@ -231,16 +235,23 @@ class AmvTrimmingController @JvmOverloads constructor(context: Context, attrs: A
                     UtLogger.debug("AmvFrameExtractor:duration=${it.duration} / ${it.videoSize}")
                     val thumbnailSize = it.thumbnailSize
                     controls.frameList.prepare(cFrameCount, thumbnailSize.width, thumbnailSize.height)
+                    models.naturalDuration = it.duration
+                    controls.resetWithDuration(it.duration)
+                    models.isVideoInfoPrepared = true
+                    restoringData?.tryRestoring()
                 }
                 onThumbnailRetrievedListener.add(null) { _, index, bmp ->
                     UtLogger.debug("AmvFrameExtractor:Bitmap(${index+1}): width=${bmp.width}, height=${bmp.height}")
                     controls.frameList.add(bmp)
                 }
-                onFinishedListener.add(null) { _, _ ->
+                onFinishedListener.add(null) { _, result ->
                     post {
                         // リスナーの中でdispose()を呼ぶのはいかがなものかと思われるので、次のタイミングでお願いする
                         dispose()
                         mFrameExtractor = null
+                        if(!result) {
+                            restoringData?.onFatalError()
+                        }
                     }
                 }
                 extract(source, cFrameCount)
@@ -339,66 +350,100 @@ class AmvTrimmingController @JvmOverloads constructor(context: Context, attrs: A
     // endregion
 
     // region Saving States
+
+    /**
+     * 状態を退避するデータクラス
+     */
     @org.parceler.Parcel
     internal class SavedData @ParcelConstructor constructor(
             var isPlaying:Boolean,
             var seekPosition: Long,
-            var naturalDuration:Long,
             var current: Long,
             var trimStart: Long,
             var trimEnd: Long) {
 
         @Suppress("unused")
-        constructor() : this(false, 0,0,0, 0, -1)
+        constructor() : this(false, 0,0, 0, -1)
     }
 
-    private var restoringData: SavedData? = null
-    private val isRestoring : Boolean
-        get() = restoringData != null
+    // 復元中のデータ
+    private var restoringData: RestoringData? = null
+    private val isRestoring
+        get() = restoringData!=null
 
+    /**
+     * リストア中のデータを保持するクラス
+     * - 再生状態、再生シーク位置は、Playerのロード完了をもってリストアする
+     * - スライダー/トリミング状態は、ExtractFrameでdurationなどが得られるのを待ってリストアする
+     */
+    private inner class RestoringData(val data:SavedData) {
+        private val isPlayerPrepared
+            get() = models.isPlayerPrepared
+        private val isVideoInfoPrepared
+            get() = models.isVideoInfoPrepared
+
+        private var isPlayerRestored = false
+        private var isSliderRestored = false
+
+        fun onFatalError() {
+            UtLogger.error("AmvTrimmingController: abort restoring.")
+            this@AmvTrimmingController.restoringData = null
+        }
+
+        fun tryRestoring() {
+            if(isPlayerPrepared && !isPlayerRestored) {
+                if(data.isPlaying) {
+                    mPlayer.clip(trimmingRange)
+                    mPlayer.play()
+                }
+                mPlayer.seekTo(data.seekPosition)
+                isPlayerRestored = true
+            }
+            if(isVideoInfoPrepared && !isSliderRestored) {
+                controls.slider.trimStartPosition = data.trimStart
+                if(data.trimEnd>data.trimStart) {
+                    controls.slider.trimEndPosition = data.trimEnd
+                }
+                if(data.trimStart<=data.current && data.current<=data.trimEnd) {
+                    controls.slider.currentPosition = data.current
+                }
+                isSliderRestored = true
+            }
+
+            if(isPlayerRestored && isSliderRestored) {
+                this@AmvTrimmingController.restoringData = null
+            }
+        }
+    }
+
+    /**
+     * 状態を退避
+     */
     override fun onSaveInstanceState(): Parcelable {
         UtLogger.debug("LC-TrimmingController: onSaveInstanceState")
         val parent =  super.onSaveInstanceState()
-        return SavedState(parent, SavedData(models.isPlaying, mPlayer.seekPosition, models.naturalDuration, controls.slider.currentPosition, controls.slider.trimStartPosition, controls.slider.trimEndPosition))
+        return SavedState(parent, restoringData?.data ?: SavedData(models.isPlaying, mPlayer.seekPosition, controls.slider.currentPosition, controls.slider.trimStartPosition, controls.slider.trimEndPosition))
     }
 
+    /**
+     * 状態を復元
+     */
     override fun onRestoreInstanceState(state: Parcelable?) {
         UtLogger.debug("LC-TrimmingController: onRestoreInstanceState")
         if(state is SavedState) {
             super.onRestoreInstanceState(state.superState)
             val data = state.data
             if(null!=data) {
-                restoringData = data
+                restoringData = RestoringData(data)
             }
         } else {
             super.onRestoreInstanceState(state)
         }
     }
 
-    private fun tryRestoreState() : Boolean {
-        if(models.isPrepared) {
-            restoringData?.apply {
-                models.naturalDuration = naturalDuration
-                controls.resetWithDuration(naturalDuration)
-                controls.slider.trimStartPosition = trimStart
-                if(trimEnd>trimStart) {
-                    controls.slider.trimEndPosition = trimEnd
-                }
-                if(trimStart<=current && current<=trimEnd) {
-                    controls.slider.currentPosition = current
-                }
-                restoringData = null
-                mPlayer.seekTo(seekPosition)
-                if(isPlaying) {
-                    mPlayer.clip(trimmingRange)
-                    mPlayer.play()
-                }
-                return true
-            }
-        }
-        return false
-    }
-
+    /**
+     * onSaveInstanceState用
+     */
     internal class SavedState : View.BaseSavedState {
         val data : SavedData?
 

@@ -30,16 +30,6 @@ class AmvVideoController @JvmOverloads constructor(context: Context, attrs: Attr
         fun srcCompat(view: ImageButton, resourceId: Int) {
             view.setImageResource(resourceId)
         }
-
-
-//        @JvmStatic
-//        @BindingAdapter("android:layout_width")
-//        fun setLayoutWidth(view: View, width:Int) {
-//            val params = view.layoutParams
-//            params.width = width
-//            view.layoutParams = params
-//        }
-
     }
 
     private var mBinding : VideoControllerBinding = DataBindingUtil.inflate(LayoutInflater.from(context), R.layout.video_controller, this, true)
@@ -92,7 +82,8 @@ class AmvVideoController @JvmOverloads constructor(context: Context, attrs: Attr
         @get:Bindable
         val minControllerWidth : Int = context.dp2px(325)
 
-        var isPrepared : Boolean = false
+        var isPlayerPrepared : Boolean = false
+        var isVideoInfoPrepared: Boolean = false
 
         var playerState:IAmvVideoPlayer.PlayerState = IAmvVideoPlayer.PlayerState.None
             set(v) {
@@ -101,23 +92,29 @@ class AmvVideoController @JvmOverloads constructor(context: Context, attrs: Attr
                     notifyPropertyChanged(BR.playing)
                     notifyPropertyChanged(BR.ready)
                     UtLogger.debug("PlayState: $v")
-                    if(v==IAmvVideoPlayer.PlayerState.Playing) {
-                        val startPos = mPlayer.seekPosition
-                        UtLogger.debug("Start Playing --> Seek($startPos)")
+                    when (v) {
+                        IAmvVideoPlayer.PlayerState.Playing -> {
+                            val startPos = mPlayer.seekPosition
+                            UtLogger.debug("Start Playing --> Seek($startPos)")
 
-                        // 再生中は定期的にスライダーの位置を更新する
-                        mHandler.post (object : Runnable {
-                            override fun run() {
-                                if(!pausingOnTracking) {
-                                    updateSeekPosition(mPlayer.seekPosition, false, true)
+                            // 再生中は定期的にスライダーの位置を更新する
+                            mHandler.post (object : Runnable {
+                                override fun run() {
+                                    if(!pausingOnTracking) {
+                                        updateSeekPosition(mPlayer.seekPosition, false, true)
+                                    }
+                                    if(playerState==IAmvVideoPlayer.PlayerState.Playing) {
+                                        mHandler.postDelayed(this, 100)     // Win版は10msで動かしていたが、Androidでは動画が動かなくなるので、200msくらいにしておく。ガタガタなるけど。
+                                    }
                                 }
-                                if(playerState==IAmvVideoPlayer.PlayerState.Playing) {
-                                    mHandler.postDelayed(this, 100)     // Win版は10msで動かしていたが、Androidでは動画が動かなくなるので、200msくらいにしておく。ガタガタなるけど。
-                                }
-                            }
-                        })
-                    } else if(v==IAmvVideoPlayer.PlayerState.None) {
-                        isPrepared = false
+                            })
+                        }
+                        IAmvVideoPlayer.PlayerState.None -> isPlayerPrepared = false
+                        IAmvVideoPlayer.PlayerState.Error -> {
+                            isPlayerPrepared = false
+                            restoringData?.onFatalError()
+                        }
+                        else -> {}
                     }
                 }
             }
@@ -172,10 +169,6 @@ class AmvVideoController @JvmOverloads constructor(context: Context, attrs: Attr
         mBinding.markerView.markerContextQueryListener.set { _, _ ->
 
         }
-
-//        mBinding.backButton.isEnabled = false
-//        mBinding.forwardButton.isEnabled = true
-//        mBinding.backButton
     }
 
     private val listenerName = "videoController"
@@ -198,31 +191,35 @@ class AmvVideoController @JvmOverloads constructor(context: Context, attrs: Attr
                 // layout_widthをBindingすると、どうしてもエラーになるので、直接変更
 
                 mBinding.controllerRoot.setLayoutWidth(Math.max(width, mBindingParams.minControllerWidth))
-//                mBinding.frameList.setLayoutWidth(width)
             }
 
             // プレーヤー上のビデオの読み込みが完了したときのイベント
-            videoPreparedListener.add(listenerName) { mp, duration ->
-                mDuration = duration
+            videoPreparedListener.add(listenerName) { mp, _ ->
                 mBindingParams.prevPosition = -1    // 次回必ずcounterString を更新する
                 mBindingParams.updateCounterText(mp.seekPosition)
-                mBinding.slider.resetWithValueRange(duration, true)      // スライダーを初期化
-                mBinding.frameList.totalRange = duration
-                mBinding.markerView.resetWithTotalRange(duration)
-                mBindingParams.isPrepared = true
-                tryRestoreState()
+                mBindingParams.isPlayerPrepared = true
+                restoringData?.tryRestoring()
             }
             // 動画ソースが変更されたときのイベント
             sourceChangedListener.add(listenerName) { _, source ->
-//                data = null    // 誤って古い情報をリストアしないように。
+                mBindingParams.isPlayerPrepared = false
+                mBindingParams.isVideoInfoPrepared = false
 
                 // フレームサムネイルを列挙する
                 mFrameExtractor = AmvFrameExtractor().apply {
                     setSizingHint(FitMode.Height, 0f, cFrameHeight)
                     onVideoInfoRetrievedListener.add(null) {
                         UtLogger.debug("AmvFrameExtractor:duration=${it.duration} / ${it.videoSize}")
+                        mDuration = it.duration
                         val thumbnailSize = it.thumbnailSize
+
                         mBinding.frameList.prepare(cFrameCount, thumbnailSize.width, thumbnailSize.height)
+                        mBinding.slider.resetWithValueRange(it.duration, true)      // スライダーを初期化
+                        mBinding.frameList.totalRange = it.duration
+                        mBinding.markerView.resetWithTotalRange(it.duration)
+
+                        mBindingParams.isVideoInfoPrepared = true
+                        restoringData?.tryRestoring()
                     }
                     onThumbnailRetrievedListener.add(null) { _, index, bmp ->
                         UtLogger.debug("AmvFrameExtractor:Bitmap($index): width=${bmp.width}, height=${bmp.height}")
@@ -240,12 +237,6 @@ class AmvVideoController @JvmOverloads constructor(context: Context, attrs: Attr
                     extract(source, cFrameCount)
                 }
             }
-//            seekCompletedListener.add(listenerName) { _, pos ->
-//                if(!mBinding.slider.isDragging) {
-//                    mBinding.slider.currentPosition = pos
-//                    mBinding.frameList.position = pos
-//                }
-//            }
         }
     }
 
@@ -270,73 +261,15 @@ class AmvVideoController @JvmOverloads constructor(context: Context, attrs: Attr
     }
 
     fun onAddMarker(@Suppress("UNUSED_PARAMETER") view: View) {
-        //mBinding.markerView.addMarker(seekPosition, null)
         mBinding.markerView.addMarker(mBinding.slider.currentPosition, null)
     }
 
     fun onShowFramesClick(@Suppress("UNUSED_PARAMETER") view:View) {
         mBindingParams.showingFrames = !mBindingParams.showingFrames
-//        if(!mBindingParams.showingFrames) {
-//            mBinding.frameList.visibility = View.GONE
-//            mBinding.slider.showThumbBg = false
-//        } else {
-//            mBinding.frameList.visibility = View.VISIBLE
-//            mBinding.slider.showThumbBg = true
-//        }
-
-        // XML で、android:selected という属性は警告(Unknown attribute)がでるが、ちゃんとバインドできているという謎。
-        // mBinding.showFramesButton.isSelected = mBindingParams.showingFrames
-    }
-
-//    private val seekPosition : Long
-//        get() = mPlayer.seekPosition
-//
-//    private fun sliderPos2SeekPos(sliderPos:Long) : Long {
-//        return sliderPos
-//    }
-
-    private fun seekPos2SliderPos(seekPos:Long) : Long {
-        return seekPos
     }
 
     // Sliderの操作
     private var pausingOnTracking = false       // スライダー操作中は再生を止めておいて、操作が終わったときに必要に応じて再生を再開する
-//    private var seekTarget : Long = 0            // seekTo()が成功しても、再生を開始すると、何やら3～5秒くらい戻ることがあるので、ターゲット位置を覚えておいて、それ以前に戻る動作を見せないようにしてみる
-
-//    /**
-//     * Sliderの値が変化した
-//     */
-//    @Suppress("UNUSED_PARAMETER")
-//    fun onSeekBarValueChanged(seekBar: SeekBar, progressValue: Int, fromUser: Boolean) {
-//        if(fromUser) {
-//            mBinding.frameList.position = progressValue
-//            seekTarget = sliderPos2SeekPos(progressValue)
-//            mPlayer.seekTo(seekTarget)
-//            UtLogger.debug("Tracking - Pos = Slider=$progressValue, Seek=${sliderPos2SeekPos(progressValue)}")
-//        }
-//    }
-//
-//    /**
-//     * Sliderのトラッキングが開始される
-//     */
-//    @Suppress("UNUSED_PARAMETER")
-//    fun onSeekBarStartTracking(bar:SeekBar) {
-//        pausingOnTracking = mBindingParams.isPlaying
-//        UtLogger.debug("Tracking - Start (playing = $pausingOnTracking) --> pausing")
-//        mPlayer.pause()
-//    }
-//
-//    /**
-//     * Sliderのトラッキングが終了する
-//     */
-//    @Suppress("UNUSED_PARAMETER")
-//    fun onSeekBarEndTracking(bar:SeekBar) {
-//        UtLogger.debug("Tracking - End (restore playing = $pausingOnTracking) <-- pausing")
-//        if(pausingOnTracking) {
-//            mPlayer.play()
-//            pausingOnTracking = false
-//        }
-//    }
 
     fun onCurrentPositionChanged(@Suppress("UNUSED_PARAMETER") caller:AmvSlider, position:Long, dragState: AmvSlider.SliderDragState) {
         UtLogger.debug("CurrentPosition: $position ($dragState)")
@@ -374,42 +307,65 @@ class AmvVideoController @JvmOverloads constructor(context: Context, attrs: Attr
         mBinding.frameList.position = pos
     }
 
+    private var restoringData: RestoringData? = null
+    private inner class RestoringData(val data:SavedData) {
+        private val isPlayerPrepared
+            get() = mBindingParams.isPlayerPrepared
+        private val isVideoInfoPrepared
+            get() = mBindingParams.isVideoInfoPrepared
 
+        private var isFirstRestored = false
+        private var isPlayerRestored = false
+        private var isSliderRestored = false
 
+        fun onFatalError() {
+            UtLogger.error("AmvTrimmingController: abort restoring.")
+            this@AmvVideoController.restoringData = null
+        }
+
+        fun tryRestoring() {
+            if(!isFirstRestored) {
+                isFirstRestored = true
+                mBindingParams.showingFrames = data.showingFrames
+            }
+            if(isPlayerPrepared && !isPlayerRestored) {
+                mPlayer.seekTo(data.seekPosition)
+                if(data.isPlaying) {
+                    mPlayer.play()
+                }
+                isPlayerRestored = true
+            }
+            if(isVideoInfoPrepared && !isSliderRestored) {
+                mBinding.slider.currentPosition = data.seekPosition
+                mBinding.frameList.position = data.seekPosition
+                mBinding.markerView.markers = data.markers
+                isSliderRestored = true
+            }
+
+            if(isPlayerRestored && isSliderRestored) {
+                this@AmvVideoController.restoringData = null
+            }
+        }
+    }
 
     // region Saving States
     data class SavedData(val seekPosition:Long, val isPlaying:Boolean, val showingFrames:Boolean, val markers:ArrayList<Long>)
 
-    private var restoringData: SavedData? = null
 
     override fun onSaveInstanceState(): Parcelable {
         UtLogger.debug("LC-View: onSaveInstanceState")
         val parent =  super.onSaveInstanceState()
-        return SavedState(parent, restoringData ?: SavedData(mBinding.slider.currentPosition, mBindingParams.isPlaying, mBindingParams.showingFrames, mBinding.markerView.markers))
+        return SavedState(parent, restoringData?.data ?: SavedData(mBinding.slider.currentPosition, mBindingParams.isPlaying, mBindingParams.showingFrames, mBinding.markerView.markers))
     }
 
     override fun onRestoreInstanceState(state: Parcelable?) {
         UtLogger.debug("LC-View: onRestoreInstanceState")
         if(state is SavedState) {
             super.onRestoreInstanceState(state.superState)
-            restoringData = state.savedData
-            mBindingParams.showingFrames = state.savedData.showingFrames
-            tryRestoreState()
+            restoringData = RestoringData(state.savedData)
+            restoringData?.tryRestoring()
         } else {
             super.onRestoreInstanceState(state)
-        }
-    }
-
-    private fun tryRestoreState() {
-        if(mBindingParams.isPrepared) {
-            restoringData?.apply {
-                    restoringData = null
-                    updateSeekPosition(seekPosition, true, true)
-                    if (isPlaying) {
-                        mPlayer.play()
-                    }
-                    mBinding.markerView.markers = markers
-            }
         }
     }
 
@@ -452,8 +408,6 @@ class AmvVideoController @JvmOverloads constructor(context: Context, attrs: Attr
             }
         }
     }
-
-
 
     // endregion
 }
