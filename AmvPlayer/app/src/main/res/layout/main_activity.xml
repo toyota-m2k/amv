@@ -28,6 +28,7 @@
             android:layout_height="wrap_content"
             android:onClick="@{mainActivity::onClickCamera}"
             android:text="@string/camera"
+            android:textAllCaps="false"
             app:layout_constraintLeft_toLeftOf="parent"
             />
 
@@ -36,6 +37,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginStart="8dp"
+            android:textAllCaps="false"
             android:onClick="@{mainActivity::onClickFile}"
             android:text="@string/open_file"
             app:layout_constraintStart_toEndOf="@+id/camera_button"
@@ -46,6 +48,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginStart="8dp"
+            android:textAllCaps="false"
             android:onClick="@{mainActivity::onTranscode}"
             android:text="@string/transcode"
             app:layout_constraintStart_toEndOf="@+id/file_button"
@@ -56,9 +59,21 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginStart="8dp"
+            android:textAllCaps="false"
             android:onClick="@{mainActivity::onTrimming}"
             android:text="@string/trimming"
             app:layout_constraintStart_toEndOf="@+id/transcode_button"
+            />
+
+        <Button
+            android:id="@+id/shuffleButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:textAllCaps="false"
+            android:onClick="@{mainActivity::onShuffle}"
+            android:text="@string/shuffle"
+            app:layout_constraintStart_toEndOf="@+id/trimming_button"
             />
 
         <com.michael.video.AmvPlayerUnitView

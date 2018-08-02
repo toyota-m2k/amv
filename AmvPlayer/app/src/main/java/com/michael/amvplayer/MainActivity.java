@@ -48,10 +48,18 @@ public class MainActivity extends AppCompatActivity {
     MainActivityBinding mBinding = null;
 
     Uri[] mSourceUris = new Uri[] {
-            Uri.parse("https://video.twimg.com/ext_tw_video/1003088826422603776/pu/vid/1280x720/u7R7uUhgWjPalQ0F.mp4?tag=3"),
-            Uri.parse("https://video.twimg.com/ext_tw_video/1002595428049645570/pu/vid/720x1280/WNxL-rxdrGlM9wu_.mp4?tag=3"),
-            Uri.parse("https://video.twimg.com/ext_tw_video/1021604619271557120/pu/vid/720x1280/2ffcbsSgNcZyXtMx.mp4?tag=3"),
-            Uri.parse("https://video.twimg.com/ext_tw_video/1021376906610978816/pu/vid/720x1280/MiOHJiJJcMXBdUoq.mp4?tag=3") };
+            Uri.parse("https://video.twimg.com/ext_tw_video/1004721016608878592/pu/vid/640x360/WBhjCNo0V9kb2uR6.mp4"),
+            Uri.parse("https://video.twimg.com/ext_tw_video/1003088826422603776/pu/vid/1280x720/u7R7uUhgWjPalQ0F.mp4"),
+            Uri.parse("https://video.twimg.com/ext_tw_video/1020152626912956416/pu/vid/480x360/NjLXg8H4EHFeJ3fg.mp4"),
+            Uri.parse("https://video.twimg.com/ext_tw_video/1020468235710283776/pu/vid/1280x720/hyxYIb70iGZCCo5F.mp4"),
+            Uri.parse("https://video.twimg.com/ext_tw_video/1018568592378531840/pu/vid/512x640/hdHOlx2t9bBVi6GM.mp4"),
+
+            Uri.parse("https://video.twimg.com/ext_tw_video/1018568592378531840/pu/vid/512x640/hdHOlx2t9bBVi6GM.mp4"),
+            Uri.parse("https://video.twimg.com/ext_tw_video/1019794132678524928/pu/vid/480x480/1LF9gNupANoBL607.mp4"),
+            Uri.parse("https://video.twimg.com/ext_tw_video/1019167439815208960/pu/vid/1268x720/Lvom3aNMLPqc3qxr.mp4"),
+            Uri.parse("https://video.twimg.com/ext_tw_video/1018861232269324288/pu/vid/326x180/uCrA6o30QXO3vnMJ.mp4"),
+            Uri.parse("https://video.twimg.com/ext_tw_video/1017036555649626112/pu/vid/720x720/2j7OkY23AF-nO7Ig.mp4"),
+    };
 
     Handler mHandler = new Handler();
 
@@ -78,28 +86,10 @@ public class MainActivity extends AppCompatActivity {
         UxDialogViewModel viewModel = ViewModelProviders.of(this).get(UxDialogViewModel.class);
 
 
-        AmvCacheManager.INSTANCE.initialize(new File("/storage/emulated/0/Movies", ".video"));
+        AmvCacheManager.INSTANCE.initialize(new File("/storage/emulated/0/Movies", ".video"), 5);
 
         if(null==savedInstanceState) {
-            Uri randomUri = mSourceUris[(int) (Math.random() * 4.0)];
-            IAmvCache cache = AmvCacheManager.INSTANCE.getCache(randomUri, null);
-            cache.getFile(new IAmvCache.IGotFileCallback() {
-                @Override
-                public void onGotFile(@NotNull IAmvCache cache, @org.jetbrains.annotations.Nullable final File file) {
-                    if (null != file) {
-                        UtLogger.debug("file retrieved");
-                        mHandler.post(new Runnable() {
-                            @Override
-                            public void run() {
-                                mCurrentFile = file;
-                                mBinding.playerUnitView.setSource(file, false, 0);
-                            }
-                        });
-                    } else {
-                        UtLogger.error("file not retrieved.\n" + cache.getError().getMessage());
-                    }
-                }
-            });
+            onShuffle(null);
         }
 
         // mBinding.videoPlayer.setSource(new File("/storage/emulated/0/Download/b.mp4"), false);
@@ -218,6 +208,30 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    public void onShuffle(View view) {
+        int rand =  (int) (Math.random() * (double)mSourceUris.length);
+        UtLogger.debug("Shuffle : %d", rand);
+
+        Uri randomUri = mSourceUris[rand];
+        IAmvCache cache = AmvCacheManager.INSTANCE.getCache(randomUri, null);
+        cache.getFile(new IAmvCache.IGotFileCallback() {
+            @Override
+            public void onGotFile(@NotNull IAmvCache cache, @org.jetbrains.annotations.Nullable final File file) {
+                if (null != file) {
+                    UtLogger.debug("file retrieved");
+                    mHandler.post(new Runnable() {
+                        @Override
+                        public void run() {
+                            mCurrentFile = file;
+                            mBinding.playerUnitView.setSource(file, false, 0);
+                        }
+                    });
+                } else {
+                    UtLogger.error("file not retrieved.\n" + cache.getError().getMessage());
+                }
+            }
+        });
+    }
 //    public void onClickPlay(View view) {
 //        mBinding.videoPlayer.play();
 //    }

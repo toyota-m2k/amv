@@ -83,9 +83,11 @@ object AmvCacheManager {
         val file = getFileForKey(key)
         val newCache =
                 if(file.exists()) {
+                    UtLogger.debug("AmvCacheManager: ${key}: reuse existing file")
                     touch(file)
                     AmvCache(key, uri, file)
                 } else {
+                    UtLogger.debug("AmvCacheManager: ${key}: new")
                     AmvCache(key, uri, null)
                 }
         mCacheList[key] = newCache
@@ -99,7 +101,12 @@ object AmvCacheManager {
         synchronized(mLock) {
             val key = optionalKey ?: keyFromUri(uri.toString())
             val cache = mCacheList[key]
-            return cache ?: newCache(uri,key)
+            return if(null!=cache) {
+                UtLogger.debug("AmvCacheManager: ${key}: from cache list")
+                cache
+            } else {
+                newCache(uri,key)
+            }
         }
     }
 
@@ -146,10 +153,11 @@ object AmvCacheManager {
                         val file = list[i]
                         val key = file.name
                         val cache = mCacheList[key]
-                        if(null!=cache && cache.refCount<=0) {
+                        if(null==cache || cache.refCount<=0) {
+                            UtLogger.debug("AmvCacheManager: ${key}: remove cache")
                             mCacheList.remove(key)
+                            file.delete()
                         }
-                        file.delete()
                     }
                 }
         } catch (e:Throwable) {
@@ -245,6 +253,7 @@ private class AmvCache(private val key:String, override val uri:Uri, existsFile:
                 val file = AmvCacheManager.getFileForKey(key)
                 val outStream = FileOutputStream(file, false)
                 inStream.copyTo(outStream, 128*1024) // buffer size 128KB
+                UtLogger.debug("AmvCacheManager: ${key}: file created")
                 synchronized(mLock) {
                     mDownloading = false
                     mFile = file
@@ -292,7 +301,7 @@ private class AmvCache(private val key:String, override val uri:Uri, existsFile:
             }
         }
         // ファイルはキャッシュされている
-        UtLogger.debug("AmvCache.GetFile: Cache File Available")
+        UtLogger.debug("AmvCacheManager: ${key}: file available")
         callback.invoke(this, mFile)
     }
 

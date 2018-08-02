@@ -11,4 +11,5 @@
     <string name="pause_video">Pause</string>
     <string name="trimming">Trimming</string>
     <string name="transcode">Transcode</string>
+    <string name="shuffle">Shuffle</string>
 </resources>
