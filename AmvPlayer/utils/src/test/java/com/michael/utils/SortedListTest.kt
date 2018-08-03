@@ -6,7 +6,7 @@ import org.junit.Test
 class SortedListTest {
     @Test
     fun AddLittleTest() {
-        val list = SortedList<Long>(16, { i -> 0L }, { i0, i1 -> (i0 - i1).toInt() }, false)
+        val list = SortedList<Long>(16, { i0, i1 -> (i0 - i1).toInt() }, false)
 
         list.add(1000)
         assertEquals(list[0], 1000)
@@ -29,7 +29,7 @@ class SortedListTest {
 
     @Test
     fun AddLargeTest() {
-        val list = SortedList<Long>(16, { i -> 0L }, { i0, i1 -> (i0 - i1).toInt() }, false)
+        val list = SortedList<Long>(16, { i0, i1 -> (i0 - i1).toInt() }, false)
 
         list.add(1000)
         assertEquals(list[0], 1000)
@@ -52,7 +52,7 @@ class SortedListTest {
 
     @Test
     fun AddMidTest() {
-        val list = SortedList<Long>(16, { i -> 0L }, { i0, i1 -> (i0 - i1).toInt() }, false)
+        val list = SortedList<Long>(16, { i0, i1 -> (i0 - i1).toInt() }, false)
 
         var r:Boolean
 

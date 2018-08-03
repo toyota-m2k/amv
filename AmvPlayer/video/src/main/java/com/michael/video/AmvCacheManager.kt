@@ -26,6 +26,7 @@ object AmvCacheManager {
      * シングルトンの初期化
      * 他の機能を利用する前に1度だけ実行しておく
      */
+    @JvmStatic
     @JvmOverloads
     fun initialize(folder:File, maxCache:Int=DEFAULT_MAX_CACHE_COUNT) {
         mMaxCacheCount = maxCache

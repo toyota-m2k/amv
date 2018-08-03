@@ -1,5 +1,9 @@
 /**
- * funky monkey な funcy methody クラス
+ * 関数様の何か・・・KOtlinの関数リテラル、ラムダ、Javaのインスタンスメソッドなどをまとめて扱えるようにする、
+ * とても funky monkey な funcy & methody クラス
+ *
+ * @author M.TOYOTA 2018.07.06 Created
+ * Copyright © 2018 M.TOYOTA  All Rights Reserved.
  */
 @file:Suppress("FunctionName")
 

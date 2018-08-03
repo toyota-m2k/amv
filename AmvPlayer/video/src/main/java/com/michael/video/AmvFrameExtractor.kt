@@ -66,8 +66,8 @@ class AmvFrameExtractor : UtAsyncTask() {
                 val step = duration / mThumbnailCount
                 var tm = step / 2
                 for (idx in 0.until(mThumbnailCount)) {
-                    UtLogger.debug("AmvFrameExtractor: processing ${idx+1} - frame.")
-                    assert(tm<duration)
+                    UtLogger.debug("AmvFrameExtractor: processing ${idx + 1} - frame.")
+                    assert(tm < duration)
                     if (isCancelled) {
                         return
                     }
@@ -76,6 +76,10 @@ class AmvFrameExtractor : UtAsyncTask() {
                     tm += step
                 }
             }
+        } catch (e:Throwable) {
+            UtLogger.debug("AmvFrameExtractor: error.")
+            // エラーをスローしておけば親クラスで適切にに処理する
+            throw e
         } finally {
             UtLogger.debug("AmvFrameExtractor: analizer releasing.")
             analyzer.release()
@@ -104,12 +108,11 @@ class AmvFrameExtractor : UtAsyncTask() {
     }
 
     /**
-     * 終了・・・UIスレッドから呼び出すこと
+     * 破棄・・・UIスレッドから呼び出すこと
      */
-    fun dispose() {
+    override fun dispose() {
+        super.dispose()
         onVideoInfoRetrievedListener.clear()
         onThumbnailRetrievedListener.clear()
-        onFinishedListener.clear()
-        cancel(true)
     }
 }

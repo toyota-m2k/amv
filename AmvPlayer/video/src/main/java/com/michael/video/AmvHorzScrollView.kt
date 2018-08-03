@@ -138,6 +138,9 @@ class AmvHorzScrollView @JvmOverloads constructor(
         controls.container.addView(img)
     }
 
+    val imageCount:Int
+        get() = controls.container.childCount
+
     /**
      * 値（動画のシーク位置：Long）から、Viewの位置(Pixel)を取得
      */

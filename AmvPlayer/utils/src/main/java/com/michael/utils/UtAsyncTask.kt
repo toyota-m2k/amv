@@ -1,3 +1,10 @@
+/**
+ * AsyncTaskを
+ *
+ * @author M.TOYOTA 2018.07.06 Created
+ * Copyright © 2018 M.TOYOTA  All Rights Reserved.
+ */
+
 package com.michael.utils
 
 import android.os.AsyncTask
@@ -40,7 +47,7 @@ abstract class UtAsyncTask : AsyncTask<Unit,Any,Unit>() {
 
     /**
      * Java版リスナー登録
-     * ３つのリスナーが、まとめて登録される。Kotlinなら個々に登録できるけど。
+     * ２つのリスナーが、まとめて登録される。Kotlinなら個々に登録できるけど。
      */
     fun setListener(listener:IHandler) {
         onFinishedListener.add("single", listener::onFinished)
@@ -50,7 +57,7 @@ abstract class UtAsyncTask : AsyncTask<Unit,Any,Unit>() {
     /**
      * task()中に発生した例外（なければnull）
      */
-    var exception : Exception? = null
+    var exception : Throwable? = null
 
     /**
      * エラーは発生しているか？
@@ -63,6 +70,15 @@ abstract class UtAsyncTask : AsyncTask<Unit,Any,Unit>() {
      */
     fun cancel() {
         cancel(false)
+    }
+
+    /**
+     * 破棄・・・UIスレッドから呼び出すこと
+     */
+    open fun dispose() {
+        onFinishedListener.clear()
+        onProgressListener.clear()
+        cancel(true)        // ハードなキャンセル
     }
 
     /**
@@ -106,7 +122,7 @@ abstract class UtAsyncTask : AsyncTask<Unit,Any,Unit>() {
         try {
             exception = null
             task()
-        } catch(e:Exception) {
+        } catch(e:Throwable) {
             UtLogger.error(e.toString())
             exception = e
             cancel(true)

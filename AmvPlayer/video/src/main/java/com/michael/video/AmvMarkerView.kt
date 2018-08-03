@@ -12,8 +12,6 @@ import android.view.View
 import com.michael.utils.FuncyListener2
 import com.michael.utils.SortedList
 import com.michael.utils.UtLogger
-import org.parceler.Parcels
-import java.io.File
 import kotlin.math.absoluteValue
 import kotlin.math.roundToInt
 import kotlin.math.roundToLong
@@ -47,7 +45,7 @@ class AmvMarkerView @JvmOverloads constructor(
     // マーカー情報
     private val mMinMarkerSpan : Long = 100L     // マーカー設定間隔の最小値（100ms）
     private var mTotalRange : Long = 1000L       // naturalDuration
-    private val mMarkers = SortedList(32, { _ ->0L}, { o0, o1-> if(o0==o1) 0 else if(o0<o1) -1 else 1 }, false)
+    private val mMarkers = SortedList<Long>(32, { o0, o1-> if(o0==o1) 0 else if(o0<o1) -1 else 1 }, false)
 
     init {
         val sa = context.theme.obtainStyledAttributes(attrs,R.styleable.AmvMarkerView,defStyleAttr,0)
@@ -195,8 +193,7 @@ class AmvMarkerView @JvmOverloads constructor(
      * @event MarkerSelected
      * @return true 成功 / false: これ以上後ろにマーカーは存在しない
      */
-    fun nextMark(current:Long, clientData:Any?) : Boolean
-    {
+    fun nextMark(current:Long, clientData:Any?) : Boolean {
         mMarkers.find(current, mListPos)
         if (mListPos.next < 0) {
             return false
@@ -211,8 +208,7 @@ class AmvMarkerView @JvmOverloads constructor(
      * @event MarkerSelected
      * @return true 成功 / false: これ以上前にマーカーは存在しない
      */
-    fun prevMark(current:Long, clientData:Any?) : Boolean
-    {
+    fun prevMark(current:Long, clientData:Any?) : Boolean {
         mMarkers.find(current, mListPos)
         if (mListPos.prev < 0) {
             return false

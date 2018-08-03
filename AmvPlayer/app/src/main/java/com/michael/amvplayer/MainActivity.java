@@ -67,6 +67,7 @@ public class MainActivity extends AppCompatActivity {
     public static @NonNull File getWorkFolder() {
         File file = new File("/storage/emulated/0/Movies/amv");
         if(!file.exists()) {
+            //noinspection ResultOfMethodCallIgnored
             file.mkdir();
         }
         return file;
@@ -85,8 +86,8 @@ public class MainActivity extends AppCompatActivity {
 
         UxDialogViewModel viewModel = ViewModelProviders.of(this).get(UxDialogViewModel.class);
 
-
-        AmvCacheManager.INSTANCE.initialize(new File("/storage/emulated/0/Movies", ".video"), 5);
+        // Cache Manager
+        AmvCacheManager.initialize(new File("/storage/emulated/0/Movies", ".video"), 5);
 
         if(null==savedInstanceState) {
             onShuffle(null);

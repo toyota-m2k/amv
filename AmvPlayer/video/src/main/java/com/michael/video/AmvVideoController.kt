@@ -15,16 +15,17 @@ import android.view.View
 import android.widget.ImageButton
 import com.michael.utils.UtLogger
 import com.michael.video.databinding.VideoControllerBinding
+import java.io.File
 
 
 class AmvVideoController @JvmOverloads constructor(context: Context, attrs: AttributeSet? = null, defStyleAttr: Int = 0)
     : ConstraintLayout(context,attrs,defStyleAttr), IAmvVideoController {
 
     // Constants
-    private val cFrameCount = 10            // フレームサムネイルの数
-    private val cFrameHeight = 160f         // フレームサムネイルの高さ(dp)
-
     companion object {
+        const val FRAME_COUNT = 10            // フレームサムネイルの数
+        const val FRAME_HEIGHT = 160f         // フレームサムネイルの高さ(dp)
+
         @JvmStatic
         @BindingAdapter("srcCompat")
         fun srcCompat(view: ImageButton, resourceId: Int) {
@@ -38,6 +39,7 @@ class AmvVideoController @JvmOverloads constructor(context: Context, attrs: Attr
     private val mHandler = Handler()
     private var mFrameExtractor :AmvFrameExtractor? = null
     private var mDuration = 0L
+    private val mFrameListViewModel : AmvFrameListViewModel?
 
 
     /**
@@ -160,14 +162,40 @@ class AmvVideoController @JvmOverloads constructor(context: Context, attrs: Attr
             updateSeekPosition(position, true, true)
         }
         mBinding.markerView.markerAddedListener.set { _, _ ->
-
         }
         mBinding.markerView.markerRemovedListener.set { _, _ ->
-
+        }
+        mBinding.markerView.markerContextQueryListener.set { _, _ ->
         }
 
-        mBinding.markerView.markerContextQueryListener.set { _, _ ->
+        val sa = context.theme.obtainStyledAttributes(attrs,R.styleable.AmvSlider,defStyleAttr,0)
+        try {
+            val enableViewModel = sa.getBoolean(R.styleable.AmvVideoController_frameCache, true)
+            mFrameListViewModel = if(enableViewModel) {
+                AmvFrameListViewModel.registerToView(this, this::updateFrameListByViewModel)?.apply {
+                    setSizingHint(FitMode.Height, 0f, FRAME_HEIGHT)
+                    setFrameCount(FRAME_COUNT)
+                }
+            } else {
+                null
+            }
 
+//            val activity = getActivity() as? FragmentActivity
+//            mFrameListViewModel = if (enableViewModel && null != activity) {
+//                ViewModelProviders.of(activity).get(AmvFrameListViewModel::class.java).apply {
+//                    frameListInfo.observe(activity, Observer<AmvFrameListViewModel.IFrameListInfo> { info ->
+//                        if (null != info) {
+//                            updateFrameListByViewModel(info)
+//                        }
+//                    })
+//                    setSizingHint(FitMode.Height, 0f, FRAME_HEIGHT)
+//                    setFrameCount(FRAME_COUNT)
+//                }
+//            } else {
+//                null
+//            }
+        } finally {
+            sa.recycle()
         }
     }
 
@@ -189,7 +217,6 @@ class AmvVideoController @JvmOverloads constructor(context: Context, attrs: Attr
             // 動画の画面サイズが変わったときのイベント
             sizeChangedListener.add(listenerName) { _, width, _ ->
                 // layout_widthをBindingすると、どうしてもエラーになるので、直接変更
-
                 mBinding.controllerRoot.setLayoutWidth(Math.max(width, mBindingParams.minControllerWidth))
             }
 
@@ -204,41 +231,80 @@ class AmvVideoController @JvmOverloads constructor(context: Context, attrs: Attr
             sourceChangedListener.add(listenerName) { _, source ->
                 mBindingParams.isPlayerPrepared = false
                 mBindingParams.isVideoInfoPrepared = false
-
-                // フレームサムネイルを列挙する
-                mFrameExtractor = AmvFrameExtractor().apply {
-                    setSizingHint(FitMode.Height, 0f, cFrameHeight)
-                    onVideoInfoRetrievedListener.add(null) {
-                        UtLogger.debug("AmvFrameExtractor:duration=${it.duration} / ${it.videoSize}")
-                        mDuration = it.duration
-                        val thumbnailSize = it.thumbnailSize
-
-                        mBinding.frameList.prepare(cFrameCount, thumbnailSize.width, thumbnailSize.height)
-                        mBinding.slider.resetWithValueRange(it.duration, true)      // スライダーを初期化
-                        mBinding.frameList.totalRange = it.duration
-                        mBinding.markerView.resetWithTotalRange(it.duration)
-
-                        mBindingParams.isVideoInfoPrepared = true
-                        restoringData?.tryRestoring()
-                    }
-                    onThumbnailRetrievedListener.add(null) { _, index, bmp ->
-                        UtLogger.debug("AmvFrameExtractor:Bitmap($index): width=${bmp.width}, height=${bmp.height}")
-                        mBinding.frameList.add(bmp)
-                    }
-                    onFinishedListener.add(null) { _, _ ->
-                        // サブスレッドの処理がすべて終了しても、UIスレッド側でのビットマップ追加処理待ちになっていることがあり、
-                        // このイベントハンドラから、dispose()してしまうと、待ち中のビットマップが破棄されてしまう。
-                        mHandler.post {
-                            // リスナーの中でdispose()を呼ぶのはいかがなものかと思われるので、次のタイミングでお願いする
-                            dispose()
-                            mFrameExtractor = null
-                        }
-                    }
-                    extract(source, cFrameCount)
-                }
+                extractFrameOnSourceChanged(source)
             }
         }
     }
+
+    private fun extractFrameOnSourceChanged(source: File) {
+        mDuration = 0L  // ViewModelから読み込むとき、Durationがゼロかどうかで初回かどうか判断するので、ここでクリアする
+        if(null!=mFrameListViewModel) {
+            val info = mFrameListViewModel.frameListInfo.value!!
+            if(source != info.source || null!=info.error) {
+                // ソースが変更されているか、エラーが発生しているときはフレーム抽出を実行
+                mFrameListViewModel.cancel()
+                mFrameListViewModel.extractFrame(source)
+            } else {
+                // それ以外はViewModel（キャッシュ）から読み込む
+                updateFrameListByViewModel(info)
+            }
+        } else {
+            // フレームサムネイルを列挙する
+            mFrameExtractor = AmvFrameExtractor().apply {
+                setSizingHint(FitMode.Height, 0f, FRAME_HEIGHT)
+                onVideoInfoRetrievedListener.add(null) {
+                    UtLogger.debug("AmvFrameExtractor:duration=${it.duration} / ${it.videoSize}")
+                    mDuration = it.duration
+                    val thumbnailSize = it.thumbnailSize
+
+                    mBinding.frameList.prepare(FRAME_COUNT, thumbnailSize.width, thumbnailSize.height)
+                    mBinding.slider.resetWithValueRange(it.duration, true)      // スライダーを初期化
+                    mBinding.frameList.totalRange = it.duration
+                    mBinding.markerView.resetWithTotalRange(it.duration)
+
+                    mBindingParams.isVideoInfoPrepared = true
+                    restoringData?.tryRestoring()
+                }
+                onThumbnailRetrievedListener.add(null) { _, index, bmp ->
+                    UtLogger.debug("AmvFrameExtractor:Bitmap($index): width=${bmp.width}, height=${bmp.height}")
+                    mBinding.frameList.add(bmp)
+                }
+                onFinishedListener.add(null) { _, _ ->
+                    // サブスレッドの処理がすべて終了しても、UIスレッド側でのビットマップ追加処理待ちになっていることがあり、
+                    // このイベントハンドラから、dispose()してしまうと、待ち中のビットマップが破棄されてしまう。
+                    mHandler.post {
+                        // リスナーの中でdispose()を呼ぶのはいかがなものかと思われるので、次のタイミングでお願いする
+                        dispose()
+                        mFrameExtractor = null
+                    }
+                }
+                extract(source, FRAME_COUNT)
+            }
+        }
+    }
+
+    private fun updateFrameListByViewModel(info:AmvFrameListViewModel.IFrameListInfo) {
+        if(null!=info.error) {
+            restoringData?.onFatalError()
+        } else if(info.status != AmvFrameListViewModel.IFrameListInfo.Status.INIT && info.duration>0L) {
+            if(mDuration==0L) {
+                mDuration = info.duration
+                val thumbnailSize = info.size
+                mBinding.frameList.prepare(FRAME_COUNT, thumbnailSize.width, thumbnailSize.height)
+                mBinding.slider.resetWithValueRange(info.duration, true)      // スライダーを初期化
+                mBinding.frameList.totalRange = info.duration
+                mBinding.markerView.resetWithTotalRange(info.duration)
+
+                mBindingParams.isVideoInfoPrepared = true
+                restoringData?.tryRestoring()
+            }
+            if(info.count>0) {
+                mBinding.frameList.setFrames(info.frameList)
+            }
+        }
+    }
+
+
 
     override var isReadOnly: Boolean
         get() = mBindingParams.isReadOnly

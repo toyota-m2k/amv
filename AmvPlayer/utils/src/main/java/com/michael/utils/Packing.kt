@@ -1,5 +1,6 @@
 /**
  * Parceler を使って、オブジェクトのBundleを生成をサポートするユーティリティー
+ * Kotlinのいろいろな書き方を試してみたくて作った習作クラス（駄作）
  *
  * Usage
  *
@@ -29,6 +30,9 @@
  *      val a = SomeData(100, "hoge")
  *      val bundle = a.pack()
  *      val b = SomeData.unpack(bundle)
+ *
+ * @author M.TOYOTA 2018.07.04 Created
+ * Copyright © 2018 M.TOYOTA  All Rights Reserved.
  */
 
 package com.michael.utils
@@ -73,6 +77,18 @@ interface Packing {
     }
 }
 
+/**
+ * Parcel に、T型のオブジェクト(@Parcelなクラス）を書き込む
+ * （Parcelの拡張メソッド）
+ */
+fun <T> Parcel.writeParceler(v:T?) {
+    this.writeParcelable(Parcels.wrap(v), 0)
+}
+
+/**
+ * Parcel に保存された Parcelable（Parcelerでwrapされたもの）をunwrap して、T型のオブジェクト(@Parcelなクラス)を取り出す
+ * （Parcelの拡張メソッド）
+ */
 fun <T> Parcel.readParceler() : T? {
     val p = this.readParcelable<Parcelable>(Parcelable::class.java.classLoader)
     return if(null!=p) {
@@ -82,6 +98,3 @@ fun <T> Parcel.readParceler() : T? {
     }
 }
 
-fun <T> Parcel.writeParceler(v:T?) {
-    this.writeParcelable(Parcels.wrap(v), 0)
-}

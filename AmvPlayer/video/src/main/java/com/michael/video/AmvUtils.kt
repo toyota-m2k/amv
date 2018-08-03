@@ -7,12 +7,24 @@ import android.view.View
 import android.view.ViewGroup
 import com.michael.utils.UtLogger
 import kotlin.math.roundToInt
+import android.content.ContextWrapper
+import android.app.Activity
+
+
+
+interface ImSize {
+    val height:Float
+    val width:Float
+    val asSizeF:SizeF
+    val asSize: Size
+    val isEmpty:Boolean
+}
 
 /**
  * MutableなSize型
  */
 @Suppress("unused")
-data class MuSize(var height: Float, var width: Float) {
+data class MuSize(override var height: Float, override var width: Float) : ImSize {
 
     constructor() : this(0f,0f)
     constructor(v:Float) : this(v,v)
@@ -32,13 +44,13 @@ data class MuSize(var height: Float, var width: Float) {
         this.height = height
     }
 
-    val asSizeF:SizeF
+    override val asSizeF:SizeF
         get() = SizeF(width,height)
 
-    val asSize: Size
+    override val asSize: Size
         get() = Size(width.toInt(), height.toInt())
 
-    val isEmpty:Boolean
+    override val isEmpty:Boolean
         get() = width==0f && height==0f
 }
 
@@ -93,6 +105,17 @@ fun View.setMargin(left:Int, top:Int, right:Int, bottom:Int) {
         layoutParams = p
     }
 
+}
+
+fun View.getActivity(): Activity? {
+    var ctx = this.context
+    while (ctx is ContextWrapper) {
+        if (ctx is Activity) {
+            return ctx
+        }
+        ctx = ctx.baseContext
+    }
+    return null
 }
 
 @Suppress("unused")

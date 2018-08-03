@@ -47,4 +47,7 @@
         <attr name="saveFromParent"/>
     </declare-styleable>
 
+    <declare-styleable name="AmvVideoController">
+        <attr name="frameCache" format="boolean"/>
+    </declare-styleable>
 </resources>

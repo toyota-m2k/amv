@@ -1,3 +1,10 @@
+/**
+ * Push/Pop/Peek をサポートするシンプルなスタッククラス
+ *
+ * @author M.TOYOTA 2018.07.06 Created
+ * Copyright © 2018 M.TOYOTA  All Rights Reserved.
+ */
+
 package com.michael.utils
 
 /**

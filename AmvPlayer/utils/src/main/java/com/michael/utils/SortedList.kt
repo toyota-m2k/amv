@@ -1,11 +1,16 @@
-package com.michael.utils
+/**
+ * 必ずソートされる配列クラス（中の人：ArrayList）
+ *
+ * @author M.TOYOTA 2018.07.06 Created
+ * Copyright © 2018 M.TOYOTA  All Rights Reserved.
+ */
 
-import android.os.Parcel
+package com.michael.utils
 
 /**
  * addしたときに必ずソートされる配列クラス
  */
-class SortedList<T>(capacity:Int, init:(index:Int)->T, private val comparator:(T,T)->Int, private val allowDuplication:Boolean) : List<T>, MutableCollection<T> {
+class SortedList<T>(capacity: Int, private val comparator: (T, T) -> Int, private val allowDuplication: Boolean) : List<T>, MutableCollection<T> {
 
     private val mList : ArrayList<T> = ArrayList<T>(capacity)
 

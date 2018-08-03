@@ -15,7 +15,7 @@ import android.support.v4.graphics.drawable.DrawableCompat
  * xmlで変更するときは、
  *   Android:tint = "#ff0000"
  * でいけるけど、プログラムから変えようとすると、ちょっと細工が必要なので、
- * 忘れないようライブラリにしておこう。
+ * やり方を忘れないようライブラリにしておこう。
  *
  * 使い方
  * ■リソースIDを使って複数のターゲットを連続して変更するとき
@@ -27,6 +27,9 @@ import android.support.v4.graphics.drawable.DrawableCompat
  * ■すでに持っているDrawableインスタンスから色を変更したDrawableを得る
  *
  *  VectorDrawableTinter.tintDrawable(drawable, Color.rgb(r,g,b))
+ *
+ * @author M.TOYOTA 2018.07.06 Created
+ * Copyright © 2018 M.TOYOTA  All Rights Reserved.
  */
 @Suppress("unused", "MemberVisibilityCanBePrivate")
 class VectorDrawableTinter(val context: Context) {

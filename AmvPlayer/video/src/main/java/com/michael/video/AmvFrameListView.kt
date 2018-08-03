@@ -64,6 +64,12 @@ class AmvFrameListView @JvmOverloads constructor(
         }
     }
 
+    fun setFrames(frameList: ArrayList<Bitmap>) {
+        for(i in controls.scroller.imageCount .. frameList.size-1) {
+            add(frameList[i])
+        }
+    }
+
 
     private val trimmingEnabled:Boolean
         get() = controls.scroller.trimmingEnabled
@@ -127,5 +133,6 @@ class AmvFrameListView @JvmOverloads constructor(
         }
         return true
     }
+
 }
 
