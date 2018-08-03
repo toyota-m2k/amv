@@ -15,6 +15,7 @@ import android.view.View
 import android.widget.ImageButton
 import com.michael.utils.UtLogger
 import com.michael.video.databinding.VideoControllerBinding
+import com.michael.video.viewmodel.AmvFrameListViewModel
 import java.io.File
 
 
@@ -283,7 +284,7 @@ class AmvVideoController @JvmOverloads constructor(context: Context, attrs: Attr
         }
     }
 
-    private fun updateFrameListByViewModel(info:AmvFrameListViewModel.IFrameListInfo) {
+    private fun updateFrameListByViewModel(info: AmvFrameListViewModel.IFrameListInfo) {
         if(null!=info.error) {
             restoringData?.onFatalError()
         } else if(info.status != AmvFrameListViewModel.IFrameListInfo.Status.INIT && info.duration>0L) {

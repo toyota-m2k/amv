@@ -1,4 +1,4 @@
-package com.michael.video
+package com.michael.video.viewmodel
 
 import android.arch.lifecycle.MutableLiveData
 import android.arch.lifecycle.Observer
@@ -10,6 +10,9 @@ import android.support.v4.app.FragmentActivity
 import android.util.Size
 import android.view.View
 import com.michael.utils.UtLogger
+import com.michael.video.AmvFrameExtractor
+import com.michael.video.FitMode
+import com.michael.video.getActivity
 import java.io.File
 
 class AmvFrameListViewModel : ViewModel() {
