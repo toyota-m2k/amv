@@ -113,6 +113,7 @@ class AmvSlider @JvmOverloads constructor(
     /**
      * スライダーのドラッグ操作中か？
      */
+    @Suppress("unused")
     val isDragging : Boolean
         get() = mDraggingInfo.isDragging
 
@@ -148,24 +149,29 @@ class AmvSlider @JvmOverloads constructor(
 //    var railLeftHeight: Int = 8
 //    var railNoSelHeight: Int = 2
 
-    private var drThumb : Drawable
-    private var drLeft : Drawable
-    private var drRight : Drawable
+    private val drThumb : Drawable
+    private val drLeft : Drawable
+    private val drRight : Drawable
 
-    private var drThumbBg : Drawable
+    private val drThumbBg : Drawable
 
-    private var paintRail: Paint
-    private var paintRailLeft: Paint
-    private var paintRailNoSel: Paint
+    private val paintRail: Paint
+    private val paintRailLeft: Paint
+    private val paintRailNoSel: Paint
+
+    private val paintUpperRail: Paint?
+    private val paintLowerRail: Paint?
+    private val paintBehindRail: Paint?
+
 
     // dimensions
-    private var naturalHeight: Int
-    private var railHeight : Int
-    private var railLeftHeight : Int
-    private var railNoSelHeight : Int
-    private var thumbOffset: Int
-    private var railOffset : Int
-    private var trimmerOffset: Int
+    private val naturalHeight: Int
+    private val railHeight : Int
+    private val railLeftHeight : Int
+    private val railNoSelHeight : Int
+    private val thumbOffset: Int
+    private val railOffset : Int
+    private val trimmerOffset: Int
 
     private val maxRailHeight:Int
         get() = if(trimmingEnabled) maxOf(railHeight,railLeftHeight,railNoSelHeight) else max(railHeight,railLeftHeight)
@@ -173,6 +179,7 @@ class AmvSlider @JvmOverloads constructor(
     // updateLayout()で決定するプロパティ
     private val mSliderRange = Range()
     private var mRailY: Float = 0f
+    private var mScale: Float = 1f
 
     // updateLayout()でY座標とサイズを決定し、applyPositionで、X座標を決定するプロパティ
     private val mThumbRect = RectF()
@@ -216,6 +223,12 @@ class AmvSlider @JvmOverloads constructor(
             val railLeftColor = sa.getColor(R.styleable.AmvSlider_railLeftColor, Color.GRAY)
             val railNoSelColor = sa.getColor(R.styleable.AmvSlider_railNoSelColor, Color.GRAY)
 
+            val railUpperColor = sa.getColor(R.styleable.AmvSlider_upperRailColor, -1)
+            val railLowerColor = sa.getColor(R.styleable.AmvSlider_lowerRailColor, -1)
+            val railBegindColor = sa.getColor(R.styleable.AmvSlider_behindRailColor, -1)
+
+
+
             // dimensions
             railHeight = sa.getDimensionPixelSize(R.styleable.AmvSlider_railHeight, context.dp2px(8))
             railLeftHeight = sa.getDimensionPixelSize(R.styleable.AmvSlider_railLeftHeight, railHeight)
@@ -233,17 +246,32 @@ class AmvSlider @JvmOverloads constructor(
             isSaveFromParentEnabled = sa.getBoolean(R.styleable.AmvSlider_saveFromParent, true)
 
             fun coloredPaint(@ColorInt c:Int) : Paint {
-                val p = Paint()
-                p.style = Paint.Style.STROKE
-                p.strokeCap = Paint.Cap.BUTT
-                p.color = c
-                return p
+                return Paint().apply {
+                    style = Paint.Style.STROKE
+                    strokeCap = Paint.Cap.BUTT
+                    color = c
+                }
+            }
+
+            fun colordFillPaint(@ColorInt c:Int) : Paint? {
+                return if(c==-1) {
+                    null
+                } else {
+                    Paint().apply {
+                        style = Paint.Style.FILL
+                        color = c
+                    }
+                }
             }
 
             // paints
             paintRail = coloredPaint(railColor)
             paintRailLeft = coloredPaint(railLeftColor)
             paintRailNoSel = coloredPaint(railNoSelColor)
+
+            paintUpperRail = colordFillPaint(railUpperColor)
+            paintLowerRail = colordFillPaint(railLowerColor)
+            paintBehindRail = colordFillPaint(railBegindColor)
 
             naturalHeight = calcNaturalHeight()
         } finally {
@@ -348,25 +376,31 @@ class AmvSlider @JvmOverloads constructor(
         viewHeight = height
 
         // 高さがNaturalHeightと異なる場合は、そのサイズになるよう拡大/縮小する
-        val scale = height / naturalHeight.toFloat()
+        mScale = height / naturalHeight.toFloat()
 
-        mThumbRect.setOffsetSize(0f,thumbOffset*scale,drThumb.intrinsicWidth*scale, drThumb.intrinsicHeight*scale)
+        mThumbRect.setOffsetSize(0f,thumbOffset*mScale,drThumb.intrinsicWidth*mScale, drThumb.intrinsicHeight*mScale)
 
-        mRailY = (railOffset+maxRailHeight/2)*scale
-        paintRail.strokeWidth = railHeight*scale
-        paintRailLeft.strokeWidth = railLeftHeight*scale
+        mRailY = (railOffset+maxRailHeight/2)*mScale
+        paintRail.strokeWidth = railHeight*mScale
+        paintRailLeft.strokeWidth = railLeftHeight*mScale
 
         if(trimmingEnabled) {
-            mTrimLeftRect.setOffsetSize(0f, trimmerOffset*scale, drLeft.intrinsicWidth*scale, drLeft.intrinsicHeight*scale)
+            mTrimLeftRect.setOffsetSize(0f, trimmerOffset*mScale, drLeft.intrinsicWidth*mScale, drLeft.intrinsicHeight*mScale)
             mTrimRightRect.set(mTrimLeftRect)
             mSliderRange.set(mTrimLeftRect.width(), width-mTrimRightRect.width())
-            paintRailNoSel.strokeWidth = railNoSelHeight*scale
+            paintRailNoSel.strokeWidth = railNoSelHeight*mScale
         } else {
             mSliderRange.set(mThumbRect.width()/2,width.toFloat()-mThumbRect.width()/2)
         }
 
         applyPosition(false)    // そのうち再描画されるはず
     }
+
+    private val upperRailY
+        get() = railOffset*mScale
+    private val lowerRailY
+        get() = (railOffset+maxRailHeight)*mScale
+
 
 
     /**
@@ -501,6 +535,18 @@ class AmvSlider @JvmOverloads constructor(
         if(null ==canvas) {
             return
         }
+
+        // background
+        if(null!=paintUpperRail) {
+            canvas.drawRect(0f,0f,viewWidth.toFloat(),upperRailY,paintUpperRail)
+        }
+        if(null!=paintBehindRail) {
+            canvas.drawRect(0f,upperRailY,viewWidth.toFloat(),lowerRailY,paintBehindRail)
+        }
+        if(null!=paintLowerRail) {
+            canvas.drawRect(0f,lowerRailY, viewWidth.toFloat(),viewHeight.toFloat(),paintLowerRail)
+        }
+
         // rail
         mDrawingRailStart
             .drawRail(canvas, mTrimStartX, paintRailNoSel)
@@ -765,6 +811,5 @@ class AmvSlider @JvmOverloads constructor(
             view.trimStartPositionChanged.set(trimStartChanged)
             view.trimEndPositionChanged.set(trimEndChanged)
         }
-
     }
 }

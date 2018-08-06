@@ -30,8 +30,12 @@
         <attr name="trimmerOffset" format="dimension"/>     <!-- トリミングノブ（デフォルト：レールの下端合わせ...railOffset+max(rail.?Height) -->
 
         <attr name="valueRange" format="integer"/>
-
         <attr name="saveFromParent" format="boolean"/>
+
+        <!-- 背景色 -->
+        <attr name="upperRailColor" format="integer"/>      <!-- レールの上側の色 -->
+        <attr name="lowerRailColor" format="integer"/>      <!-- レールの下側の色 -->
+        <attr name="behindRailColor" format="integer"/>     <!-- レールの後ろ-->
 
     </declare-styleable>
 

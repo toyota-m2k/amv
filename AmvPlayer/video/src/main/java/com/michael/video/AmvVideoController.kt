@@ -8,11 +8,11 @@ import android.databinding.DataBindingUtil
 import android.os.Handler
 import android.os.Parcel
 import android.os.Parcelable
-import android.support.constraint.ConstraintLayout
 import android.util.AttributeSet
 import android.view.LayoutInflater
 import android.view.View
 import android.widget.ImageButton
+import android.widget.LinearLayout
 import com.michael.utils.UtLogger
 import com.michael.video.databinding.VideoControllerBinding
 import com.michael.video.viewmodel.AmvFrameListViewModel
@@ -20,7 +20,7 @@ import java.io.File
 
 
 class AmvVideoController @JvmOverloads constructor(context: Context, attrs: AttributeSet? = null, defStyleAttr: Int = 0)
-    : ConstraintLayout(context,attrs,defStyleAttr), IAmvVideoController {
+    : LinearLayout(context,attrs,defStyleAttr), IAmvVideoController {
 
     // Constants
     companion object {
@@ -82,7 +82,7 @@ class AmvVideoController @JvmOverloads constructor(context: Context, attrs: Attr
                 }
             }
 
-        @get:Bindable
+//        @get:Bindable
         val minControllerWidth : Int = context.dp2px(325)
 
         var isPlayerPrepared : Boolean = false
@@ -154,6 +154,8 @@ class AmvVideoController @JvmOverloads constructor(context: Context, attrs: Attr
         mBinding.handlers = this
         mBinding.params = mBindingParams
         mBinding.slider.isSaveFromParentEnabled = false         // スライダーの状態は、AmvVideoController側で復元する
+
+        mBinding.controllerRoot.minimumWidth = mBindingParams.minControllerWidth
 
         // フレーム一覧のドラッグ操作をSliderのドラッグ操作と同様に扱うための小さな仕掛け
         mBinding.frameList.touchFriendListener.set(mBinding.slider::onTouchAtFriend)

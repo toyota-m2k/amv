@@ -137,10 +137,10 @@ class AmvTrimmingController @JvmOverloads constructor(context: Context, attrs: A
             }
         }
 
-        private fun updateTrimStartText() {
+        fun updateTrimStartText() {
             trimStartText.text = formatTime(slider.trimStartPosition)
         }
-        private fun updateTrimEndText() {
+        fun updateTrimEndText() {
             trimEndText.text = formatTime(slider.trimEndPosition)
         }
 
@@ -308,7 +308,8 @@ class AmvTrimmingController @JvmOverloads constructor(context: Context, attrs: A
                 controls.frameList.prepare(cFrameCount, thumbnailSize.width, thumbnailSize.height)
                 controls.slider.resetWithValueRange(info.duration, true)      // スライダーを初期化
                 controls.frameList.totalRange = info.duration
-
+                controls.updateTrimStartText()
+                controls.updateTrimEndText()
                 models.isVideoInfoPrepared = true
                 restoringData?.tryRestoring()
             }
