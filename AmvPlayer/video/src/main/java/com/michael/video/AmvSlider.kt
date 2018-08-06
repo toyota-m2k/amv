@@ -159,11 +159,6 @@ class AmvSlider @JvmOverloads constructor(
     private val paintRailLeft: Paint
     private val paintRailNoSel: Paint
 
-    private val paintUpperRail: Paint?
-    private val paintLowerRail: Paint?
-    private val paintBehindRail: Paint?
-
-
     // dimensions
     private val naturalHeight: Int
     private val railHeight : Int
@@ -223,12 +218,6 @@ class AmvSlider @JvmOverloads constructor(
             val railLeftColor = sa.getColor(R.styleable.AmvSlider_railLeftColor, Color.GRAY)
             val railNoSelColor = sa.getColor(R.styleable.AmvSlider_railNoSelColor, Color.GRAY)
 
-            val railUpperColor = sa.getColor(R.styleable.AmvSlider_upperRailColor, -1)
-            val railLowerColor = sa.getColor(R.styleable.AmvSlider_lowerRailColor, -1)
-            val railBegindColor = sa.getColor(R.styleable.AmvSlider_behindRailColor, -1)
-
-
-
             // dimensions
             railHeight = sa.getDimensionPixelSize(R.styleable.AmvSlider_railHeight, context.dp2px(8))
             railLeftHeight = sa.getDimensionPixelSize(R.styleable.AmvSlider_railLeftHeight, railHeight)
@@ -253,25 +242,10 @@ class AmvSlider @JvmOverloads constructor(
                 }
             }
 
-            fun colordFillPaint(@ColorInt c:Int) : Paint? {
-                return if(c==-1) {
-                    null
-                } else {
-                    Paint().apply {
-                        style = Paint.Style.FILL
-                        color = c
-                    }
-                }
-            }
-
             // paints
             paintRail = coloredPaint(railColor)
             paintRailLeft = coloredPaint(railLeftColor)
             paintRailNoSel = coloredPaint(railNoSelColor)
-
-            paintUpperRail = colordFillPaint(railUpperColor)
-            paintLowerRail = colordFillPaint(railLowerColor)
-            paintBehindRail = colordFillPaint(railBegindColor)
 
             naturalHeight = calcNaturalHeight()
         } finally {
@@ -395,13 +369,6 @@ class AmvSlider @JvmOverloads constructor(
 
         applyPosition(false)    // そのうち再描画されるはず
     }
-
-    private val upperRailY
-        get() = railOffset*mScale
-    private val lowerRailY
-        get() = (railOffset+maxRailHeight)*mScale
-
-
 
     /**
      * スライダー値 ((Current|TrimStart|TrimEnd)Position) が変更されたときに、ノブの位置/レールの表示に反映する
@@ -534,17 +501,6 @@ class AmvSlider @JvmOverloads constructor(
     override fun onDraw(canvas: Canvas?) {
         if(null ==canvas) {
             return
-        }
-
-        // background
-        if(null!=paintUpperRail) {
-            canvas.drawRect(0f,0f,viewWidth.toFloat(),upperRailY,paintUpperRail)
-        }
-        if(null!=paintBehindRail) {
-            canvas.drawRect(0f,upperRailY,viewWidth.toFloat(),lowerRailY,paintBehindRail)
-        }
-        if(null!=paintLowerRail) {
-            canvas.drawRect(0f,lowerRailY, viewWidth.toFloat(),viewHeight.toFloat(),paintLowerRail)
         }
 
         // rail
