@@ -22,7 +22,6 @@ import com.google.android.exoplayer2.ui.PlayerView
 import com.google.android.exoplayer2.upstream.DefaultDataSourceFactory
 import com.google.android.exoplayer2.video.VideoListener
 import com.michael.utils.UtLogger
-import org.parceler.ParcelConstructor
 import java.io.File
 import kotlin.math.absoluteValue
 import kotlin.math.roundToInt
@@ -169,8 +168,8 @@ class AmvExoVideoPlayer @JvmOverloads constructor(
         val playerView: PlayerView by lazy {
             findViewById<PlayerView>(R.id.playerView)
         }
-        val progressBar : ProgressBar by lazy {
-            findViewById<ProgressBar>(R.id.progressBar)
+        val progressRing : ProgressBar by lazy {
+            findViewById<ProgressBar>(R.id.progressRing)
         }
         private val errorMessageView: TextView by lazy {
             findViewById<TextView>(R.id.errorMessage)
@@ -244,7 +243,7 @@ class AmvExoVideoPlayer @JvmOverloads constructor(
                 mInitial = false
                 videoPreparedListener.invoke(this@AmvExoVideoPlayer, naturalDuration)
             }
-            progressBar.visibility = if(isLoading) View.VISIBLE else View.INVISIBLE
+            progressRing.visibility = if(isLoading) View.VISIBLE else View.INVISIBLE
             errorMessageView.visibility = if(isError && errorMessage.isNotEmpty()) View.VISIBLE else View.INVISIBLE
             playerStateChangedListener.invoke(this@AmvExoVideoPlayer, mPlayerState)
         }
@@ -305,6 +304,9 @@ class AmvExoVideoPlayer @JvmOverloads constructor(
             }
         }
     }
+
+    override val source:File?
+        get() = mSource
 
     override fun setSource(source: File, autoPlay: Boolean, playFrom: Long) {
         reset()

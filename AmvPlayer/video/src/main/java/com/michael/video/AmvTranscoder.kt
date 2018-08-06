@@ -194,6 +194,7 @@ class AmvTranscoder(val source:File, context:Context) : SurfaceHolder.Callback{
     private var mMediaComposer: MediaComposer? = null                   // コンポーザー
 //    private var mInternalSurfaceView: AmvWorkingSurfaceView? = null     // surfaceViewが与えられなかったときに、自力で代用品を用意できるようにしておく。
     private var mTrimmingRange :TrimmingRange? = null                   // トリミング用の範囲を保持する（フレーム描画のため）
+    private var mDstFile: File? = null
 
     /**
      * トリミング範囲を保持するデータクラス
@@ -232,6 +233,7 @@ class AmvTranscoder(val source:File, context:Context) : SurfaceHolder.Callback{
         override fun onMediaDone() {
             UtLogger.debug("AmvTranscoder: done")
             completionListener.invoke(this@AmvTranscoder, true)
+            mDstFile = null
             dispose()
         }
 
@@ -255,8 +257,18 @@ class AmvTranscoder(val source:File, context:Context) : SurfaceHolder.Callback{
             }
             UtLogger.debug("AmvTranscoder: error\n${error.toString()}")
             completionListener.invoke(this@AmvTranscoder, false)
+            disposeHalfBakedFile()
             dispose()
         }
+    }
+
+    private fun disposeHalfBakedFile() {
+        mDstFile?.apply {
+            if(exists() && isFile) {
+                delete()
+            }
+        }
+        mDstFile = null
     }
 
     /**
@@ -276,6 +288,7 @@ class AmvTranscoder(val source:File, context:Context) : SurfaceHolder.Callback{
 //            mInternalSurfaceView!!.setVideoSize(mediaInfo.hd720Size.width, mediaInfo.hd720Size.height)
 //            mediaInfo.mediaFileInfo.setOutputSurface(AndroidMediaObjectFactory.Converter.convert(mInternalSurfaceView!!.holder.surface))
 //        }
+        mDstFile = distFile
         composer.fn()
     }
 

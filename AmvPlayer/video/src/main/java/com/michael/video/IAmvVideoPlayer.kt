@@ -104,6 +104,8 @@ interface IAmvVideoPlayer {
 
     fun setSource(source: File, autoPlay:Boolean=false, playFrom:Long=0)
 
+    val source:File?
+
     fun clip(clipping:Clipping?)
 
     val isClipping : Boolean

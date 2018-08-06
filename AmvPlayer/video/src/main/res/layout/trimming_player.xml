@@ -1,26 +1,80 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
-    android:layout_height="wrap_content"
-    android:gravity="center_horizontal"
-    android:orientation="vertical"
+    android:layout_height="match_parent"
+    tools:layout_width="300dp"
+    tools:layout_height="300dp"
     >
-
-    <com.michael.video.AmvExoVideoPlayer
-        android:id="@+id/videoPlayer"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        tools:layout_height="250dp"
-        tools:layout_width="250dp"
-        />
-
-    <com.michael.video.AmvTrimmingController
-        android:id="@+id/trimmingController"
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        tools:layout_width="250dp"
-        tools:layout_height="100dp"
-        />
+        android:gravity="center_horizontal"
+        android:orientation="vertical"
+        tools:visibility="gone"
+        >
 
-</LinearLayout>
+        <com.michael.video.AmvExoVideoPlayer
+            android:id="@+id/videoPlayer"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            tools:layout_height="250dp"
+            tools:layout_width="250dp"
+            />
+
+        <com.michael.video.AmvTrimmingController
+            android:id="@+id/trimmingController"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            tools:layout_width="250dp"
+            tools:layout_height="100dp"
+            />
+    </LinearLayout>
+    <android.support.constraint.ConstraintLayout
+        android:id="@+id/progressLayer"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:visibility="gone"
+        android:background="#a0000000"
+        tools:visibility="visible"
+        >
+        <ProgressBar
+            android:id="@+id/progressBar"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            style="?android:attr/progressBarStyleHorizontal"
+            android:indeterminate="false"
+            android:max="100"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent"
+            android:layout_marginStart="30dp"
+            android:layout_marginEnd="30dp"
+            tools:progress="50"
+            />
+        <TextView
+            android:id="@+id/message"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/progressBar"
+            android:layout_marginTop="4dp"
+            android:textColor="@color/white"
+            />
+        <Button
+            android:id="@+id/cancelButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/cancel"
+            android:textAllCaps="false"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/message"
+            android:layout_marginTop="4dp"
+            />
+
+    </android.support.constraint.ConstraintLayout>
+</FrameLayout>

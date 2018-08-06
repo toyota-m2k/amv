@@ -40,18 +40,25 @@ class TrimmingActivity : AppCompatActivity() {
                 finish()
             }
             trimmingButton.setOnClickListener {
-                if(trimmingPlayer.isTrimmed) {
-                    val range = trimmingPlayer.trimmingRange
-                    val source = mSource
-                    if(null!=source) {
-                        try {
-                            val path = File.createTempFile("TRIM_", ".mp4", MainActivity.getWorkFolder())
-                            mTranscoder.truncate(path, range.start, range.end)
-                        } catch (e: Exception) {
-                            e.printStackTrace()
-                        }
-                    }
+                try {
+                    val path = File.createTempFile("TRIM_", ".mp4", MainActivity.getWorkFolder())
+                    trimmingPlayer.startTrimming(path)
+                } catch (e: Exception) {
+                    e.printStackTrace()
                 }
+
+//                if(trimmingPlayer.isTrimmed) {
+//                    val range = trimmingPlayer.trimmingRange
+//                    val source = mSource
+//                    if(null!=source) {
+//                        try {
+//                            val path = File.createTempFile("TRIM_", ".mp4", MainActivity.getWorkFolder())
+//                            mTranscoder.truncate(path, range.start, range.end)
+//                        } catch (e: Exception) {
+//                            e.printStackTrace()
+//                        }
+//                    }
+//                }
             }
         }
     }

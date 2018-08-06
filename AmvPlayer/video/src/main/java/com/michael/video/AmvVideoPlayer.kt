@@ -217,6 +217,9 @@ class AmvVideoPlayer @JvmOverloads constructor(context: Context, attrs: Attribut
         reset(IAmvVideoPlayer.PlayerState.None)
     }
 
+    override val source: File?
+        get() = mSource
+
     private fun setSource(source: File, autoPlay:Boolean, playFrom:Long, resetBeforeLoad:Boolean) {
         if(resetBeforeLoad) {
             reset(IAmvVideoPlayer.PlayerState.Loading)

@@ -7,4 +7,5 @@
     <string name="add_marker">add marker</string>
     <string name="pinp">Picture in picture</string>
     <string name="fullscreen">Full screen</string>
+    <string name="cancel">Cancel</string>
 </resources>
