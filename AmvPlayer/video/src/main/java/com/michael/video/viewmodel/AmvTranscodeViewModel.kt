@@ -104,7 +104,8 @@ class AmvTranscodeViewModel : ViewModel() {
 
 
     companion object {
-        fun registerTo(activity:FragmentActivity, onProgress: (Float) -> Unit, onCompleted:(Boolean,AmvError?)->Unit): AmvTranscodeViewModel {
+        @Suppress("MemberVisibilityCanBePrivate")
+        fun registerTo(activity:FragmentActivity, onProgress: (Float) -> Unit, onCompleted:(Boolean, AmvError?)->Unit): AmvTranscodeViewModel {
             return ViewModelProviders.of(activity).get(AmvTranscodeViewModel::class.java).apply {
                 progress.observe(activity, Observer<Float> { p->
                     if(null!=p) {

@@ -10,6 +10,7 @@ import android.widget.Button
 import android.widget.FrameLayout
 import android.widget.ProgressBar
 import android.widget.TextView
+import com.michael.utils.FuncyListener1
 import com.michael.video.viewmodel.AmvTranscodeViewModel
 import java.io.File
 import kotlin.math.roundToInt
@@ -27,7 +28,7 @@ class AmvTrimmingPlayerView @JvmOverloads constructor(
         val progressLayer: ConstraintLayout by lazy {
             findViewById<ConstraintLayout>(R.id.progressLayer)
         }
-        val progressBar : ProgressBar by lazy {
+        val progressBar: ProgressBar by lazy {
             findViewById<ProgressBar>(R.id.progressBar)
         }
         val message: TextView by lazy {
@@ -36,12 +37,28 @@ class AmvTrimmingPlayerView @JvmOverloads constructor(
         val cancelButton: Button by lazy {
             findViewById<Button>(R.id.cancelButton)
         }
+
         fun initialize() {
             controller.setVideoPlayer(player)
         }
     }
-    private val mControls =  Controls()
-    private val mViewModel:AmvTranscodeViewModel?
+
+    private val mControls = Controls()
+    private val mViewModel: AmvTranscodeViewModel?
+    private var mNotified = false   // onCompletedが複数回呼ばれるので、onTrimmingCompletedListenerの通知を1回に限定するためのフラグ
+
+    val onTrimmingCompletedListener = FuncyListener1<AmvTrimmingPlayerView, Unit>()
+
+    // api for java
+    interface ITrimmingCompletedHandler {
+        fun onTrimmingCompleted(sender: AmvTrimmingPlayerView)
+    }
+
+    @Suppress("unused")
+    fun setOnTrimmingCompletedListener(listener: ITrimmingCompletedHandler) {
+        onTrimmingCompletedListener.set(listener::onTrimmingCompleted)
+    }
+
 
     init {
         LayoutInflater.from(context).inflate(R.layout.trimming_player, this)
@@ -50,10 +67,10 @@ class AmvTrimmingPlayerView @JvmOverloads constructor(
         mViewModel = AmvTranscodeViewModel.registerTo(this, this::onProgress, this::onTrimmingCompleted)
 
         // Transcode/Trimming 中のキャンセル
-        mControls.cancelButton.setOnClickListener({
+        mControls.cancelButton.setOnClickListener {
             mViewModel?.cancel()
             mControls.progressLayer.visibility = View.GONE
-        })
+        }
 
         val vm = mViewModel
         if(null!=vm && vm.isBusy) {
@@ -69,19 +86,23 @@ class AmvTrimmingPlayerView @JvmOverloads constructor(
     private fun onProgress(progress:Float) {
         val percent = (progress*100).roundToInt()
         mControls.progressBar.progress = percent
-        mControls.message.text = "$percent" + " %"
+        mControls.message.text = "$percent %"
     }
 
     /**
      * Trimmning/Transcode 完了時の処理
      */
     private fun onTrimmingCompleted(result:Boolean, error:AmvError?) {
-        if(result) {
+        if (result) {
             // 成功したら、進捗表示を消す
             mControls.progressLayer.visibility = View.GONE
+            if (!mNotified) {
+                mNotified = true
+                onTrimmingCompletedListener.invoke(this)
+            }
         } else {
             // 失敗したら、エラーメッセージを表示
-            mControls.message.text = error?.message?:"Faild"
+            mControls.message.text = error?.message ?: "Faild"
         }
     }
 
@@ -96,9 +117,11 @@ class AmvTrimmingPlayerView @JvmOverloads constructor(
     }
 
 
+    @Suppress("MemberVisibilityCanBePrivate")
     val isTrimmed: Boolean
         get() = mControls.controller.isTrimmed
 
+    @Suppress("MemberVisibilityCanBePrivate")
     val trimmingRange: IAmvVideoPlayer.Clipping
         get() = mControls.controller.trimmingRange
 
@@ -109,12 +132,13 @@ class AmvTrimmingPlayerView @JvmOverloads constructor(
     fun startTrimming(output:File) : Boolean {
         val vm = mViewModel
         val input = videoPlayer.source
-        if(null==vm||null==input||!trimmingRange.isValid) {
+        if (null == vm || null == input || !trimmingRange.isValid && !vm.isBusy) {
             return false
         }
 
+        mNotified = false
         mControls.progressLayer.visibility = View.VISIBLE
-        if(!isTrimmed) {
+        if (!isTrimmed) {
             vm.transcode(input, output, context)
         } else {
             vm.truncate(input, output, trimmingRange.start, trimmingRange.end, context)

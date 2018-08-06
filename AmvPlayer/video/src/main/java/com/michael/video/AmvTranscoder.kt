@@ -255,7 +255,7 @@ class AmvTranscoder(val source:File, context:Context) : SurfaceHolder.Callback{
             } else {
                 error.setError("transcode/trimming error.")
             }
-            UtLogger.debug("AmvTranscoder: error\n${error.toString()}")
+            UtLogger.debug("AmvTranscoder: error\n${error.message}")
             completionListener.invoke(this@AmvTranscoder, false)
             disposeHalfBakedFile()
             dispose()

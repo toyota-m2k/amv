@@ -3,26 +3,22 @@ package com.michael.amvplayer
 import android.os.Bundle
 import android.support.v7.app.AppCompatActivity
 import android.widget.Button
-import android.widget.ImageButton
-import com.michael.utils.UtLogger
-import com.michael.video.AmvTranscoder
 import com.michael.video.AmvTrimmingPlayerView
 import java.io.File
-import kotlin.math.roundToInt
 
 class TrimmingActivity : AppCompatActivity() {
 
     private var mSource:File? = null
-    private val mTranscoder : AmvTranscoder by lazy {
-        AmvTranscoder(mSource!!, applicationContext).apply {
-            completionListener.set {_, result->
-                UtLogger.debug("Trimming done $result")
-            }
-            progressListener.set {_, progress->
-                UtLogger.debug("Trimming progress ${(progress*100).roundToInt()}")
-            }
-        }
-    }
+//    private val mTranscoder : AmvTranscoder by lazy {
+//        AmvTranscoder(mSource!!, applicationContext).apply {
+//            completionListener.set {_, result->
+//                UtLogger.debug("Trimming done $result")
+//            }
+//            progressListener.set {_, progress->
+//                UtLogger.debug("Trimming progress ${(progress*100).roundToInt()}")
+//            }
+//        }
+//    }
 
     private inner class Controls {
         val trimmingPlayer:AmvTrimmingPlayerView by lazy {
@@ -39,6 +35,11 @@ class TrimmingActivity : AppCompatActivity() {
             closeButton.setOnClickListener {
                 finish()
             }
+
+            trimmingPlayer.onTrimmingCompletedListener.set {
+                finish()
+            }
+
             trimmingButton.setOnClickListener {
                 try {
                     val path = File.createTempFile("TRIM_", ".mp4", MainActivity.getWorkFolder())

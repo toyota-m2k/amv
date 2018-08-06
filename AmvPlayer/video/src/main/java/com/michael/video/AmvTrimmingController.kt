@@ -14,7 +14,9 @@ import android.widget.TextView
 import com.michael.utils.UtLogger
 import com.michael.utils.readParceler
 import com.michael.utils.writeParceler
+import com.michael.video.viewmodel.AmvFrameListViewModel
 import org.parceler.ParcelConstructor
+import java.io.File
 
 class AmvTrimmingController @JvmOverloads constructor(context: Context, attrs: AttributeSet? = null, defStyleAttr: Int = 0)
     : ConstraintLayout(context,attrs,defStyleAttr), IAmvVideoController {
@@ -53,11 +55,28 @@ class AmvTrimmingController @JvmOverloads constructor(context: Context, attrs: A
 
     private val mHandler = Handler()
     private var mHandlingKnob:AmvSlider.Knob = AmvSlider.Knob.NONE
+    private val mFrameListViewModel : AmvFrameListViewModel?
+
 
     init {
         LayoutInflater.from(context).inflate(R.layout.video_trimming_controller, this)
         drPlay = context.getDrawable(R.drawable.ic_play)
         drPause = context.getDrawable(R.drawable.ic_pause)
+
+        val sa = context.theme.obtainStyledAttributes(attrs,R.styleable.AmvTrimmingtController,defStyleAttr,0)
+        try {
+            val enableViewModel = sa.getBoolean(R.styleable.AmvTrimmingtController_frameCache, true)
+            mFrameListViewModel = if (enableViewModel) {
+                AmvFrameListViewModel.registerToView(this, this::updateFrameListByViewModel)?.apply {
+                    setSizingHint(FitMode.Height, 0f, cFrameHeight)
+                    setFrameCount(cFrameCount)
+                }
+            } else {
+                null
+            }
+        } finally {
+            sa.recycle()
+        }
 
         controls.initialize()
     }
@@ -226,8 +245,28 @@ class AmvTrimmingController @JvmOverloads constructor(context: Context, attrs: A
 //            data = null    // 誤って古い情報をリストアしないように。
             models.isPlayerPrepared = false
             models.isVideoInfoPrepared = false
+            extractFrameOnSourceChanged(source)
+        }
+
+        mPlayer.clipChangedListener.add(listenerName) { _, clipping ->
+            mClipping = clipping
+        }
+    }
 
 
+    private fun extractFrameOnSourceChanged(source: File) {
+        models.naturalDuration = 0L  // ViewModelから読み込むとき、Durationがゼロかどうかで初回かどうか判断するので、ここでクリアする
+        if(null!=mFrameListViewModel) {
+            val info = mFrameListViewModel.frameListInfo.value!!
+            if(source != info.source || null!=info.error) {
+                // ソースが変更されているか、エラーが発生しているときはフレーム抽出を実行
+                mFrameListViewModel.cancel()
+                mFrameListViewModel.extractFrame(source)
+            } else {
+                // それ以外はViewModel（キャッシュ）から読み込む
+                updateFrameListByViewModel(info)
+            }
+        } else {
             // フレームサムネイルを列挙する
             mFrameExtractor = AmvFrameExtractor().apply {
                 setSizingHint(FitMode.Height, 0f, cFrameHeight)
@@ -257,9 +296,25 @@ class AmvTrimmingController @JvmOverloads constructor(context: Context, attrs: A
                 extract(source, cFrameCount)
             }
         }
+    }
 
-        mPlayer.clipChangedListener.add(listenerName) { _, clipping ->
-            mClipping = clipping
+    private fun updateFrameListByViewModel(info:AmvFrameListViewModel.IFrameListInfo) {
+        if(null!=info.error) {
+            restoringData?.onFatalError()
+        } else if(info.status != AmvFrameListViewModel.IFrameListInfo.Status.INIT && info.duration>0L) {
+            if(models.naturalDuration==0L) {
+                models.naturalDuration = info.duration
+                val thumbnailSize = info.size
+                controls.frameList.prepare(cFrameCount, thumbnailSize.width, thumbnailSize.height)
+                controls.slider.resetWithValueRange(info.duration, true)      // スライダーを初期化
+                controls.frameList.totalRange = info.duration
+
+                models.isVideoInfoPrepared = true
+                restoringData?.tryRestoring()
+            }
+            if(info.count>0) {
+                controls.frameList.setFrames(info.frameList)
+            }
         }
     }
 
