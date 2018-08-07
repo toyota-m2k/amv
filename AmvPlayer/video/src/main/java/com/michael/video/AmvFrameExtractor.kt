@@ -128,11 +128,11 @@ class AmvFrameExtractor : UtAsyncTask() {
                 return
             }
 
-            if (mThumbnailCount <= 1) {
+            if (mThumbnailCount == 1) {
                 // 主サムネイルを取得するモード
                 val bmp = analyzer.getBitmapAt(targetFramePosition)
                 runOnUiThread(onThumbnailRetrievedListener, this, 0, bmp)
-            } else {
+            } else if(mThumbnailCount>1){
                 // フレームリストを取得するモード
                 val step = duration / mThumbnailCount
                 var tm = step / 2

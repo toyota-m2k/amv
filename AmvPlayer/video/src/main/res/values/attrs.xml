@@ -53,6 +53,7 @@
 
     <declare-styleable name="AmvVideoController">
         <attr name="frameCache" format="boolean"/>
+        <attr name="minimal" format="boolean"/>
     </declare-styleable>
 
     <declare-styleable name="AmvTrimmingtController">

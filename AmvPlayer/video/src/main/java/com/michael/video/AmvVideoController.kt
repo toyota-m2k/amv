@@ -1,20 +1,23 @@
+/**
+ * 基本プレーヤー用コントローラービュー
+ *
+ * @author M.TOYOTA 2018.07.05 Created
+ * Copyright © 2018 M.TOYOTA  All Rights Reserved.
+ */
 package com.michael.video
 
 import android.content.Context
-import android.databinding.BaseObservable
-import android.databinding.Bindable
-import android.databinding.BindingAdapter
-import android.databinding.DataBindingUtil
+import android.graphics.drawable.Drawable
 import android.os.Handler
 import android.os.Parcel
 import android.os.Parcelable
+import android.support.v4.content.ContextCompat
 import android.util.AttributeSet
 import android.view.LayoutInflater
 import android.view.View
-import android.widget.ImageButton
-import android.widget.LinearLayout
+import android.widget.*
 import com.michael.utils.UtLogger
-import com.michael.video.databinding.VideoControllerBinding
+import com.michael.utils.VectorDrawableTinter
 import com.michael.video.viewmodel.AmvFrameListViewModel
 import java.io.File
 
@@ -22,210 +25,348 @@ import java.io.File
 class AmvVideoController @JvmOverloads constructor(context: Context, attrs: AttributeSet? = null, defStyleAttr: Int = 0)
     : LinearLayout(context,attrs,defStyleAttr), IAmvVideoController {
 
-    // Constants
-    companion object {
-        const val FRAME_COUNT = 10            // フレームサムネイルの数
-        const val FRAME_HEIGHT = 160f         // フレームサムネイルの高さ(dp)
+    // region Constants
 
-        @JvmStatic
-        @BindingAdapter("srcCompat")
-        fun srcCompat(view: ImageButton, resourceId: Int) {
-            view.setImageResource(resourceId)
-        }
+    companion object {
+        private const val FRAME_COUNT = 10            // フレームサムネイルの数
+        private const val FRAME_HEIGHT = 160f         // フレームサムネイルの高さ(dp)
+        private const val LISTENER_NAME = "videoController"
     }
 
-    private var mBinding : VideoControllerBinding = DataBindingUtil.inflate(LayoutInflater.from(context), R.layout.video_controller, this, true)
-    private val mBindingParams = BindingParams()
-    private lateinit var mPlayer:IAmvVideoPlayer
-    private val mHandler = Handler()
-    private var mFrameExtractor :AmvFrameExtractor? = null
-    private var mDuration = 0L
-    private val mFrameListViewModel : AmvFrameListViewModel?
+    // endregion
 
+    // region Binding -- Controls
 
-    /**
-     * Binding Data
-     */
-    inner class BindingParams : BaseObservable() {
-        @get:Bindable
-        val isPlaying
-            get() = playerState == IAmvVideoPlayer.PlayerState.Playing
+    private inner class Controls {
+        val root: RelativeLayout by lazy {
+            findViewById<RelativeLayout>(R.id.vct_controllerRoot)
+        }
+        val playButton: ImageButton by lazy {
+            findViewById<ImageButton>(R.id.vct_playButton)
+        }
+        val playButtonMini: ImageButton by lazy {
+            findViewById<ImageButton>(R.id.vct_playButton2)
+        }
+        val backButton: ImageButton by lazy {
+            findViewById<ImageButton>(R.id.vct_backButton)
+        }
+        val forwardButton: ImageButton by lazy {
+            findViewById<ImageButton>(R.id.vct_forwardButton)
+        }
+        val markButton: ImageButton by lazy {
+            findViewById<ImageButton>(R.id.vct_markButton)
+        }
+        val pinpButton: ImageButton by lazy {
+            findViewById<ImageButton>(R.id.vct_pinpButton)
+        }
+        val fullButton: ImageButton by lazy {
+            findViewById<ImageButton>(R.id.vct_fullscreenButton)
+        }
+        val buttonsGroup:LinearLayout by lazy {
+            findViewById<LinearLayout>(R.id.vct_buttons)
+        }
+        val showFramesButton: ImageButton by lazy {
+            findViewById<ImageButton>(R.id.vct_showFramesButton)
+        }
+        val markerView: AmvMarkerView by lazy {
+            findViewById<AmvMarkerView>(R.id.vct_markerView)
+        }
+        val frameList: AmvFrameListView by lazy {
+            findViewById<AmvFrameListView>(R.id.vct_frameList)
+        }
+        val slider: AmvSlider by lazy {
+            findViewById<AmvSlider>(R.id.vct_slider)
+        }
+        val counterBar: TextView by lazy {
+            findViewById<TextView>(R.id.vct_counterBar)
+        }
+        val drPlay: Drawable by lazy {
+            context.getDrawable(R.drawable.ic_play)
+        }
+        val drPause: Drawable by lazy {
+            context.getDrawable(R.drawable.ic_pause)
+        }
+        val drShowFrameOff: Drawable by lazy {
+            context.getDrawable(R.drawable.ic_frames)
+        }
+        val drShowFrameOn: Drawable by lazy {
+            VectorDrawableTinter.tintDrawable(context.getDrawable(R.drawable.ic_frames), ContextCompat.getColor(context, R.color.trimming_sel))
+        }
 
-        @get:Bindable
-        val isReady : Boolean
-            get() {
-                return when(playerState) {
-                    IAmvVideoPlayer.PlayerState.Playing, IAmvVideoPlayer.PlayerState.Paused->true
-                    else -> false
+        val actualPlayButton:ImageButton
+            get() = if(mMinimalMode) playButtonMini else playButton
+
+        /**
+         * ボタンの有効/無効の変更ヘルパメソッド
+         */
+        fun ImageButton.enable(enabled:Boolean) {
+            if(enabled) {
+                this.alpha = 1f
+                this.isClickable = true
+            } else {
+                this.alpha = 0.4f
+                this.isClickable = false
+            }
+        }
+
+        /**
+         * ReadOnly 属性が変化したときの更新処理
+         */
+        fun updateReadOnly() {
+            markButton.enable(!models.isReadOnly && models.isPlayerPrepared)
+        }
+
+        /**
+         * ShowingFrame 属性が変化したときの更新処理
+         */
+        fun updateShowingFrame() {
+            val show = models.showingFrames
+            if(show) {
+                showFramesButton.setImageDrawable(drShowFrameOn)
+                frameList.visibility = View.VISIBLE
+            } else {
+                showFramesButton.setImageDrawable(drShowFrameOff)
+                frameList.visibility = View.GONE
+            }
+        }
+
+        /**
+         * isPlayerPrepared 属性が変化したときの更新処理
+         */
+        fun updatePlayerPrepared() {
+            val ready = models.isPlayerPrepared
+            val buttons = arrayOf(actualPlayButton, backButton, forwardButton, pinpButton, fullButton)
+            buttons.forEach {
+                it.enable(ready)
+            }
+            // markButtonは別管理
+            updateReadOnly()
+        }
+
+        /**
+         * isPlaying 属性が変化したときの更新処理
+         */
+        fun updatePlaying() {
+            val isPlaying = models.isPlaying
+            if(isPlaying) {
+                actualPlayButton.setImageDrawable(drPause)
+            } else {
+                actualPlayButton.setImageDrawable(drPlay)
+            }
+        }
+
+        /**
+         * カウンター（再生位置）が変化したときの更新処理
+         */
+        fun updateCounter() {
+            val duration = models.duration
+            var pos = models.currentPosition
+            if(pos<0) {
+                pos = 0
+            }
+
+            val total = AmvTimeSpan(duration)
+            val current = AmvTimeSpan(if(pos>duration) duration else pos)
+            counterBar.text = when {
+                                total.hours > 0 -> "${current.formatH()} / ${total.formatH()}"
+                                total.minutes > 0 -> "${current.formatM()} / ${total.formatM()}"
+                                else -> "${current.formatS()} / ${total.formatS()}" }
+        }
+
+        /**
+         * コントロールの初期化
+         */
+        fun initialize() {
+            root.minimumWidth = models.minControllerWidth
+
+            // slider
+
+            slider.isSaveFromParentEnabled = false         // スライダーの状態は、AmvVideoController側で復元する
+            slider.currentPositionChanged.set(this@AmvVideoController::onCurrentPositionChanged)
+
+            // buttons
+            if(mMinimalMode) {
+                arrayOf(markerView, buttonsGroup, counterBar, showFramesButton).forEach {
+                    it.visibility = GONE
+                }
+                playButtonMini.visibility = VISIBLE
+                playButtonMini.setOnClickListener(this@AmvVideoController::onPlayClicked)
+            } else {
+                playButton.setOnClickListener(this@AmvVideoController::onPlayClicked)
+                backButton.setOnClickListener(this@AmvVideoController::onPrevMarker)
+                forwardButton.setOnClickListener(this@AmvVideoController::onNextMarker)
+                markButton.setOnClickListener(this@AmvVideoController::onAddMarker)
+                pinpButton.setOnClickListener(this@AmvVideoController::onPinP)
+                fullButton.setOnClickListener(this@AmvVideoController::onFullScreen)
+                showFramesButton.setOnClickListener(this@AmvVideoController::onShowFramesClick)
+            }
+
+            // フレーム一覧のドラッグ操作をSliderのドラッグ操作と同様に扱うための小さな仕掛け
+            frameList.touchFriendListener.set(controls.slider::onTouchAtFriend)
+
+            // MarkerView
+            markerView.markerSelectedListener.set { position, _ ->
+                updateSeekPosition(position, true, true)
+            }
+            markerView.markerAddedListener.set { _, _ ->
+            }
+            markerView.markerRemovedListener.set { _, _ ->
+            }
+            markerView.markerContextQueryListener.set { _, _ ->
+            }
+
+            // 初回の更新
+            updateShowingFrame()
+            updatePlayerPrepared()
+            updatePlaying()
+            updateCounter()
+        }
+    }
+    private val controls = Controls()
+
+    // endregion
+
+    // region Binding -- Models
+
+    private inner class Models {
+
+        var isPlaying= false
+            set(v) {
+                if(v!=field) {
+                    field = v
+                    controls.updatePlaying()
                 }
             }
 
-        @get:Bindable
-        var isReadOnly : Boolean = true
+//        val isReady: Boolean
+//            get() {
+//                return when (playerState) {
+//                    IAmvVideoPlayer.PlayerState.Playing, IAmvVideoPlayer.PlayerState.Paused -> true
+//                    else -> false
+//                }
+//            }
+
+        var isReadOnly: Boolean = false
             set(v) {
                 if (field != v) {
                     field = v
-                    notifyPropertyChanged(BR.readOnly)
+                    controls.updateReadOnly()
                 }
             }
 
-//        val hasPrev : Boolean = false
-//
-//        val hasNext : Boolean = true
-
-        @get:Bindable
-        var showingFrames:Boolean = false
+        var showingFrames: Boolean = false
             set(v) {
-                if(field!=v) {
+                if (field != v) {
                     field = v
-                    notifyPropertyChanged(BR.showingFrames)
+                    controls.updateShowingFrame()
                 }
             }
 
-//        @get:Bindable
-        val minControllerWidth : Int = context.dp2px(325)
+        val minControllerWidth: Int by lazy {
+            context.dp2px(325)
+        }
 
-        var isPlayerPrepared : Boolean = false
         var isVideoInfoPrepared: Boolean = false
 
-        var playerState:IAmvVideoPlayer.PlayerState = IAmvVideoPlayer.PlayerState.None
+        var isPlayerPrepared: Boolean = false
             set(v) {
-                if(field != v) {
+                if (field != v) {
                     field = v
-                    notifyPropertyChanged(BR.playing)
-                    notifyPropertyChanged(BR.ready)
-                    UtLogger.debug("PlayState: $v")
-                    when (v) {
-                        IAmvVideoPlayer.PlayerState.Playing -> {
-                            val startPos = mPlayer.seekPosition
-                            UtLogger.debug("Start Playing --> Seek($startPos)")
+                    controls.updatePlayerPrepared()
+                }
+            }
 
+
+        var playerState: IAmvVideoPlayer.PlayerState = IAmvVideoPlayer.PlayerState.None
+            set(state) {
+                if (field != state) {
+                    field = state
+                    UtLogger.debug("PlayState: $state")
+
+                    when (state) {
+                        IAmvVideoPlayer.PlayerState.Playing -> {
                             // 再生中は定期的にスライダーの位置を更新する
-                            mHandler.post (object : Runnable {
-                                override fun run() {
-                                    if(!pausingOnTracking) {
-                                        updateSeekPosition(mPlayer.seekPosition, false, true)
-                                    }
-                                    if(playerState==IAmvVideoPlayer.PlayerState.Playing) {
-                                        mHandler.postDelayed(this, 100)     // Win版は10msで動かしていたが、Androidでは動画が動かなくなるので、200msくらいにしておく。ガタガタなるけど。
-                                    }
-                                }
-                            })
+                            mHandler.post(mSeekLoop)
                         }
                         IAmvVideoPlayer.PlayerState.None -> isPlayerPrepared = false
                         IAmvVideoPlayer.PlayerState.Error -> {
                             isPlayerPrepared = false
                             restoringData?.onFatalError()
                         }
-                        else -> {}
+                        else -> {
+                        }
                     }
+                    isPlaying =  playerState == IAmvVideoPlayer.PlayerState.Playing
                 }
             }
 
-        @get:Bindable
-        var counterText:String = ""
-            private set(v) {
-                if(field!=v) {
+        var currentPosition: Long = -1L
+            set(v) {
+                if (field != v) {
                     field = v
-                    notifyPropertyChanged(BR.counterText)
+                    controls.updateCounter()
                 }
             }
 
-        var prevPosition = -1L
-        
-        fun updateCounterText(pos:Long) {
-            if(mDuration<=0 || prevPosition==pos) {
-                return
+        var duration: Long = 0L
+            set(v) {
+                field = v
+                controls.updateCounter()
             }
+    }
+    private val models = Models()
 
-            val total = AmvTimeSpan(mDuration)
-            val current = AmvTimeSpan(if(pos>mDuration) mDuration else pos)
+    // endregion
 
-            counterText =
-                    when {
-                        total.hours > 0 -> "${current.formatH()} / ${total.formatH()}"
-                        total.minutes > 0 -> "${current.formatM()} / ${total.formatM()}"
-                        else -> "${current.formatS()} / ${total.formatS()}"
-                    }
+    // region Private implements
+
+    private val mSeekLoop = object : Runnable {
+        override fun run() {
+            if(!mPausingOnTracking) {
+                updateSeekPosition(mPlayer.seekPosition, false, true)
+            }
+            if(models.playerState==IAmvVideoPlayer.PlayerState.Playing) {
+                mHandler.postDelayed(this, 100)     // Win版は10msで動かしていたが、Androidでは動画が動かなくなるので、200msくらいにしておく。ガタガタなるけど。
+            }
         }
     }
+    private lateinit var mPlayer:IAmvVideoPlayer
+    private val mHandler = Handler()
+    private var mFrameExtractor :AmvFrameExtractor? = null
+    private val mFrameListViewModel : AmvFrameListViewModel?
+    private var mPausingOnTracking = false       // スライダー操作中は再生を止めておいて、操作が終わったときに必要に応じて再生を再開する
+    private var mMinimalMode = false
+
 
     init {
-        mBinding.handlers = this
-        mBinding.params = mBindingParams
-        mBinding.slider.isSaveFromParentEnabled = false         // スライダーの状態は、AmvVideoController側で復元する
-
-        mBinding.controllerRoot.minimumWidth = mBindingParams.minControllerWidth
-
-        // フレーム一覧のドラッグ操作をSliderのドラッグ操作と同様に扱うための小さな仕掛け
-        mBinding.frameList.touchFriendListener.set(mBinding.slider::onTouchAtFriend)
-
-        // MarkerView
-        mBinding.markerView.markerSelectedListener.set { position, _ ->
-            updateSeekPosition(position, true, true)
-        }
-        mBinding.markerView.markerAddedListener.set { _, _ ->
-        }
-        mBinding.markerView.markerRemovedListener.set { _, _ ->
-        }
-        mBinding.markerView.markerContextQueryListener.set { _, _ ->
-        }
+        LayoutInflater.from(context).inflate(R.layout.video_controller, this)
 
         val sa = context.theme.obtainStyledAttributes(attrs,R.styleable.AmvVideoController,defStyleAttr,0)
         try {
+            mMinimalMode = sa.getBoolean(R.styleable.AmvVideoController_minimal, false)
+
             val enableViewModel = sa.getBoolean(R.styleable.AmvVideoController_frameCache, true)
             mFrameListViewModel = if(enableViewModel) {
                 AmvFrameListViewModel.registerToView(this, this::updateFrameListByViewModel)?.apply {
                     setSizingHint(FitMode.Height, 0f, FRAME_HEIGHT)
-                    setFrameCount(FRAME_COUNT)
+                    setFrameCount(if(mMinimalMode) 0 else FRAME_COUNT)
                 }
+
             } else {
                 null
             }
         } finally {
             sa.recycle()
         }
+
+        controls.initialize()
     }
 
-    private val listenerName = "videoController"
-
-    override fun setVideoPlayer(player:IAmvVideoPlayer) {
-        mPlayer = player
-        mBindingParams.playerState = player.playerState
-
-        // Player Event
-        mPlayer.apply {
-            // 再生状態が変化したときのイベント
-            playerStateChangedListener.add(listenerName) { _, state ->
-                if(!pausingOnTracking) {
-                    mBindingParams.playerState = state
-                }
-            }
-
-            // 動画の画面サイズが変わったときのイベント
-            sizeChangedListener.add(listenerName) { _, width, _ ->
-                // layout_widthをBindingすると、どうしてもエラーになるので、直接変更
-                mBinding.controllerRoot.setLayoutWidth(Math.max(width, mBindingParams.minControllerWidth))
-            }
-
-            // プレーヤー上のビデオの読み込みが完了したときのイベント
-            videoPreparedListener.add(listenerName) { mp, _ ->
-                mBindingParams.prevPosition = -1    // 次回必ずcounterString を更新する
-                mBindingParams.updateCounterText(mp.seekPosition)
-                mBindingParams.isPlayerPrepared = true
-                restoringData?.tryRestoring()
-            }
-            // 動画ソースが変更されたときのイベント
-            sourceChangedListener.add(listenerName) { _, source ->
-                mBindingParams.isPlayerPrepared = false
-                mBindingParams.isVideoInfoPrepared = false
-                extractFrameOnSourceChanged(source)
-            }
-        }
-    }
-
+    /**
+     * ソースが切り替わったタイミングで、フレームサムネイルリストを作成する
+     */
     private fun extractFrameOnSourceChanged(source: File) {
-        mDuration = 0L  // ViewModelから読み込むとき、Durationがゼロかどうかで初回かどうか判断するので、ここでクリアする
+        models.duration = 0L  // ViewModelから読み込むとき、Durationがゼロかどうかで初回かどうか判断するので、ここでクリアする
         if(null!=mFrameListViewModel) {
             val info = mFrameListViewModel.frameListInfo.value!!
             if(source != info.source || null!=info.error) {
@@ -242,20 +383,20 @@ class AmvVideoController @JvmOverloads constructor(context: Context, attrs: Attr
                 setSizingHint(FitMode.Height, 0f, FRAME_HEIGHT)
                 onVideoInfoRetrievedListener.add(null) {
                     UtLogger.debug("AmvFrameExtractor:duration=${it.duration} / ${it.videoSize}")
-                    mDuration = it.duration
+                    models.duration = it.duration
                     val thumbnailSize = it.thumbnailSize
 
-                    mBinding.frameList.prepare(FRAME_COUNT, thumbnailSize.width, thumbnailSize.height)
-                    mBinding.slider.resetWithValueRange(it.duration, true)      // スライダーを初期化
-                    mBinding.frameList.totalRange = it.duration
-                    mBinding.markerView.resetWithTotalRange(it.duration)
+                    controls.frameList.prepare(FRAME_COUNT, thumbnailSize.width, thumbnailSize.height)
+                    controls.slider.resetWithValueRange(it.duration, true)      // スライダーを初期化
+                    controls.frameList.totalRange = it.duration
+                    controls.markerView.resetWithTotalRange(it.duration)
 
-                    mBindingParams.isVideoInfoPrepared = true
+                    models.isVideoInfoPrepared = true
                     restoringData?.tryRestoring()
                 }
                 onThumbnailRetrievedListener.add(null) { _, index, bmp ->
                     UtLogger.debug("AmvFrameExtractor:Bitmap($index): width=${bmp.width}, height=${bmp.height}")
-                    mBinding.frameList.add(bmp)
+                    controls.frameList.add(bmp)
                 }
                 onFinishedListener.add(null) { _, _ ->
                     // サブスレッドの処理がすべて終了しても、UIスレッド側でのビットマップ追加処理待ちになっていることがあり、
@@ -271,32 +412,96 @@ class AmvVideoController @JvmOverloads constructor(context: Context, attrs: Attr
         }
     }
 
+    /**
+     * ViewModel経由でフレームサムネイルリストを更新する
+     */
     private fun updateFrameListByViewModel(info: AmvFrameListViewModel.IFrameListInfo) {
         if(null!=info.error) {
             restoringData?.onFatalError()
         } else if(info.status != AmvFrameListViewModel.IFrameListInfo.Status.INIT && info.duration>0L) {
-            if(mDuration==0L) {
-                mDuration = info.duration
+            if(models.duration==0L) {
+                models.duration = info.duration
                 val thumbnailSize = info.size
-                mBinding.frameList.prepare(FRAME_COUNT, thumbnailSize.width, thumbnailSize.height)
-                mBinding.slider.resetWithValueRange(info.duration, true)      // スライダーを初期化
-                mBinding.frameList.totalRange = info.duration
-                mBinding.markerView.resetWithTotalRange(info.duration)
+                controls.frameList.prepare(FRAME_COUNT, thumbnailSize.width, thumbnailSize.height)
+                controls.slider.resetWithValueRange(info.duration, true)      // スライダーを初期化
+                controls.frameList.totalRange = info.duration
+                controls.markerView.resetWithTotalRange(info.duration)
 
-                mBindingParams.isVideoInfoPrepared = true
+                models.isVideoInfoPrepared = true
                 restoringData?.tryRestoring()
             }
             if(info.count>0) {
-                mBinding.frameList.setFrames(info.frameList)
+                controls.frameList.setFrames(info.frameList)
             }
         }
     }
 
+    /**
+     * 各コントロール（Player/Slider/FrameList/Counter）のシーク位置を揃える
+     */
+    private fun updateSeekPosition(pos:Long, seek:Boolean, slider:Boolean) {
+        if(seek) {
+            mPlayer.seekTo(pos)
+        }
+        if(slider) {
+            controls.slider.currentPosition = pos
+        }
+        controls.frameList.position = pos
+        models.currentPosition = pos
+    }
+
+    // endregion
 
 
+    // region IAmvVideoController i/f implementation
+
+    /**
+     * VideoPlayerをコントローラーに接続する
+     */
+    override fun setVideoPlayer(player:IAmvVideoPlayer) {
+        mPlayer = player
+        models.playerState = player.playerState
+
+        // Player Event
+        mPlayer.apply {
+            // 再生状態が変化したときのイベント
+            playerStateChangedListener.add(LISTENER_NAME) { _, state ->
+                if(!mPausingOnTracking) {
+                    models.playerState = state
+                }
+            }
+
+            // 動画の画面サイズが変わったときのイベント
+            sizeChangedListener.add(LISTENER_NAME) { _, width, _ ->
+                // layout_widthをBindingすると、どうしてもエラーになるので、直接変更
+                controls.root.setLayoutWidth(Math.max(width, models.minControllerWidth))
+            }
+
+            // プレーヤー上のビデオの読み込みが完了したときのイベント
+            videoPreparedListener.add(LISTENER_NAME) { mp, _ ->
+                models.currentPosition = mp.seekPosition
+                models.isPlayerPrepared = true
+                restoringData?.tryRestoring()
+            }
+            // 動画ソースが変更されたときのイベント
+            sourceChangedListener.add(LISTENER_NAME) { _, source ->
+                models.isPlayerPrepared = false
+                models.isVideoInfoPrepared = false
+                extractFrameOnSourceChanged(source)
+            }
+        }
+    }
+
+    /**
+     * リードオンリーモードの取得・設定
+     */
     override var isReadOnly: Boolean
-        get() = mBindingParams.isReadOnly
-        set(v) { mBindingParams.isReadOnly=v }
+        get() = models.isReadOnly
+        set(v) { models.isReadOnly=v }
+
+    // endregion
+
+    // region Event handlers
 
     fun onPlayClicked(@Suppress("UNUSED_PARAMETER") view: View) {
         when(mPlayer.playerState) {
@@ -307,29 +512,34 @@ class AmvVideoController @JvmOverloads constructor(context: Context, attrs: Attr
     }
 
     fun onPrevMarker(@Suppress("UNUSED_PARAMETER") view: View) {
-        mBinding.markerView.prevMark(mBinding.slider.currentPosition, null)
+        controls.markerView.prevMark(controls.slider.currentPosition, null)
     }
 
     fun onNextMarker(@Suppress("UNUSED_PARAMETER") view: View) {
-        mBinding.markerView.nextMark(mBinding.slider.currentPosition, null)
+        controls.markerView.nextMark(controls.slider.currentPosition, null)
     }
 
     fun onAddMarker(@Suppress("UNUSED_PARAMETER") view: View) {
-        mBinding.markerView.addMarker(mBinding.slider.currentPosition, null)
+        controls.markerView.addMarker(controls.slider.currentPosition, null)
     }
 
     fun onShowFramesClick(@Suppress("UNUSED_PARAMETER") view:View) {
-        mBindingParams.showingFrames = !mBindingParams.showingFrames
+        models.showingFrames = !models.showingFrames
+    }
+
+    fun onPinP(@Suppress("UNUSED_PARAMETER") view: View) {
+
+    }
+    fun onFullScreen(@Suppress("UNUSED_PARAMETER") view: View) {
+
     }
 
     // Sliderの操作
-    private var pausingOnTracking = false       // スライダー操作中は再生を止めておいて、操作が終わったときに必要に応じて再生を再開する
-
     fun onCurrentPositionChanged(@Suppress("UNUSED_PARAMETER") caller:AmvSlider, position:Long, dragState: AmvSlider.SliderDragState) {
         UtLogger.debug("CurrentPosition: $position ($dragState)")
         when(dragState) {
             AmvSlider.SliderDragState.BEGIN-> {
-                pausingOnTracking = mBindingParams.isPlaying
+                mPausingOnTracking = models.isPlaying
                 mPlayer.pause()
                 mPlayer.setFastSeekMode(true)
             }
@@ -340,33 +550,29 @@ class AmvVideoController @JvmOverloads constructor(context: Context, attrs: Attr
                 mPlayer.setFastSeekMode(false)
                 updateSeekPosition(position, true, false)
 
-                if(pausingOnTracking) {
+                if(mPausingOnTracking) {
                     mPlayer.play()
-                    pausingOnTracking = false
+                    mPausingOnTracking = false
                 }
             }
             else -> {
             }
         }
-        mBindingParams.updateCounterText(position)
+        models.currentPosition = position
     }
 
-    fun updateSeekPosition(pos:Long, seek:Boolean, slider:Boolean) {
-        if(seek) {
-            mPlayer.seekTo(pos)
-        }
-        if(slider) {
-            mBinding.slider.currentPosition = pos
-        }
-        mBinding.frameList.position = pos
-    }
+    // endregion
 
-    private var restoringData: RestoringData? = null
+    // region Saving / Restoring
+
+    /**
+     * リストア中データ
+     */
     private inner class RestoringData(val data:SavedData) {
         private val isPlayerPrepared
-            get() = mBindingParams.isPlayerPrepared
+            get() = models.isPlayerPrepared
         private val isVideoInfoPrepared
-            get() = mBindingParams.isVideoInfoPrepared
+            get() = models.isVideoInfoPrepared
 
         private var isFirstRestored = false
         private var isPlayerRestored = false
@@ -380,7 +586,7 @@ class AmvVideoController @JvmOverloads constructor(context: Context, attrs: Attr
         fun tryRestoring() {
             if(!isFirstRestored) {
                 isFirstRestored = true
-                mBindingParams.showingFrames = data.showingFrames
+                models.showingFrames = data.showingFrames
             }
             if(isPlayerPrepared && !isPlayerRestored) {
                 mPlayer.seekTo(data.seekPosition)
@@ -390,9 +596,9 @@ class AmvVideoController @JvmOverloads constructor(context: Context, attrs: Attr
                 isPlayerRestored = true
             }
             if(isVideoInfoPrepared && !isSliderRestored) {
-                mBinding.slider.currentPosition = data.seekPosition
-                mBinding.frameList.position = data.seekPosition
-                mBinding.markerView.markers = data.markers
+                controls.slider.currentPosition = data.seekPosition
+                controls.frameList.position = data.seekPosition
+                controls.markerView.markers = data.markers
                 isSliderRestored = true
             }
 
@@ -401,15 +607,17 @@ class AmvVideoController @JvmOverloads constructor(context: Context, attrs: Attr
             }
         }
     }
+    private var restoringData: RestoringData? = null
 
-    // region Saving States
-    data class SavedData(val seekPosition:Long, val isPlaying:Boolean, val showingFrames:Boolean, val markers:ArrayList<Long>)
-
+    /**
+     * 保存データの中身クラス
+     */
+    internal class SavedData(val seekPosition:Long, val isPlaying:Boolean, val showingFrames:Boolean, val markers:ArrayList<Long>)
 
     override fun onSaveInstanceState(): Parcelable {
         UtLogger.debug("LC-View: onSaveInstanceState")
         val parent =  super.onSaveInstanceState()
-        return SavedState(parent, restoringData?.data ?: SavedData(mBinding.slider.currentPosition, mBindingParams.isPlaying, mBindingParams.showingFrames, mBinding.markerView.markers))
+        return SavedState(parent, restoringData?.data ?: SavedData(controls.slider.currentPosition, models.isPlaying, models.showingFrames, controls.markerView.markers))
     }
 
     override fun onRestoreInstanceState(state: Parcelable?) {

@@ -1,173 +1,168 @@
 <?xml version="1.0" encoding="utf-8"?>
-<layout
+<RelativeLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/vct_controllerRoot"
+    android:layout_width="450dp"
+    android:layout_height="wrap_content"
+    android:background="@color/button_face"
     >
-    <data>
-        <variable name="params" type="com.michael.video.AmvVideoController.BindingParams"/>
-        <variable name="handlers" type="com.michael.video.AmvVideoController"/>
-        <import type="android.view.View"/>
-        <import type="com.michael.video.R"/>
-    </data>
 
-    <RelativeLayout
-        android:id="@+id/controllerRoot"
-        android:layout_width="450dp"
+    <LinearLayout
+        android:id="@+id/vct_buttons"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:orientation="horizontal"
         android:background="@color/button_face"
+        android:layout_alignParentTop="true"
+        android:layout_alignParentStart="true"
         >
-
-        <LinearLayout
-            android:id="@+id/buttons"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:background="@color/button_face"
-            android:layout_alignParentTop="true"
-            android:layout_alignParentStart="true"
-            >
-            <ImageButton
-                android:id="@+id/playButton"
-                android:layout_width="48dp"
-                android:layout_height="48dp"
-                android:padding="2dp"
-                android:scaleType="fitXY"
-                tools:srcCompat="@drawable/ic_play"
-                app:srcCompat="@{params.isPlaying ? R.drawable.ic_pause : R.drawable.ic_play}"
-                android:contentDescription="@{params.isPlaying ? @string/stop : @string/play}"
-                android:onClick="@{handlers::onPlayClicked}"
-                android:alpha="@{params.isReady ? 255 : 80 }"
-                android:clickable="@{params.isReady}"
-                android:background="?android:selectableItemBackground"
-                />
-
-            <ImageButton
-                android:id="@+id/backButton"
-                android:layout_width="48dp"
-                android:layout_height="48dp"
-                android:padding="0dp"
-                android:scaleType="fitXY"
-                app:srcCompat="@drawable/ic_back"
-                android:contentDescription="@string/back"
-                android:background="?android:selectableItemBackground"
-                android:onClick="@{handlers.onPrevMarker}"
-                />
-
-            <ImageButton
-                android:id="@+id/forwardButton"
-                android:layout_width="48dp"
-                android:layout_height="48dp"
-                android:padding="0dp"
-                android:scaleType="fitXY"
-                app:srcCompat="@drawable/ic_forward"
-                android:contentDescription="@string/next"
-                android:background="?android:selectableItemBackground"
-                android:onClick="@{handlers.onNextMarker}"
-                />
-
-            <ImageButton
-                android:id="@+id/markButton"
-                android:layout_width="48dp"
-                android:layout_height="48dp"
-                android:padding="8dp"
-                android:scaleType="fitXY"
-                app:srcCompat="@drawable/ic_add_marker"
-                android:alpha="@{params.isReadOnly ? 255 : 80 }"
-                android:clickable="@{params.isReadOnly}"
-                android:background="?android:selectableItemBackground"
-                android:contentDescription="@string/add_marker"
-                android:onClick="@{handlers.onAddMarker}"
-                />
-
-            <ImageButton
-                android:id="@+id/pinpButton"
-                android:layout_width="48dp"
-                android:layout_height="48dp"
-                android:padding="8dp"
-                android:scaleType="fitXY"
-                app:srcCompat="@drawable/ic_pinp"
-                android:background="?android:selectableItemBackground"
-                android:contentDescription="@string/pinp" />
-
-            <ImageButton
-                android:id="@+id/fullscreenButton"
-                android:layout_width="48dp"
-                android:layout_height="48dp"
-                android:padding="8dp"
-                android:scaleType="fitXY"
-                app:srcCompat="@drawable/ic_expand"
-                android:background="?android:selectableItemBackground"
-                android:contentDescription="@string/fullscreen" />
-        </LinearLayout>
+        <ImageButton
+            android:id="@+id/vct_playButton"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:padding="2dp"
+            android:scaleType="fitXY"
+            app:srcCompat="@drawable/ic_play"
+            android:contentDescription="@string/play_stop"
+            android:background="?android:selectableItemBackground"
+            />
 
         <ImageButton
-            android:id="@+id/showFramesButton"
+            android:id="@+id/vct_backButton"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:padding="0dp"
+            android:scaleType="fitXY"
+            app:srcCompat="@drawable/ic_back"
+            android:contentDescription="@string/back"
+            android:background="?android:selectableItemBackground"
+            />
+
+        <ImageButton
+            android:id="@+id/vct_forwardButton"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:padding="0dp"
+            android:scaleType="fitXY"
+            app:srcCompat="@drawable/ic_forward"
+            android:contentDescription="@string/next"
+            android:background="?android:selectableItemBackground"
+            />
+
+        <ImageButton
+            android:id="@+id/vct_markButton"
             android:layout_width="48dp"
             android:layout_height="48dp"
             android:padding="8dp"
             android:scaleType="fitXY"
-            app:srcCompat="@drawable/ic_frames"
+            app:srcCompat="@drawable/ic_add_marker"
             android:background="?android:selectableItemBackground"
-            android:contentDescription="@string/fullscreen"
-            android:onClick="@{handlers::onShowFramesClick}"
-            android:tint="@color/frame_list_button_color"
-            android:selected="@{params.showingFrames}"
-            android:layout_alignParentTop="true"
-            android:layout_alignParentEnd="true"
+            android:contentDescription="@string/add_marker"
             />
 
-        <com.michael.video.AmvMarkerView
-            android:id="@+id/markerView"
+        <ImageButton
+            android:id="@+id/vct_pinpButton"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:padding="8dp"
+            android:scaleType="fitXY"
+            app:srcCompat="@drawable/ic_pinp"
+            android:background="?android:selectableItemBackground"
+            android:contentDescription="@string/pinp" />
+
+        <ImageButton
+            android:id="@+id/vct_fullscreenButton"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:padding="8dp"
+            android:scaleType="fitXY"
+            app:srcCompat="@drawable/ic_expand"
+            android:background="?android:selectableItemBackground"
+            android:contentDescription="@string/fullscreen" />
+    </LinearLayout>
+
+    <ImageButton
+        android:id="@+id/vct_showFramesButton"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
+        android:padding="8dp"
+        android:scaleType="fitXY"
+        app:srcCompat="@drawable/ic_frames"
+        android:background="?android:selectableItemBackground"
+        android:contentDescription="@string/fullscreen"
+        android:layout_alignParentTop="true"
+        android:layout_alignParentEnd="true"
+        />
+
+    <com.michael.video.AmvMarkerView
+        android:id="@+id/vct_markerView"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@color/marker_view_bg"
+        app:leftInert="13dp"
+        app:rightInert="13dp"
+        app:saveFromParent="false"
+        android:layout_below="@+id/vct_buttons"
+        />
+
+    <ImageButton
+        android:id="@+id/vct_playButton2"
+        android:layout_width="36dp"
+        android:layout_height="36dp"
+        android:padding="2dp"
+        android:scaleType="fitXY"
+        app:srcCompat="@drawable/ic_play"
+        android:contentDescription="@string/play_stop"
+        android:background="@color/controller_bg"
+        android:tint="@color/white"
+        android:visibility="gone"
+        android:layout_below="@+id/vct_markerView"
+        android:layout_alignParentEnd="true"
+        />
+
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:id="@+id/vct_sliderGroup"
+        android:background="@color/controller_bg"
+        android:layout_below="@+id/vct_markerView"
+        android:layout_alignParentStart="true"
+        android:layout_toStartOf="@id/vct_playButton2"
+        >
+        <com.michael.video.AmvFrameListView
+            android:id="@+id/vct_frameList"
+            android:layout_width="match_parent"
+            android:layout_height="80dp"
+            android:layout_marginTop="26dp"
+            tools:visibility="visible"
+            />
+
+        <com.michael.video.AmvSlider
+            android:id="@+id/vct_slider"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:background="@color/marker_view_bg"
-            app:leftInert="13dp"
-            app:rightInert="13dp"
+            app:trimmingMode="false"
             app:saveFromParent="false"
-            android:layout_below="@+id/buttons"
-            />
-        <FrameLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:id="@+id/sliderGroup"
-            android:background="@color/controller_bg"
-            android:layout_below="@+id/markerView">
-            <com.michael.video.AmvFrameListView
-                android:id="@+id/frameList"
-                android:layout_width="match_parent"
-                android:layout_height="80dp"
-                android:visibility="@{params.showingFrames ? View.VISIBLE : View.GONE}"
-                android:layout_marginTop="26dp"
-                tools:visibility="visible"
-                />
-
-            <com.michael.video.AmvSlider
-                android:id="@+id/slider"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                app:trimmingMode="false"
-                app:saveFromParent="false"
-                android:background="@color/transparent"
-                app:onCurrentPositionChanged="@{handlers::onCurrentPositionChanged}"
-                />
-
-        </FrameLayout>
-
-        <TextView
-            android:id="@+id/counterBar"
-            tools:text="00:00/00:00"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:background="@color/controller_bg"
-            android:textColor="@color/white"
-            android:gravity="center_horizontal"
-            android:paddingTop="2dp"
-            android:paddingBottom="2dp"
-            android:text="@{params.counterText}"
-            android:layout_below="@+id/sliderGroup"
+            android:background="@color/transparent"
             />
 
+    </FrameLayout>
 
-    </RelativeLayout>
-</layout>
+
+    <TextView
+        android:id="@+id/vct_counterBar"
+        tools:text="00:00/00:00"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@color/controller_bg"
+        android:textColor="@color/white"
+        android:gravity="center_horizontal"
+        android:paddingTop="2dp"
+        android:paddingBottom="2dp"
+        android:layout_below="@+id/vct_sliderGroup"
+        />
+
+
+</RelativeLayout>

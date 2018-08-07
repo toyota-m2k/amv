@@ -8,4 +8,5 @@
     <string name="pinp">Picture in picture</string>
     <string name="fullscreen">Full screen</string>
     <string name="cancel">Cancel</string>
+    <string name="play_stop">play or stop</string>
 </resources>

@@ -85,7 +85,7 @@ class AmvFrameSelectorView @JvmOverloads constructor(
             }
 
             // プレーヤー上のビデオの読み込みが完了したときのイベント
-            videoPreparedListener.add(listenerName) { mp, _ ->
+            videoPreparedListener.add(listenerName) { _, _ ->
                 models.isPlayerPrepared = true
                 restoringData?.tryRestoring()
             }
@@ -201,7 +201,7 @@ class AmvFrameSelectorView @JvmOverloads constructor(
         controls.frameListView.position = position
     }
 
-
+    // region Saving / Restoring
 
     /**
      * リストア中のデータを保持するクラス
@@ -306,5 +306,7 @@ class AmvFrameSelectorView @JvmOverloads constructor(
             }
         }
     }
+
+    // endregion
 
 }
