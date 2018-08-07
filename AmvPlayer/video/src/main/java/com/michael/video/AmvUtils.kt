@@ -1,3 +1,9 @@
+/**
+ * ユーティリティ
+ *
+ * @author M.TOYOTA 2018.07.11 Created
+ * Copyright © 2018 M.TOYOTA  All Rights Reserved.
+ */
 package com.michael.video
 
 import android.content.Context
@@ -24,7 +30,7 @@ interface ImSize {
  * MutableなSize型
  */
 @Suppress("unused")
-data class MuSize(override var height: Float, override var width: Float) : ImSize {
+data class MuSize(override var width: Float, override var height: Float) : ImSize {
 
     constructor() : this(0f,0f)
     constructor(v:Float) : this(v,v)
@@ -52,6 +58,11 @@ data class MuSize(override var height: Float, override var width: Float) : ImSiz
 
     override val isEmpty:Boolean
         get() = width==0f && height==0f
+
+    fun empty() {
+        set(0f,0f)
+    }
+
 }
 
 

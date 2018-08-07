@@ -7,7 +7,7 @@
     android:background="@color/button_face">
 
     <com.michael.video.AmvFrameListView
-        android:id="@+id/frameList"
+        android:id="@+id/vtc_frameList"
         android:layout_width="match_parent"
         android:layout_height="80dp"
         android:layout_marginTop="48dp"
@@ -19,7 +19,7 @@
         />
 
     <com.michael.video.AmvSlider
-        android:id="@+id/slider"
+        android:id="@+id/vtc_slider"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         app:layout_constraintTop_toTopOf="parent"
@@ -29,7 +29,7 @@
 
 
     <ImageButton
-        android:id="@+id/playButton"
+        android:id="@+id/vtc_playButton"
         android:layout_width="48dp"
         android:layout_height="48dp"
         android:layout_marginTop="2dp"
@@ -37,7 +37,7 @@
         android:contentDescription="@string/play"
         android:padding="2dp"
         android:scaleType="fitXY"
-        app:layout_constraintTop_toBottomOf="@id/frameList"
+        app:layout_constraintTop_toBottomOf="@+id/vtc_frameList"
         app:layout_constraintLeft_toLeftOf="parent"
         app:layout_constraintRight_toRightOf="parent"
         app:srcCompat="@drawable/ic_play"
@@ -45,19 +45,19 @@
         android:clickable="false"
         />
     <TextView
-        android:id="@+id/trimStartText"
+        android:id="@+id/vtc_trimStartText"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        app:layout_constraintTop_toBottomOf="@id/frameList"
+        app:layout_constraintTop_toBottomOf="@+id/vtc_frameList"
         app:layout_constraintStart_toStartOf="parent"
         android:layout_marginTop="8dp"
         android:layout_marginStart="26dp"
         />
     <TextView
-        android:id="@+id/trimEndText"
+        android:id="@+id/vtc_trimEndText"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        app:layout_constraintBottom_toBottomOf="@id/frameList"
+        app:layout_constraintBottom_toBottomOf="@id/vtc_frameList"
         app:layout_constraintEnd_toEndOf="parent"
         android:layout_marginTop="8dp"
         android:layout_marginEnd="26dp"

@@ -6,20 +6,20 @@
     >
 
     <com.michael.video.AmvHorzScrollView
-        android:id="@+id/scroller"
+        android:id="@+id/flv_scroller"
         android:layout_width="match_parent"
         android:layout_height="80dp"
         android:clickable="false"
         >
         <LinearLayout
-            android:id="@+id/imageList"
+            android:id="@+id/flv_imageList"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:orientation="horizontal"
             />
 
         <View
-            android:id="@+id/leftTruncated"
+            android:id="@+id/flv_leftTruncated"
             android:layout_height="match_parent"
             android:layout_width="0dp"
             android:background="@color/white"
@@ -27,7 +27,7 @@
             android:visibility="gone"
             />
         <View
-            android:id="@+id/rightTruncated"
+            android:id="@+id/flv_rightTruncated"
             android:layout_height="match_parent"
             android:layout_width="0dp"
             android:background="@color/white"
@@ -35,14 +35,14 @@
             android:visibility="gone"
             />
         <View
-            android:id="@+id/leftTruncatedBar"
+            android:id="@+id/flv_leftTruncatedBar"
             android:layout_height="match_parent"
             android:layout_width="8dp"
             android:background="@color/trimming_sel"
             android:visibility="gone"
             />
         <View
-            android:id="@+id/rightTruncatedBar"
+            android:id="@+id/flv_rightTruncatedBar"
             android:layout_height="match_parent"
             android:layout_width="8dp"
             android:background="@color/trimming_sel"
@@ -52,7 +52,7 @@
     </com.michael.video.AmvHorzScrollView>
 
     <View
-        android:id="@+id/knob"
+        android:id="@+id/flv_knob"
         android:layout_height="match_parent"
         android:layout_width="26dp"
         android:background="@drawable/ic_slider_knob_bg"

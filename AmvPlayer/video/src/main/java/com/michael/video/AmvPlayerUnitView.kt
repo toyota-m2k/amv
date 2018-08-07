@@ -1,3 +1,10 @@
+/**
+ * 基本動画プレーヤー画面
+ * （AmvExoVideoPlayer + AmvVideoController)
+ *
+ * @author M.TOYOTA 2018.07.20 Created
+ * Copyright © 2018 M.TOYOTA  All Rights Reserved.
+ */
 package com.michael.video
 
 import android.content.Context
@@ -12,10 +19,10 @@ class AmvPlayerUnitView @JvmOverloads constructor(
 
     inner class Bindings {
         val player: AmvExoVideoPlayer by lazy {
-            findViewById<AmvExoVideoPlayer>(R.id.videoPlayer)
+            findViewById<AmvExoVideoPlayer>(R.id.evp_videoPlayer)
         }
         val controller: AmvVideoController by lazy {
-            findViewById<AmvVideoController>(R.id.videoController)
+            findViewById<AmvVideoController>(R.id.evp_videoController)
         }
         fun init() {
             controller.setVideoPlayer(player)

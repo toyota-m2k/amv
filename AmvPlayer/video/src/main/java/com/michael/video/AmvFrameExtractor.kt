@@ -1,3 +1,10 @@
+/**
+ * フレームビットマップ抽出ユーティリティ
+ *
+ * @author M.TOYOTA 2018.07.11 Created
+ * Copyright © 2018 M.TOYOTA  All Rights Reserved.
+ */
+
 package com.michael.video
 
 import android.graphics.Bitmap
@@ -10,11 +17,72 @@ import com.michael.utils.UtAsyncTask
 import com.michael.utils.UtLogger
 import java.io.File
 
+/**
+ * Usage
+ *
+ * val source = File("path to movie file")
+ * val extractor = AmvFrameExtractor()
+ * extractor.setSizingHint(fitMode, widthHint, heightHint)  // see AmvFitter
+ * extractor.onVideoInfoRetrievedListener.set { ex ->
+ *  // 以下のプロパティが利用可能
+ *  //   ex.duration            動画の総再生時間
+ *  //   ex.videoSize           動画のサイズ(in pixel)
+ *  //   ex.thumbnailSize       サムネイルのサイズ(in pixel)
+ *  //   ex.targetFramePosition 取得するフレーム位置（getThumbnailの場合のみ）
+ * extractor.onThumbnailRetrievedListener.set { ex, index, bitmap ->
+ *  // index: フレームインデックス (0 .. count-1)
+ *  // bitmap: フレームビットマップ
+ * }
+ * extractor.onFinishedListener.set { ex, result ->
+ *  Handler().post {
+ *     extractor.dispose()     // すべて終了したらdisposeする
+ *  }
+ * }
+ *
+ * // フレームリストを抽出
+ * extractor.extract(source, count)     // count: フレーム数
+ *
+ * // or 指定位置のサムネイルを取得
+ * extractor.getThumbnail(source, framePosition)     // framePosition: フレーム位置(ms)
+ */
 class AmvFrameExtractor : UtAsyncTask() {
+
+    // region Public APIs
+
+    fun setSizingHint(mode:FitMode, width:Float, height:Float) {
+        mFitter.setHint(mode, width, height)
+    }
+
+    /**
+     * フレームサムネイル抽出実行
+     */
+    fun extract(source:File, count:Int) {
+        mFile = source
+        mThumbnailCount = count
+
+        execute()
+    }
+
+    fun getThumbnail(source:File, position:Long=-1) {
+        mFile = source
+        mThumbnailCount = 1
+        mTargetFramePosition = position
+    }
+
+    // endregion
+
+    // region Properties
+
     var duration:Long = 0           // ms
     val videoSize = MuSize()
     val thumbnailSize : Size
         get() = mThumbnailSize.asSize
+    val targetFramePosition : Long
+        get() = if(mTargetFramePosition<0) Math.min(2000, duration / 100) else mTargetFramePosition
+
+    // endregion
+
+    // region Listeners
 
     val onVideoInfoRetrievedListener = Funcies1<AmvFrameExtractor, Unit>()
     val onThumbnailRetrievedListener = Funcies3<AmvFrameExtractor, Int, Bitmap, Unit>()
@@ -35,6 +103,10 @@ class AmvFrameExtractor : UtAsyncTask() {
             Bitmap.createScaledBitmap(bmp, mThumbnailSize.width.toInt(), mThumbnailSize.height.toInt(), true)
         }
     }
+
+    // endregion
+
+    // region Internals
 
     override fun task() {
         val analyzer = MediaMetadataRetriever()
@@ -58,8 +130,7 @@ class AmvFrameExtractor : UtAsyncTask() {
 
             if (mThumbnailCount <= 1) {
                 // 主サムネイルを取得するモード
-                val tm = Math.min(2000, duration / 100)
-                val bmp = analyzer.getBitmapAt(tm)
+                val bmp = analyzer.getBitmapAt(targetFramePosition)
                 runOnUiThread(onThumbnailRetrievedListener, this, 0, bmp)
             } else {
                 // フレームリストを取得するモード
@@ -89,23 +160,10 @@ class AmvFrameExtractor : UtAsyncTask() {
 
     // Working parameters
     private var mFile:File? = null
-    private var mFitter:AmvFitter = AmvFitter(FitMode.Height, MuSize(150f))
+    private var mFitter:AmvFitter = AmvFitter(FitMode.Height, MuSize(160f))
     private var mThumbnailCount:Int = 0
     private val mThumbnailSize = MuSize()
-
-    fun setSizingHint(mode:FitMode, width:Float, height:Float) {
-        mFitter.setHint(mode, width, height)
-    }
-
-    /**
-     * フレームサムネイル抽出実行
-     */
-    fun extract(source:File, count:Int) {
-        mFile = source
-        mThumbnailCount = count
-
-        execute()
-    }
+    private var mTargetFramePosition = -1L
 
     /**
      * 破棄・・・UIスレッドから呼び出すこと

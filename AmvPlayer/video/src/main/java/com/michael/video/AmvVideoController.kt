@@ -171,7 +171,7 @@ class AmvVideoController @JvmOverloads constructor(context: Context, attrs: Attr
         mBinding.markerView.markerContextQueryListener.set { _, _ ->
         }
 
-        val sa = context.theme.obtainStyledAttributes(attrs,R.styleable.AmvSlider,defStyleAttr,0)
+        val sa = context.theme.obtainStyledAttributes(attrs,R.styleable.AmvVideoController,defStyleAttr,0)
         try {
             val enableViewModel = sa.getBoolean(R.styleable.AmvVideoController_frameCache, true)
             mFrameListViewModel = if(enableViewModel) {
@@ -182,21 +182,6 @@ class AmvVideoController @JvmOverloads constructor(context: Context, attrs: Attr
             } else {
                 null
             }
-
-//            val activity = getActivity() as? FragmentActivity
-//            mFrameListViewModel = if (enableViewModel && null != activity) {
-//                ViewModelProviders.of(activity).get(AmvFrameListViewModel::class.java).apply {
-//                    frameListInfo.observe(activity, Observer<AmvFrameListViewModel.IFrameListInfo> { info ->
-//                        if (null != info) {
-//                            updateFrameListByViewModel(info)
-//                        }
-//                    })
-//                    setSizingHint(FitMode.Height, 0f, FRAME_HEIGHT)
-//                    setFrameCount(FRAME_COUNT)
-//                }
-//            } else {
-//                null
-//            }
         } finally {
             sa.recycle()
         }

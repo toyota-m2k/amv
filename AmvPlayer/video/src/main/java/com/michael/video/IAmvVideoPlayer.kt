@@ -1,3 +1,10 @@
+/**
+ * Video Player i/f
+ *
+ * @author M.TOYOTA 2018.07.04 Created
+ * Copyright © 2018 M.TOYOTA  All Rights Reserved.
+ */
+
 package com.michael.video
 
 import com.michael.utils.Funcies2

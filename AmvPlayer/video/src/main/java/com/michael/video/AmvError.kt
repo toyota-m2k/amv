@@ -1,3 +1,10 @@
+/**
+ * エラー情報を保持するクラス
+ *
+ * @author M.TOYOTA 2018.07.26 Created
+ * Copyright © 2018 M.TOYOTA  All Rights Reserved.
+ */
+
 package com.michael.video
 
 class AmvError {
@@ -30,11 +37,17 @@ class AmvError {
         }
     }
 
-    @Suppress("unused")
     fun copyFrom(e:AmvError) {
         if (!hasError) {
             mException = e.mException
             mMessage = e.mMessage
+        }
+    }
+
+    @Suppress("unused")
+    fun clone() : AmvError {
+        return AmvError().apply {
+            copyFrom(this)
         }
     }
 

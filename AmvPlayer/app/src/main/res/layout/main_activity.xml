@@ -66,6 +66,17 @@
             />
 
         <Button
+            android:id="@+id/selectFrame"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:textAllCaps="false"
+            android:onClick="@{mainActivity::onSelectFrame}"
+            android:text="@string/select_frame"
+            app:layout_constraintStart_toEndOf="@+id/trimming_button"
+            />
+
+        <Button
             android:id="@+id/shuffleButton"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
@@ -73,7 +84,7 @@
             android:textAllCaps="false"
             android:onClick="@{mainActivity::onShuffle}"
             android:text="@string/shuffle"
-            app:layout_constraintStart_toEndOf="@+id/trimming_button"
+            app:layout_constraintStart_toEndOf="@+id/selectFrame"
             />
 
         <com.michael.video.AmvPlayerUnitView

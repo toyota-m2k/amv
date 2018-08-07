@@ -1,3 +1,9 @@
+/**
+ * フレームサムネイル一覧のスクローラー（FrameListViewの部品）
+ *
+ * @author M.TOYOTA 2018.07.26 Created
+ * Copyright © 2018 M.TOYOTA  All Rights Reserved.
+ */
 package com.michael.video
 
 import android.annotation.SuppressLint
@@ -21,11 +27,11 @@ class AmvHorzScrollView @JvmOverloads constructor(
     // Region Internals
 
     private inner class Controls {
-        val container : LinearLayout by lazy { findViewById<LinearLayout>(R.id.imageList) }
-        val leftTruncated: View by lazy { findViewById<View>(R.id.leftTruncated) }
-        val rightTruncated: View by lazy { findViewById<View>(R.id.rightTruncated) }
-        val leftTruncatedBar: View by lazy { findViewById<View>(R.id.leftTruncatedBar)}
-        val rightTruncatedBar: View by lazy { findViewById<View>(R.id.rightTruncatedBar) }
+        val container : LinearLayout by lazy { findViewById<LinearLayout>(R.id.flv_imageList) }
+        val leftTruncated: View by lazy { findViewById<View>(R.id.flv_leftTruncated) }
+        val rightTruncated: View by lazy { findViewById<View>(R.id.flv_rightTruncated) }
+        val leftTruncatedBar: View by lazy { findViewById<View>(R.id.flv_leftTruncatedBar)}
+        val rightTruncatedBar: View by lazy { findViewById<View>(R.id.flv_rightTruncatedBar) }
 
     }
 

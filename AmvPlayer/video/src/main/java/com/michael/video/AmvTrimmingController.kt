@@ -1,3 +1,9 @@
+/**
+ * トリミング操作用コントローラービュー
+ *
+ * @author M.TOYOTA 2018.07.26 Created
+ * Copyright © 2018 M.TOYOTA  All Rights Reserved.
+ */
 package com.michael.video
 
 import android.content.Context
@@ -89,20 +95,20 @@ class AmvTrimmingController @JvmOverloads constructor(context: Context, attrs: A
     inner class Controls {
         // Controls
         val slider: AmvSlider by lazy {
-            findViewById<AmvSlider>(R.id.slider)
+            findViewById<AmvSlider>(R.id.vtc_slider)
         }
         val frameList: AmvFrameListView by lazy {
-            findViewById<AmvFrameListView>(R.id.frameList)
+            findViewById<AmvFrameListView>(R.id.vtc_frameList)
         }
         val playButton: ImageButton by lazy {
-            findViewById<ImageButton>(R.id.playButton)
+            findViewById<ImageButton>(R.id.vtc_playButton)
         }
 
         val trimStartText: TextView by lazy {
-            findViewById<TextView>(R.id.trimStartText)
+            findViewById<TextView>(R.id.vtc_trimStartText)
         }
         val trimEndText: TextView by lazy {
-            findViewById<TextView>(R.id.trimEndText)
+            findViewById<TextView>(R.id.vtc_trimEndText)
         }
 
         fun onUpdatePlayerState(state:IAmvVideoPlayer.PlayerState) {
@@ -506,7 +512,7 @@ class AmvTrimmingController @JvmOverloads constructor(context: Context, attrs: A
         /**
          * Constructor called from [AmvSlider.onSaveInstanceState]
          */
-        constructor(superState: Parcelable, savedData: AmvTrimmingController.SavedData) : super(superState) {
+        constructor(superState: Parcelable, savedData: SavedData) : super(superState) {
             this.data = savedData
         }
 
@@ -525,11 +531,11 @@ class AmvTrimmingController @JvmOverloads constructor(context: Context, attrs: A
         companion object {
             @Suppress("unused")
             @JvmStatic
-            val CREATOR: Parcelable.Creator<AmvTrimmingController.SavedState> = object : Parcelable.Creator<AmvTrimmingController.SavedState> {
-                override fun createFromParcel(parcel: Parcel): AmvTrimmingController.SavedState {
+            val CREATOR: Parcelable.Creator<SavedState> = object : Parcelable.Creator<SavedState> {
+                override fun createFromParcel(parcel: Parcel): SavedState {
                     return SavedState(parcel)
                 }
-                override fun newArray(size: Int): Array<AmvTrimmingController.SavedState?> {
+                override fun newArray(size: Int): Array<SavedState?> {
                     return arrayOfNulls(size)
                 }
             }

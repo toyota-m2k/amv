@@ -233,6 +233,15 @@ public class MainActivity extends AppCompatActivity {
             }
         });
     }
+
+    public void onSelectFrame(View view) {
+        Intent intent = new Intent(this, SelectFrameActivity.class);
+        if(null!=mCurrentFile) {
+            intent.putExtra("source", mCurrentFile);
+            startActivity(intent);
+        }
+    }
+
 //    public void onClickPlay(View view) {
 //        mBinding.videoPlayer.play();
 //    }

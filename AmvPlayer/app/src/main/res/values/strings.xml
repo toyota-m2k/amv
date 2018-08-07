@@ -12,4 +12,6 @@
     <string name="trimming">Trimming</string>
     <string name="transcode">Transcode</string>
     <string name="shuffle">Shuffle</string>
+    <string name="select_frame">Select Frame</string>
+    <string name="ok">OK</string>
 </resources>

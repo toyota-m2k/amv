@@ -8,14 +8,14 @@
     android:orientation="vertical">
 
     <com.michael.video.AmvExoVideoPlayer
-        android:id="@+id/videoPlayer"
+        android:id="@+id/evp_videoPlayer"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         tools:layout_height="wrap_content"
         tools:layout_width="wrap_content" />
 
     <com.michael.video.AmvVideoController
-        android:id="@+id/videoController"
+        android:id="@+id/evp_videoController"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content" />
 

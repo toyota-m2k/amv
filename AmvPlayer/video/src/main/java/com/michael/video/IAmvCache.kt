@@ -1,3 +1,9 @@
+/**
+ * Cache object i/f
+ *
+ * @author M.TOYOTA 2018.07.27 Created
+ * Copyright © 2018 M.TOYOTA  All Rights Reserved.
+ */
 package com.michael.video
 
 import android.net.Uri
@@ -30,7 +36,7 @@ interface IAmvCache
     /**
      * 参照カウンタを下げる・・・キャッシュを解放（CacheManagerによる削除）可能な状態にする
      */
-    fun release()
+    fun release() : Int
 
     /**
      * 参照カウンタを上げる

@@ -1,3 +1,9 @@
+/**
+ * ExoPlayer を使った IAmvVideoPlayerの実装クラス
+ *
+ * @author M.TOYOTA 2018.07.26 Created
+ * Copyright © 2018 M.TOYOTA  All Rights Reserved.
+ */
 package com.michael.video
 
 import android.content.Context
@@ -135,15 +141,21 @@ class AmvExoVideoPlayer @JvmOverloads constructor(
         player.addVideoListener(mVideoListener)
         mPlayer = player
 
-        // タッチで再生/一時停止をトグルさせる
-        this.setOnClickListener {
-            if(it is AmvExoVideoPlayer) {
-                it.togglePlay()
+        val sa = context.theme.obtainStyledAttributes(attrs,R.styleable.AmvExoVideoPlayer,defStyleAttr,0)
+        try {
+            val playOnTouch = sa.getBoolean(R.styleable.AmvExoVideoPlayer_playOnTouch, true)
+            if (playOnTouch) {
+
+                // タッチで再生/一時停止をトグルさせる
+                this.setOnClickListener {
+                    if (it is AmvExoVideoPlayer) {
+                        it.togglePlay()
+                    }
+                }
             }
+        } finally {
+            sa.recycle()
         }
-//        mBindings.playerView.setOnClickListener {     // ExoPlayer にクリックリスナーをセットしても無駄だった
-//            togglePlay()
-//        }
     }
 
     override fun onDetachedFromWindow() {
@@ -166,13 +178,13 @@ class AmvExoVideoPlayer @JvmOverloads constructor(
     private inner class Bindings : AmvFitter() {
         // Controls
         val playerView: PlayerView by lazy {
-            findViewById<PlayerView>(R.id.playerView)
+             findViewById<PlayerView>(R.id.exp_playerView)
         }
-        val progressRing : ProgressBar by lazy {
-            findViewById<ProgressBar>(R.id.progressRing)
+        val progressRing: ProgressBar by lazy {
+            findViewById<ProgressBar>(R.id.exp_progressRing)
         }
         private val errorMessageView: TextView by lazy {
-            findViewById<TextView>(R.id.errorMessage)
+            findViewById<TextView>(R.id.exp_errorMessage)
         }
 
         // Public properties/methods
@@ -184,7 +196,7 @@ class AmvExoVideoPlayer @JvmOverloads constructor(
                 updateState()
             }
 
-        var playerState : IAmvVideoPlayer.PlayerState
+        var playerState: IAmvVideoPlayer.PlayerState
             get() = mPlayerState
             set(state) {
                 if (state != mPlayerState) {
@@ -193,10 +205,9 @@ class AmvExoVideoPlayer @JvmOverloads constructor(
                 }
             }
 
-        fun setVideoSize(width:Float, height:Float) {
-            if(mVideoSize.width!=width || mVideoSize.height!=height) {
-                mVideoSize.set(width,height)
-                fit(mVideoSize, mPlayerSize)
+        fun setVideoSize(width: Float, height: Float) {
+            if (mVideoSize.width != width || mVideoSize.height != height) {
+                mVideoSize.set(width, height)
                 updateLayout()
             }
         }
@@ -208,15 +219,17 @@ class AmvExoVideoPlayer @JvmOverloads constructor(
         }
 
         // Rendering Parameters
-        private val mVideoSize = MuSize(100f, 100f)                  // 動画のNatural Size
-        private val mPlayerSize = MuSize(0f,0f)                      // VideoView のサイズ
+        private val mVideoSize = MuSize(0f, 0f)              // 動画のNatural Size
+        private val mPlayerSize = MuSize(0f, 0f)                 // VideoView のサイズ
 
         // Player States
         private var mInitial: Boolean = true
         private var mPlayerState = IAmvVideoPlayer.PlayerState.None
 
         private val isReady: Boolean
-            get() = when(mPlayerState) { IAmvVideoPlayer.PlayerState.Paused, IAmvVideoPlayer.PlayerState.Playing -> true else -> false }
+            get() = when (mPlayerState) { IAmvVideoPlayer.PlayerState.Paused, IAmvVideoPlayer.PlayerState.Playing -> true
+                else -> false
+            }
 
         val isLoading: Boolean
             get() = mPlayerState == IAmvVideoPlayer.PlayerState.Loading
@@ -226,27 +239,35 @@ class AmvExoVideoPlayer @JvmOverloads constructor(
             get() = mPlayerState == IAmvVideoPlayer.PlayerState.Error
 
         @Suppress("unused")
-        val isPlaying : Boolean
+        val isPlaying: Boolean
             get() = mPlayerState == IAmvVideoPlayer.PlayerState.Playing
 
         // Update Views
         private fun updateLayout() {
+            val videoSize = if (mVideoSize.isEmpty) MuSize(640f,480f) else mVideoSize
+            fit(videoSize, mPlayerSize)
             val w = mPlayerSize.width.roundToInt()
             val h = mPlayerSize.height.roundToInt()
-            playerView.setLayoutSize(w,h)
-            sizeChangedListener.invoke(this@AmvExoVideoPlayer, w,h)
+            playerView.setLayoutSize(w, h)
+            sizeChangedListener.invoke(this@AmvExoVideoPlayer, w, h)
         }
 
         // Update States
         private fun updateState() {
-            if(mInitial && isReady) {
+            if (mInitial && isReady) {
                 mInitial = false
                 videoPreparedListener.invoke(this@AmvExoVideoPlayer, naturalDuration)
             }
-            progressRing.visibility = if(isLoading) View.VISIBLE else View.INVISIBLE
-            errorMessageView.visibility = if(isError && errorMessage.isNotEmpty()) View.VISIBLE else View.INVISIBLE
+            progressRing.visibility = if (isLoading) View.VISIBLE else View.INVISIBLE
+            errorMessageView.visibility = if (isError && errorMessage.isNotEmpty()) View.VISIBLE else View.INVISIBLE
             playerStateChangedListener.invoke(this@AmvExoVideoPlayer, mPlayerState)
         }
+
+        fun setHintAndUpdateLayout(fitMode:FitMode, width:Float, height:Float) {
+            setHint(fitMode, width, height)
+            updateLayout()
+        }
+
     }
 
     // endregion
@@ -273,7 +294,8 @@ class AmvExoVideoPlayer @JvmOverloads constructor(
 
     // Methods
     override fun setLayoutHint(mode: FitMode, width: Float, height: Float) {
-        mBindings.setHint(mode, width, height)
+        mBindings.setHintAndUpdateLayout(mode, width, height)
+
     }
 
     override fun reset() {

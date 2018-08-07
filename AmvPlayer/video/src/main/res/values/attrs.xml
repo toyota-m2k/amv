@@ -58,4 +58,9 @@
     <declare-styleable name="AmvTrimmingtController">
         <attr name="frameCache" />
     </declare-styleable>
+
+    <declare-styleable name="AmvExoVideoPlayer">
+        <attr name="playOnTouch" format="boolean"/>
+    </declare-styleable>
+
 </resources>

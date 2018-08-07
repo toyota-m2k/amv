@@ -1,3 +1,9 @@
+/**
+ * マーカー表示/設定用ビュー
+ *
+ * @author M.TOYOTA 2018.07.24 Created
+ * Copyright © 2018 M.TOYOTA  All Rights Reserved.
+ */
 package com.michael.video
 
 import android.annotation.SuppressLint

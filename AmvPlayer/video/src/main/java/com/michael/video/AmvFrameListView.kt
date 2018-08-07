@@ -1,3 +1,9 @@
+/**
+ * フレームサムネイルリストビュー
+ *
+ * @author M.TOYOTA 2018.07.11 Created
+ * Copyright © 2018 M.TOYOTA  All Rights Reserved.
+ */
 package com.michael.video
 
 import android.annotation.SuppressLint
@@ -22,10 +28,10 @@ class AmvFrameListView @JvmOverloads constructor(
 
     private inner class Controls {
         val scroller: AmvHorzScrollView by lazy {
-            findViewById<AmvHorzScrollView>(R.id.scroller)
+            findViewById<AmvHorzScrollView>(R.id.flv_scroller)
         }
         val knob: View by lazy {
-            findViewById<View>(R.id.knob)
+            findViewById<View>(R.id.flv_knob)
         }
     }
 

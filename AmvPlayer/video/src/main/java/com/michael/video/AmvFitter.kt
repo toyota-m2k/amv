@@ -1,3 +1,10 @@
+/**
+ * 矩形サイズをルールに従って配置するためのサイズ決定ロジックの実装
+ *
+ * @author M.TOYOTA 2018.07.11 Created
+ * Copyright © 2018 M.TOYOTA  All Rights Reserved.
+ */
+
 package com.michael.video
 
 import com.michael.utils.UtLogger

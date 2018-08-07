@@ -1,3 +1,10 @@
+/**
+ * トリミング操作ビュー
+ * （AmvExoVideoPlayer + AmvTrimmingPlayerView)
+ *
+ * @author M.TOYOTA 2018.07.26 Created
+ * Copyright © 2018 M.TOYOTA  All Rights Reserved.
+ */
 package com.michael.video
 
 import android.annotation.SuppressLint
@@ -20,22 +27,22 @@ class AmvTrimmingPlayerView @JvmOverloads constructor(
 ) : FrameLayout(context, attrs, defStyleAttr) {
     private inner class Controls {
         val player: AmvExoVideoPlayer by lazy {
-            findViewById<AmvExoVideoPlayer>(R.id.videoPlayer)
+            findViewById<AmvExoVideoPlayer>(R.id.trp_videoPlayer)
         }
         val controller: AmvTrimmingController by lazy {
-            findViewById<AmvTrimmingController>(R.id.trimmingController)
+            findViewById<AmvTrimmingController>(R.id.trp_trimmingController)
         }
         val progressLayer: ConstraintLayout by lazy {
-            findViewById<ConstraintLayout>(R.id.progressLayer)
+            findViewById<ConstraintLayout>(R.id.trp_progressLayer)
         }
         val progressBar: ProgressBar by lazy {
-            findViewById<ProgressBar>(R.id.progressBar)
+            findViewById<ProgressBar>(R.id.trp_progressBar)
         }
         val message: TextView by lazy {
-            findViewById<TextView>(R.id.message)
+            findViewById<TextView>(R.id.trp_message)
         }
         val cancelButton: Button by lazy {
-            findViewById<Button>(R.id.cancelButton)
+            findViewById<Button>(R.id.trp_cancelButton)
         }
 
         fun initialize() {

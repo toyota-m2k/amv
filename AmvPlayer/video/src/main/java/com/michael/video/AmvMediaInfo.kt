@@ -1,3 +1,10 @@
+/**
+ * m4m で取り出した動画情報を保持するクラス
+ *
+ * @author M.TOYOTA 2018.07.26 Created
+ * Copyright © 2018 M.TOYOTA  All Rights Reserved.
+ */
+
 package com.michael.video
 
 import android.content.Context

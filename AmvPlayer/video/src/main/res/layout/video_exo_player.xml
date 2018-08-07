@@ -10,13 +10,13 @@
         tools:layout_height="150dp"
         android:layout_width="150dp"
         android:layout_height="150dp"
-        android:id="@+id/playerView"
+        android:id="@+id/exp_playerView"
         android:layout_gravity="center_horizontal|center_vertical"
         app:use_controller="false"
         />
     <ProgressBar
         tools:visibility="invisible"
-        android:id="@+id/progressRing"
+        android:id="@+id/exp_progressRing"
         android:layout_width="50dp"
         android:layout_height="50dp"
         android:layout_gravity="center_horizontal|center_vertical"
@@ -25,7 +25,7 @@
     <TextView
         tools:text="something wrong"
         tools:visibility="visible"
-        android:id="@+id/errorMessage"
+        android:id="@+id/exp_errorMessage"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:padding="8dp"
