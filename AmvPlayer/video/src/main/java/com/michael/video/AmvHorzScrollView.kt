@@ -50,6 +50,8 @@ class AmvHorzScrollView @JvmOverloads constructor(
             get() = valueToPixel(leftMask)
         val rightMaskPixel:Int
             get() = valueToPixel(rightMask)
+        val totalRangePixel:Int
+            get() = valueToPixel(totalRange)
 
         fun resetWithTotalRange(range:Long) {
             totalRange = if(range!=0L) range else 1000
@@ -121,7 +123,7 @@ class AmvHorzScrollView @JvmOverloads constructor(
         get() = models.rightMask
         set(v) {
             models.rightMask = v
-            controls.rightTruncated.setLayoutWidth(models.rightMaskPixel)
+            controls.rightTruncated.setLayoutWidth(Math.abs(models.totalRangePixel - models.rightMaskPixel))
             //updateRightMaskMargin()
             models.position = v
             updateScroll()
