@@ -42,6 +42,8 @@
     <declare-styleable name="AmvFrameListView">
         <!-- 動作モード: true: トリミング用 / false: 通常のスライダー-->
         <attr name="trimmingMode"/>
+        <attr name="extentLeft" format="dimension"/>
+        <attr name="extentRight" format="dimension"/>
     </declare-styleable>
 
     <declare-styleable name="AmvMarkerView">

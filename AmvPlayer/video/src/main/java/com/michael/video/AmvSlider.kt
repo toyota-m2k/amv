@@ -8,7 +8,6 @@ package com.michael.video
 
 import android.annotation.SuppressLint
 import android.content.Context
-import android.databinding.BindingAdapter
 import android.graphics.*
 import android.graphics.drawable.Drawable
 import android.os.Parcel
@@ -578,7 +577,7 @@ class AmvSlider @JvmOverloads constructor(
      */
     inner class DraggingInfo {
         // ドラッグ中のノブ
-        var knob: Knob = Knob.NONE
+        private var knob: Knob = Knob.NONE
         // ドラッグ開始時のタップ位置とノブの間隔・・・ドラッグ開始時のノブとタッチ位置の位置関係を維持したままドラッグするため
         var offset: Float = 0f
         // ノブ毎のイベント通知
@@ -637,57 +636,100 @@ class AmvSlider @JvmOverloads constructor(
             return if(knob == this.knob) SliderDragState.MOVING else SliderDragState.NONE
         }
 
+        private fun RectF.containsX(x:Float) : Boolean {
+            return x in left .. right
+        }
+
         /**
          * ドラッグ開始
          */
-        fun initAt(x:Float, y:Float) {
+        fun initAt(x:Float, y:Float, fromFriend:Boolean) :Boolean {
             reset()
 
+            var result = false
             if(trimmingEnabled) {
-                when {
-                    mThumbRect.contains(x,y) -> {
-                        knob = Knob.THUMB
-                        offset = mThumbRect.centerX() - x
-                    }
-                    mTrimLeftRect.contains(x,y)-> {
+                if(!fromFriend && mThumbRect.contains(x,y)){
+                    knob = Knob.THUMB
+                    offset = mThumbRect.centerX() - x
+                    result = true
+                } else if(fromFriend || y>=this@AmvSlider.mRailY) {
+                    if (mTrimLeftRect.containsX(x)) {
                         knob = Knob.LEFT
                         offset = mTrimLeftRect.right - x
-                    }
-                    mTrimRightRect.contains(x,y)-> {
+                        result = true
+                    } else if(mTrimRightRect.containsX(x)) {
                         knob = Knob.RIGHT
                         offset = mTrimRightRect.left - x
+                        result = true
                     }
                 }
             } else {
                 knob = Knob.THUMB
                 if(mThumbRect.contains(x,y)) {
                     offset = mThumbRect.centerX() - x
+                    result = true
                 } else {
                     currentPosition = position2value(x)    // この時の currentPositionChangedイベントは、SliderDragState.NONE で発行される
                     offset = 0f
+                    result = true
                 }
             }
             listener?.invoke(this@AmvSlider, value, SliderDragState.BEGIN)
+            return result
+        }
+
+        fun initByFriend(type:Knob) : Boolean {
+            return when(type) {
+                Knob.LEFT, Knob.RIGHT -> {
+                    knob = type
+                    offset = 0f
+                    true
+                }
+                else -> false
+            }
         }
 
         /**
          * ドラッグ中
          */
-        fun moveTo(x:Float) {
+        fun moveTo(x:Float) : Boolean {
             if(Knob.NONE == knob) {
-                return
+                return false
             }
             value = position2value(x+offset)
+            return true
         }
 
         /**
          * ドラッグ終了
          */
-        fun finish() {
+        fun finish() : Boolean {
+            if(Knob.NONE == knob) {
+                return false
+            }
             listener?.invoke(this@AmvSlider, value, SliderDragState.END)
             reset()
+            return true
         }
 
+    }
+
+    private fun handleTouchEvent(action:Int, x:Float, y:Float, friend:Boolean) : Boolean {
+        return when (action) {
+            MotionEvent.ACTION_DOWN -> {
+                mDraggingInfo.initAt(x, y, friend)
+            }
+
+            MotionEvent.ACTION_MOVE -> {
+                mDraggingInfo.moveTo(x)
+            }
+
+            MotionEvent.ACTION_UP -> {
+                mDraggingInfo.finish()
+            }
+
+            else -> { false }
+        }
     }
 
     /**
@@ -695,27 +737,21 @@ class AmvSlider @JvmOverloads constructor(
      */
     @SuppressLint("ClickableViewAccessibility")
     override fun onTouchEvent(event: MotionEvent): Boolean {
-        when (event.action) {
-            MotionEvent.ACTION_DOWN -> {
-                mDraggingInfo.initAt(event.x, event.y)
-            }
-
-            MotionEvent.ACTION_MOVE -> {
-                mDraggingInfo.moveTo(event.x)
-            }
-
-            MotionEvent.ACTION_UP -> {
-                mDraggingInfo.finish()
-            }
-        }
-        return true
+        return handleTouchEvent(event.action, event.x, event.y, false)
     }
 
     /**
      * お友達（AmvFrameListView）のタッチイベントを我がことのように扱うためのi/f
      */
-    fun onTouchAtFriend(event: MotionEvent) {
-        onTouchEvent(event)
+    fun onTouchAtFriend(event: MotionEvent) : Boolean {
+        return handleTouchEvent(event.action, event.x, event.y, true)
+    }
+
+    /**
+     * トリミング用にフレームリストを使う場合のおともだち追加処理
+     */
+    fun onTrimmingAtFriend(@Suppress("UNUSED_PARAMETER") event: MotionEvent, knob:Knob) : Boolean {
+        return mDraggingInfo.initByFriend(knob)
     }
 
     /**
@@ -788,19 +824,4 @@ class AmvSlider @JvmOverloads constructor(
             }
         }
     }
-
-    companion object {
-        @JvmStatic
-        @BindingAdapter(value = ["onCurrentPositionChanged", "onTrimStartPositionChanged", "onTrimEndPositionChanged"], requireAll = false)
-        fun setOnSliderChangeListener(
-                view: AmvSlider,
-                currentChanged: SliderValueChangedListener.IHandler?,
-                trimStartChanged: SliderValueChangedListener.IHandler?,
-                trimEndChanged: SliderValueChangedListener.IHandler?
-               ) {
-            view.currentPositionChanged.set(currentChanged)
-            view.trimStartPositionChanged.set(trimStartChanged)
-            view.trimEndPositionChanged.set(trimEndChanged)
-        }
-    }
-}
+ }

@@ -24,7 +24,7 @@ class AmvHorzScrollView @JvmOverloads constructor(
         context: Context, attrs: AttributeSet? = null, defStyleAttr: Int = 0
         ) : FrameLayout(context, attrs, defStyleAttr) {
 
-    // Region Internals
+    // region Internals
 
     private inner class Controls {
         val container : LinearLayout by lazy { findViewById<LinearLayout>(R.id.flv_imageList) }
@@ -152,6 +152,10 @@ class AmvHorzScrollView @JvmOverloads constructor(
     val contentWidth:Int
         get() = controls.container.getLayoutWidth()
 
+    // endregion
+
+    // region Rendering / Scroll
+
     /**
      * 値（動画のシーク位置：Long）から、Viewの位置(Pixel)を取得
      */
@@ -202,4 +206,29 @@ class AmvHorzScrollView @JvmOverloads constructor(
         updateScroll()
     }
 
+    // endregion
+
+    // region Touch event handling
+
+    private val hitTestMargin : Int by lazy {
+        context.dp2px(15)
+    }
+
+    private fun hitTestSub(x:Float, pivot:Int) : Boolean {
+        return x in pivot - hitTestMargin .. pivot + hitTestMargin
+    }
+
+    /**
+     * スクローラー（コンテントではない）座標系のX座標について、trimStart/trimEnd のヒットテストを行う
+     */
+    fun hitTest(x:Float) : AmvSlider.Knob {
+        return when {
+            !trimmingEnabled -> AmvSlider.Knob.NONE
+            hitTestSub(x, models.leftMaskPixel-models.scrollPixel) -> AmvSlider.Knob.LEFT
+            hitTestSub(x, models.rightMaskPixel-models.scrollPixel) -> AmvSlider.Knob.RIGHT
+            else -> AmvSlider.Knob.NONE
+        }
+    }
+
+    // endregion
 }

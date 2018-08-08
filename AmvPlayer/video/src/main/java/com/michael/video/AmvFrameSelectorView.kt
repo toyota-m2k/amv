@@ -236,7 +236,7 @@ class AmvFrameSelectorView @JvmOverloads constructor(
      */
     private fun adjustSliderPosition() {
         val width = measuredWidth
-        val max = controls.frameListView.contentWidth
+        val max = controls.frameListView.contentWidth +controls.frameListView.leftExtentWidth + controls.frameListView.rightExtentWidth
         controls.sliderGroup.setLayoutWidth(Math.min(width, max))
     }
 

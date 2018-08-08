@@ -200,6 +200,8 @@ class AmvTrimmingController @JvmOverloads constructor(context: Context, attrs: A
             }
             slider.isSaveFromParentEnabled = false         // スライダーの状態は、AmvTrimmingController側で復元する
 
+            frameList.touchFriendListener.set(slider::onTouchAtFriend)
+            frameList.trimmingFriendListener.set(slider::onTrimmingAtFriend)
         }
 
         fun resetWithDuration(duration:Long) {

@@ -21,9 +21,9 @@
             android:id="@+id/vtc_frameList"
             android:layout_width="match_parent"
             android:layout_height="80dp"
-            android:layout_marginTop="48dp"
-            android:layout_marginLeft="26dp"
-            android:layout_marginRight="26dp"
+            android:layout_marginTop="44dp"
+            app:extentLeft="26dp"
+            app:extentRight="26dp"
             app:trimmingMode="true"
             />
 
