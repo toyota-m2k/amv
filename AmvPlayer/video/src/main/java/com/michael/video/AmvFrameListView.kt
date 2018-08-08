@@ -62,6 +62,12 @@ class AmvFrameListView @JvmOverloads constructor(
         updateScroll()
     }
 
+    val contentWidth:Int
+        get() = controls.scroller.contentWidth
+
+//    val contentHeight:Int
+//        get() = controls.scroller.getLayoutHeight()
+
     fun add(bmp: Bitmap) {
         ImageView(context).apply {
             setImageBitmap(bmp)

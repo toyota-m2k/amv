@@ -26,6 +26,7 @@ class AmvFrameSelectorView @JvmOverloads constructor(
         context: Context, attrs: AttributeSet? = null, defStyleAttr: Int = 0
 ) : LinearLayout(context, attrs, defStyleAttr) {
 
+    // region Public API's
     fun setSource(source:File) {
         controls.player?.setSource(source, false,0)
     }
@@ -34,6 +35,10 @@ class AmvFrameSelectorView @JvmOverloads constructor(
     val framePosition:Long
         get() = controls.slider.currentPosition
 
+    // endregion
+
+    // region Internals
+
     // Constants
     companion object {
         const val FRAME_COUNT = 10            // フレームサムネイルの数
@@ -41,35 +46,42 @@ class AmvFrameSelectorView @JvmOverloads constructor(
         const val listenerName = "frameSelectorView"
     }
 
+    // Control
     private inner class Controls {
         val player : AmvExoVideoPlayer? by lazy {
             findViewById<AmvExoVideoPlayer>(R.id.vfs_player)
         }
 
-        val slider by lazy {
+        val slider: AmvSlider by lazy {
             findViewById<AmvSlider>(R.id.vfs_slider)
         }
 
-        val sliderGroup by lazy {
+        val sliderGroup: FrameLayout by lazy {
             findViewById<FrameLayout>(R.id.vfs_sliderGroup)
         }
 
-        val frameListView by lazy {
+        val frameListView: AmvFrameListView by lazy {
             findViewById<AmvFrameListView>(R.id.vfs_frameList)
         }
     }
+    private val controls = Controls()
 
+    // Model
     private inner class Models {
         var isPlayerPrepared: Boolean = false
         var isVideoInfoPrepared: Boolean = false
         var duration = 0L
     }
-    private val controls = Controls()
     private val models = Models()
 
+    // PrivPrivate fields
     private var mFrameExtractor :AmvFrameExtractor? = null
     private val mFrameListViewModel : AmvFrameListViewModel?
     private val mHandler = Handler()
+
+    // endregion
+
+    // region Initialization
 
     init {
         LayoutInflater.from(context).inflate(R.layout.video_frame_selector, this)
@@ -79,10 +91,10 @@ class AmvFrameSelectorView @JvmOverloads constructor(
         controls.player?.apply {
 
             // 動画の画面サイズが変わったときのイベント
-            sizeChangedListener.add(listenerName) { _, width, _ ->
-                // layout_widthをBindingすると、どうしてもエラーになるので、直接変更
-                controls.sliderGroup.setLayoutWidth(Math.max(width, 300))
-            }
+//            sizeChangedListener.add(listenerName) { _, width, _ ->
+//                // layout_widthをBindingすると、どうしてもエラーになるので、直接変更
+//                 controls.sliderGroup.setLayoutWidth(Math.max(width, 300))
+//            }
 
             // プレーヤー上のビデオの読み込みが完了したときのイベント
             videoPreparedListener.add(listenerName) { _, _ ->
@@ -103,13 +115,9 @@ class AmvFrameSelectorView @JvmOverloads constructor(
             }
     }
 
-    override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
-        super.onSizeChanged(w, h, oldw, oldh)
-
-        val sliderHeight = controls.sliderGroup.getLayoutHeight() - context.dp2px(16)
-        controls.player?.setLayoutHint(FitMode.Inside, w.toFloat(), (h-sliderHeight).toFloat())
-    }
-
+    /**
+     * ソースが切り替わったタイミングで、フレームサムネイルリストを作成する
+     */
     private fun extractFrameOnSourceChanged(source: File) {
         models.duration = 0L  // ViewModelから読み込むとき、Durationがゼロかどうかで初回かどうか判断するので、ここでクリアする
         if(null!=mFrameListViewModel) {
@@ -134,6 +142,7 @@ class AmvFrameSelectorView @JvmOverloads constructor(
                     controls.frameListView.prepare(FRAME_COUNT, thumbnailSize.width, thumbnailSize.height)
                     controls.slider.resetWithValueRange(it.duration, true)      // スライダーを初期化
                     controls.frameListView.totalRange = it.duration
+                    adjustSliderPosition()
 
                     models.isVideoInfoPrepared = true
                     restoringData?.tryRestoring()
@@ -156,6 +165,9 @@ class AmvFrameSelectorView @JvmOverloads constructor(
         }
     }
 
+    /**
+     * ViewModel経由でフレームサムネイルリストを更新する
+     */
     private fun updateFrameListByViewModel(info: AmvFrameListViewModel.IFrameListInfo) {
         if(null!=info.error) {
             restoringData?.onFatalError()
@@ -166,7 +178,7 @@ class AmvFrameSelectorView @JvmOverloads constructor(
                 controls.frameListView.prepare(FRAME_COUNT, thumbnailSize.width, thumbnailSize.height)
                 controls.slider.resetWithValueRange(info.duration, true)      // スライダーを初期化
                 controls.frameListView.totalRange = info.duration
-
+                adjustSliderPosition()
                 models.isVideoInfoPrepared = true
                 restoringData?.tryRestoring()
             }
@@ -176,7 +188,9 @@ class AmvFrameSelectorView @JvmOverloads constructor(
         }
     }
 
+    // endregion
 
+    // region Slider manipulation
 
     private fun onSliderChanged(@Suppress("UNUSED_PARAMETER") slider:AmvSlider, position:Long, dragState:AmvSlider.SliderDragState) {
         UtLogger.debug("CurrentPosition: $position ($dragState)")
@@ -196,10 +210,37 @@ class AmvFrameSelectorView @JvmOverloads constructor(
         }
     }
 
+    /**
+     * 各コントロール（Player/Slider/FrameList/Counter）のシーク位置を揃える
+     */
     private fun updateSeekPosition(position:Long) {
         controls.player?.seekTo(position)
         controls.frameListView.position = position
     }
+
+    // endregion
+
+    // region Rendering
+
+    override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
+        super.onSizeChanged(w, h, oldw, oldh)
+
+        val sliderHeight = controls.sliderGroup.measuredHeight + context.dp2px(16)
+        controls.player?.setLayoutHint(FitMode.Inside, w.toFloat(), (h-sliderHeight).toFloat())
+    }
+
+    /**
+     * スライダーの幅を決定 --> xmlのレイアウト指定によりセンタリングされる。
+     * ~~~~~~~~~~~~
+     *    親の幅とframeListのコンテントの幅（スクロールしなくなる幅）の小さい方
+     */
+    private fun adjustSliderPosition() {
+        val width = measuredWidth
+        val max = controls.frameListView.contentWidth
+        controls.sliderGroup.setLayoutWidth(Math.min(width, max))
+    }
+
+    // endregion
 
     // region Saving / Restoring
 
