@@ -77,7 +77,7 @@ class AmvFrameListView @JvmOverloads constructor(
     }
 
     fun setFrames(frameList: ArrayList<Bitmap>) {
-        for(i in controls.scroller.imageCount .. frameList.size-1) {
+        for(i in controls.scroller.imageCount until frameList.size) {
             add(frameList[i])
         }
     }

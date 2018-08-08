@@ -9,8 +9,8 @@
     >
     <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:gravity="center_horizontal"
+        android:layout_height="match_parent"
+        android:gravity="center_horizontal|center_vertical"
         android:orientation="vertical"
         tools:visibility="gone"
         >
@@ -19,6 +19,7 @@
             android:id="@+id/trp_videoPlayer"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:layout_gravity="center_horizontal|center_vertical"
             app:playOnTouch = "false"
             tools:layout_height="250dp"
             tools:layout_width="250dp"
@@ -28,6 +29,7 @@
             android:id="@+id/trp_trimmingController"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:layout_gravity="center_horizontal|center_vertical"
             tools:layout_width="250dp"
             tools:layout_height="100dp"
             />
@@ -76,6 +78,5 @@
             app:layout_constraintTop_toBottomOf="@+id/trp_message"
             android:layout_marginTop="4dp"
             />
-
     </android.support.constraint.ConstraintLayout>
 </FrameLayout>

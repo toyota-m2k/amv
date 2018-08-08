@@ -101,6 +101,7 @@ class AmvTranscoder(val source:File, context:Context) : SurfaceHolder.Callback{
      * @param  distFile     出力ファイル
      */
     fun transcode(distFile:File) {
+        error.reset()
         mTrimmingRange = null
         prepare(distFile) {
             start()
@@ -112,6 +113,7 @@ class AmvTranscoder(val source:File, context:Context) : SurfaceHolder.Callback{
      * @param  distFile     出力ファイル
      */
     fun truncate(distFile:File, start:Long, end:Long) {
+        error.reset()
         prepare(distFile) {
             val range = TrimmingRange(start*1000,end*1000)
             mTrimmingRange = range
@@ -154,6 +156,7 @@ class AmvTranscoder(val source:File, context:Context) : SurfaceHolder.Callback{
             mMediaComposer = null
             composer.stop()
         }
+        disposeHalfBakedFile()
     }
 
 
@@ -239,8 +242,7 @@ class AmvTranscoder(val source:File, context:Context) : SurfaceHolder.Callback{
 
         override fun onMediaDone() {
             UtLogger.debug("AmvTranscoder: done")
-            completionListener.invoke(this@AmvTranscoder, true)
-            mDstFile = null
+            completionListener.invoke(this@AmvTranscoder, !error.hasError)
             dispose()
         }
 
@@ -250,9 +252,6 @@ class AmvTranscoder(val source:File, context:Context) : SurfaceHolder.Callback{
 
         override fun onMediaStop() {
             UtLogger.debug("AmvTranscoder: stopped")
-            if(error.message=="cancelled") {
-                completionListener.invoke(this@AmvTranscoder, false)
-            }
             dispose()
         }
 
@@ -264,18 +263,19 @@ class AmvTranscoder(val source:File, context:Context) : SurfaceHolder.Callback{
             }
             UtLogger.debug("AmvTranscoder: error\n${error.message}")
             completionListener.invoke(this@AmvTranscoder, false)
-            disposeHalfBakedFile()
             dispose()
         }
     }
 
     private fun disposeHalfBakedFile() {
-        mDstFile?.apply {
-            if(exists() && isFile) {
-                delete()
+        if (error.hasError) {
+            mDstFile?.apply {
+                if (exists() && isFile) {
+                    delete()
+                }
+                mDstFile = null
             }
         }
-        mDstFile = null
     }
 
     /**

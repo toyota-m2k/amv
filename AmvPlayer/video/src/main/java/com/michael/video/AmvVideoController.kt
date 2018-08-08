@@ -393,6 +393,8 @@ class AmvVideoController @JvmOverloads constructor(context: Context, attrs: Attr
 
                     models.isVideoInfoPrepared = true
                     restoringData?.tryRestoring()
+
+//                    contentWidthChanged.invoke(this@AmvVideoController, controls.frameList.contentWidth)
                 }
                 onThumbnailRetrievedListener.add(null) { _, index, bmp ->
                     UtLogger.debug("AmvFrameExtractor:Bitmap($index): width=${bmp.width}, height=${bmp.height}")
@@ -429,6 +431,8 @@ class AmvVideoController @JvmOverloads constructor(context: Context, attrs: Attr
 
                 models.isVideoInfoPrepared = true
                 restoringData?.tryRestoring()
+
+//                contentWidthChanged.invoke(this@AmvVideoController, controls.frameList.contentWidth)
             }
             if(info.count>0) {
                 controls.frameList.setFrames(info.frameList)
@@ -498,6 +502,11 @@ class AmvVideoController @JvmOverloads constructor(context: Context, attrs: Attr
     override var isReadOnly: Boolean
         get() = models.isReadOnly
         set(v) { models.isReadOnly=v }
+
+    /**
+     * フレームリストのコンテント幅（スクローラー内コンテントの幅）が確定したときにコールバックされる
+     */
+//    override val contentWidthChanged = IAmvVideoController.ContentWidthChanged()
 
     // endregion
 

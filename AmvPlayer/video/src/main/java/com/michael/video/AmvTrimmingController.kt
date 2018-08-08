@@ -15,6 +15,7 @@ import android.support.constraint.ConstraintLayout
 import android.util.AttributeSet
 import android.view.LayoutInflater
 import android.view.View
+import android.widget.FrameLayout
 import android.widget.ImageButton
 import android.widget.TextView
 import com.michael.utils.UtLogger
@@ -23,6 +24,7 @@ import com.michael.utils.writeParceler
 import com.michael.video.viewmodel.AmvFrameListViewModel
 import org.parceler.ParcelConstructor
 import java.io.File
+import kotlin.math.roundToInt
 
 class AmvTrimmingController @JvmOverloads constructor(context: Context, attrs: AttributeSet? = null, defStyleAttr: Int = 0)
     : ConstraintLayout(context,attrs,defStyleAttr), IAmvVideoController {
@@ -35,17 +37,27 @@ class AmvTrimmingController @JvmOverloads constructor(context: Context, attrs: A
     val trimmingRange: IAmvVideoPlayer.Clipping
         get() = IAmvVideoPlayer.Clipping(controls.slider.trimStartPosition, controls.slider.trimEndPosition)
 
+    /**
+     * トリミングされているか
+     */
     val isTrimmed : Boolean
         get() = models.isPlayerPrepared && models.naturalDuration>0 && controls.slider.isTrimmed
+
+    /**
+     * フレームリストのコンテント幅（スクローラー内コンテントの幅）が確定したときにコールバックされる
+     */
+//    override val contentWidthChanged = IAmvVideoController.ContentWidthChanged()
 
     // endregion
 
     // region Private fields
 
     // constants
-    private val cFrameCount = 10            // フレームサムネイルの数
-    private val cFrameHeight = 160f         // フレームサムネイルの高さ(dp)
-    private val listenerName = "trimmingController"
+    companion object {
+        private const val FRAME_COUNT = 10            // フレームサムネイルの数
+        private const val FRAME_HEIGHT = 160f         // フレームサムネイルの高さ(dp)
+        private const val LISTENER_NAME = "trimmingController"
+    }
 
     private val models = Models()
     private val controls = Controls()
@@ -74,8 +86,8 @@ class AmvTrimmingController @JvmOverloads constructor(context: Context, attrs: A
             val enableViewModel = sa.getBoolean(R.styleable.AmvTrimmingtController_frameCache, true)
             mFrameListViewModel = if (enableViewModel) {
                 AmvFrameListViewModel.registerToView(this, this::updateFrameListByViewModel)?.apply {
-                    setSizingHint(FitMode.Height, 0f, cFrameHeight)
-                    setFrameCount(cFrameCount)
+                    setSizingHint(FitMode.Height, 0f, FRAME_HEIGHT)
+                    setFrameCount(FRAME_COUNT)
                 }
             } else {
                 null
@@ -94,6 +106,12 @@ class AmvTrimmingController @JvmOverloads constructor(context: Context, attrs: A
     // Views
     inner class Controls {
         // Controls
+        val root:ConstraintLayout by lazy {
+            findViewById<ConstraintLayout>(R.id.vtc_root)
+        }
+        val sliderGroup: FrameLayout by lazy {
+            findViewById<FrameLayout>(R.id.vtc_sliderGroup)
+        }
         val slider: AmvSlider by lazy {
             findViewById<AmvSlider>(R.id.vtc_slider)
         }
@@ -222,7 +240,7 @@ class AmvTrimmingController @JvmOverloads constructor(context: Context, attrs: A
 
         // Player Event
         // 再生状態が変化したときのイベント
-        mPlayer.playerStateChangedListener.add(listenerName) { _, state ->
+        mPlayer.playerStateChangedListener.add(LISTENER_NAME) { _, state ->
             if (!pausingOnTracking) {
                 models.playerState = state
             }
@@ -235,30 +253,29 @@ class AmvTrimmingController @JvmOverloads constructor(context: Context, attrs: A
         }
 
         // 動画の画面サイズが変わったときのイベント
-        mPlayer.sizeChangedListener.add(listenerName) { _, width, _ ->
+        mPlayer.sizeChangedListener.add(LISTENER_NAME) { _, width, _ ->
             // layout_widthをBindingすると、どうしてもエラーになるので、直接変更
             models.playerWidth = width
         }
 
         // プレーヤー上のビデオの読み込みが完了したときのイベント
-        mPlayer.videoPreparedListener.add(listenerName) { _, _ ->
+        mPlayer.videoPreparedListener.add(LISTENER_NAME) { _, _ ->
             models.isPlayerPrepared = true
             restoringData?.tryRestoring()
         }
 
             // 動画ソースが変更されたときのイベント
-        mPlayer.sourceChangedListener.add(listenerName) { _, source ->
+        mPlayer.sourceChangedListener.add(LISTENER_NAME) { _, source ->
 //            data = null    // 誤って古い情報をリストアしないように。
             models.isPlayerPrepared = false
             models.isVideoInfoPrepared = false
             extractFrameOnSourceChanged(source)
         }
 
-        mPlayer.clipChangedListener.add(listenerName) { _, clipping ->
+        mPlayer.clipChangedListener.add(LISTENER_NAME) { _, clipping ->
             mClipping = clipping
         }
     }
-
 
     private fun extractFrameOnSourceChanged(source: File) {
         models.naturalDuration = 0L  // ViewModelから読み込むとき、Durationがゼロかどうかで初回かどうか判断するので、ここでクリアする
@@ -275,15 +292,17 @@ class AmvTrimmingController @JvmOverloads constructor(context: Context, attrs: A
         } else {
             // フレームサムネイルを列挙する
             mFrameExtractor = AmvFrameExtractor().apply {
-                setSizingHint(FitMode.Height, 0f, cFrameHeight)
+                setSizingHint(FitMode.Height, 0f, FRAME_HEIGHT)
                 onVideoInfoRetrievedListener.add(null) {
                     UtLogger.debug("AmvFrameExtractor:duration=${it.duration} / ${it.videoSize}")
                     val thumbnailSize = it.thumbnailSize
-                    controls.frameList.prepare(cFrameCount, thumbnailSize.width, thumbnailSize.height)
+                    controls.frameList.prepare(FRAME_COUNT, thumbnailSize.width, thumbnailSize.height)
                     models.naturalDuration = it.duration
                     controls.resetWithDuration(it.duration)
                     models.isVideoInfoPrepared = true
                     restoringData?.tryRestoring()
+                    //contentWidthChanged.invoke(this@AmvTrimmingController, controls.frameList.contentWidth)
+                    adjustSliderPosition()
                 }
                 onThumbnailRetrievedListener.add(null) { _, index, bmp ->
                     UtLogger.debug("AmvFrameExtractor:Bitmap(${index+1}): width=${bmp.width}, height=${bmp.height}")
@@ -299,7 +318,7 @@ class AmvTrimmingController @JvmOverloads constructor(context: Context, attrs: A
                         }
                     }
                 }
-                extract(source, cFrameCount)
+                extract(source, FRAME_COUNT)
             }
         }
     }
@@ -311,18 +330,26 @@ class AmvTrimmingController @JvmOverloads constructor(context: Context, attrs: A
             if(models.naturalDuration==0L) {
                 models.naturalDuration = info.duration
                 val thumbnailSize = info.size
-                controls.frameList.prepare(cFrameCount, thumbnailSize.width, thumbnailSize.height)
+                controls.frameList.prepare(FRAME_COUNT, thumbnailSize.width, thumbnailSize.height)
                 controls.slider.resetWithValueRange(info.duration, true)      // スライダーを初期化
                 controls.frameList.totalRange = info.duration
                 controls.updateTrimStartText()
                 controls.updateTrimEndText()
                 models.isVideoInfoPrepared = true
                 restoringData?.tryRestoring()
+//                contentWidthChanged.invoke(this@AmvTrimmingController, controls.frameList.contentWidth)
+                adjustSliderPosition()
             }
             if(info.count>0) {
                 controls.frameList.setFrames(info.frameList)
             }
         }
+    }
+
+    fun adjustSliderPosition() {
+        val max = controls.frameList.contentWidth + controls.slider.leftExtentWidth + controls.slider.rightExtentWidth
+        val width = controls.root.measuredWidth
+        controls.sliderGroup.setLayoutWidth(Math.min(max.roundToInt(),width))
     }
 
     // endregion

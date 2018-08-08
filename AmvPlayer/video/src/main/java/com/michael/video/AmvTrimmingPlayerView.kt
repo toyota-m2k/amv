@@ -25,6 +25,9 @@ import kotlin.math.roundToInt
 class AmvTrimmingPlayerView @JvmOverloads constructor(
         context: Context, attrs: AttributeSet? = null, defStyleAttr: Int = 0
 ) : FrameLayout(context, attrs, defStyleAttr) {
+
+    // region Internals
+
     private inner class Controls {
         val player: AmvExoVideoPlayer by lazy {
             findViewById<AmvExoVideoPlayer>(R.id.trp_videoPlayer)
@@ -45,14 +48,80 @@ class AmvTrimmingPlayerView @JvmOverloads constructor(
             findViewById<Button>(R.id.trp_cancelButton)
         }
 
-        fun initialize() {
-            controller.setVideoPlayer(player)
+    }
+    private val controls = Controls()
+
+    private val videoPlayer : IAmvVideoPlayer
+        get() = controls.player
+
+    private val videoController : IAmvVideoController
+        get() = controls.controller
+
+    private val mViewModel: AmvTranscodeViewModel?
+    private var mNotified = false   // onCompletedが複数回呼ばれるので、onTrimmingCompletedListenerの通知を1回に限定するためのフラグ
+
+    init {
+        LayoutInflater.from(context).inflate(R.layout.trimming_player, this)
+
+        videoController.setVideoPlayer(videoPlayer)
+
+        mViewModel = AmvTranscodeViewModel.registerTo(this, this::onProgress, this::onTrimmingCompleted)
+
+        // Transcode/Trimming 中のキャンセル
+        controls.cancelButton.setOnClickListener {
+            mViewModel?.cancel()
+            controls.progressLayer.visibility = View.GONE
+        }
+
+        val vm = mViewModel
+        if(null!=vm && vm.isBusy) {
+            controls.progressLayer.visibility = View.VISIBLE
+            onProgress(vm.progress.value?:0f)
         }
     }
 
-    private val mControls = Controls()
-    private val mViewModel: AmvTranscodeViewModel?
-    private var mNotified = false   // onCompletedが複数回呼ばれるので、onTrimmingCompletedListenerの通知を1回に限定するためのフラグ
+    override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
+        super.onSizeChanged(w, h, oldw, oldh)
+
+        val sliderHeight = controls.controller.measuredHeight // + context.dp2px(16)
+        controls.player.setLayoutHint(FitMode.Inside, w.toFloat(), (h-sliderHeight).toFloat())
+    }
+
+
+    // endregion
+
+    // region Progress
+
+    /**
+     * 進捗表示
+     */
+    @SuppressLint("SetTextI18n")
+    private fun onProgress(progress:Float) {
+        val percent = (progress*100).roundToInt()
+        controls.progressBar.progress = percent
+        controls.message.text = "$percent %"
+    }
+
+    /**
+     * Trimmning/Transcode 完了時の処理
+     */
+    private fun onTrimmingCompleted(result:Boolean, error:AmvError?) {
+        if (result) {
+            // 成功したら、進捗表示を消す
+            controls.progressLayer.visibility = View.GONE
+            if (!mNotified) {
+                mNotified = true
+                onTrimmingCompletedListener.invoke(this)
+            }
+        } else {
+            // 失敗したら、エラーメッセージを表示
+            controls.message.text = error?.message ?: "Faild"
+        }
+    }
+
+    // endregion
+
+    // region Event Listener
 
     val onTrimmingCompletedListener = FuncyListener1<AmvTrimmingPlayerView, Unit>()
 
@@ -66,71 +135,21 @@ class AmvTrimmingPlayerView @JvmOverloads constructor(
         onTrimmingCompletedListener.set(listener::onTrimmingCompleted)
     }
 
+    // endregion
 
-    init {
-        LayoutInflater.from(context).inflate(R.layout.trimming_player, this)
-        mControls.initialize()
-
-        mViewModel = AmvTranscodeViewModel.registerTo(this, this::onProgress, this::onTrimmingCompleted)
-
-        // Transcode/Trimming 中のキャンセル
-        mControls.cancelButton.setOnClickListener {
-            mViewModel?.cancel()
-            mControls.progressLayer.visibility = View.GONE
-        }
-
-        val vm = mViewModel
-        if(null!=vm && vm.isBusy) {
-            mControls.progressLayer.visibility = View.VISIBLE
-            onProgress(vm.progress.value?:0f)
-        }
-    }
-
-    /**
-     * 進捗表示
-     */
-    @SuppressLint("SetTextI18n")
-    private fun onProgress(progress:Float) {
-        val percent = (progress*100).roundToInt()
-        mControls.progressBar.progress = percent
-        mControls.message.text = "$percent %"
-    }
-
-    /**
-     * Trimmning/Transcode 完了時の処理
-     */
-    private fun onTrimmingCompleted(result:Boolean, error:AmvError?) {
-        if (result) {
-            // 成功したら、進捗表示を消す
-            mControls.progressLayer.visibility = View.GONE
-            if (!mNotified) {
-                mNotified = true
-                onTrimmingCompletedListener.invoke(this)
-            }
-        } else {
-            // 失敗したら、エラーメッセージを表示
-            mControls.message.text = error?.message ?: "Faild"
-        }
-    }
-
-    val videoPlayer : IAmvVideoPlayer
-        get() = mControls.player
-
-    val videoController : IAmvVideoController
-        get() = mControls.controller
+    // region Public API's
 
     fun setSource(source: File) {
-        mControls.player.setSource(source, false, 0)
+        controls.player.setSource(source, false, 0)
     }
-
 
     @Suppress("MemberVisibilityCanBePrivate")
     val isTrimmed: Boolean
-        get() = mControls.controller.isTrimmed
+        get() = controls.controller.isTrimmed
 
     @Suppress("MemberVisibilityCanBePrivate")
     val trimmingRange: IAmvVideoPlayer.Clipping
-        get() = mControls.controller.trimmingRange
+        get() = controls.controller.trimmingRange
 
 
     /**
@@ -144,7 +163,7 @@ class AmvTrimmingPlayerView @JvmOverloads constructor(
         }
 
         mNotified = false
-        mControls.progressLayer.visibility = View.VISIBLE
+        controls.progressLayer.visibility = View.VISIBLE
         if (!isTrimmed) {
             vm.transcode(input, output, context)
         } else {
@@ -152,4 +171,6 @@ class AmvTrimmingPlayerView @JvmOverloads constructor(
         }
         return true
     }
+
+    // endregion
 }

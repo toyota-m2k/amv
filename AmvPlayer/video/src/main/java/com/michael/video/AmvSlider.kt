@@ -132,6 +132,35 @@ class AmvSlider @JvmOverloads constructor(
         }
 
     /**
+     * スライダーレールの外側にはみ出す幅（左）
+     */
+    val leftExtentWidth:Float
+        get() {
+            return if(trimmingEnabled) {
+                mTrimLeftRect.width()
+            } else if(!endToEndRail) {
+                mThumbRect.width()/2
+            } else {
+                0f
+            }
+        }
+    /**
+     * スライダーレールの外側にはみ出す幅（右）
+     */
+    val rightExtentWidth:Float
+        get() {
+            return if(trimmingEnabled) {
+                mTrimRightRect.width()
+            } else if(!endToEndRail) {
+                mThumbRect.width()/2
+            } else {
+                0f
+            }
+        }
+
+
+
+    /**
      * true: トリミングモード有効
      * false: 通常のスライダー
      */
