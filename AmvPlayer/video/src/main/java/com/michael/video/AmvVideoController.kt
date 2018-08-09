@@ -7,6 +7,7 @@
 package com.michael.video
 
 import android.content.Context
+import android.content.Intent
 import android.graphics.drawable.Drawable
 import android.os.Handler
 import android.os.Parcel
@@ -540,7 +541,21 @@ class AmvVideoController @JvmOverloads constructor(context: Context, attrs: Attr
 
     }
     fun onFullScreen(@Suppress("UNUSED_PARAMETER") view: View) {
-
+        val activity = getActivity()
+        val source = mPlayer.source
+        if(null!=activity && null!=source) {
+            val position = mPlayer.seekPosition
+            val clipping = mPlayer.clip
+            val intent = Intent(activity, AmvFullscreenActivity::class.java)
+            intent.putExtra(AmvFullscreenActivity.KEY_SOURCE, source)
+            intent.putExtra(AmvFullscreenActivity.KEY_POSITION, position)
+            intent.putExtra(AmvFullscreenActivity.KEY_PLAYING, models.isPlaying)
+            if(null!=clipping) {
+                intent.putExtra(AmvFullscreenActivity.KEY_CLIP_START, clipping.start)
+                intent.putExtra(AmvFullscreenActivity.KEY_CLIP_END, clipping.end)
+            }
+            activity.startActivity(intent)
+        }
     }
 
     // Sliderの操作

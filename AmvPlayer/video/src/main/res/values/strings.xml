@@ -9,4 +9,8 @@
     <string name="fullscreen">Full screen</string>
     <string name="cancel">Cancel</string>
     <string name="play_stop">play or stop</string>
+
+    <string name="title_activity_amv_fullscreen">AmvFullscreenActivity</string>
+    <string name="dummy_button">Dummy Button</string>
+    <string name="dummy_content">DUMMY\nCONTENT</string>
 </resources>

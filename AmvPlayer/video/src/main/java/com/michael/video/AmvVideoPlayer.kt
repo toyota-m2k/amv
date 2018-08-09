@@ -24,11 +24,14 @@ import java.io.File
 class AmvVideoPlayer @JvmOverloads constructor(context: Context, attrs: AttributeSet? = null, defStyleAttr: Int = 0)
     : FrameLayout(context, attrs, defStyleAttr), IAmvVideoPlayer {
 
-    override val isClipping: Boolean = false
+    //override val isClipping: Boolean = false
 
-    override fun clip(clipping: IAmvVideoPlayer.Clipping?) {
+    override fun setClip(clipping: IAmvVideoPlayer.Clipping?) {
         throw AmvException("clipping play mode is not supported in AmvVideoPlayer.")
     }
+
+    override val clip: IAmvVideoPlayer.Clipping?
+        get() = null
 
     // Event Listeners
 

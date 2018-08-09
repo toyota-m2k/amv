@@ -180,7 +180,7 @@ class AmvTrimmingController @JvmOverloads constructor(context: Context, attrs: A
             playButton.setOnClickListener {
                 when(mPlayer.playerState) {
                     IAmvVideoPlayer.PlayerState.Paused -> {
-                        mPlayer.clip(trimmingRange)
+                        mPlayer.setClip(trimmingRange)
                         mPlayer.play()
                     }
                     IAmvVideoPlayer.PlayerState.Playing -> {
@@ -194,13 +194,13 @@ class AmvTrimmingController @JvmOverloads constructor(context: Context, attrs: A
                 sliderPositionChanged(position, state, AmvSlider.Knob.THUMB)
             }
             slider.trimStartPositionChanged.set { _, position, state ->
-                mPlayer.clip(null)
+                mPlayer.setClip(null)
                 sliderPositionChanged(position, state, AmvSlider.Knob.LEFT)
                 controls.frameList.trimStart = position
                 updateTrimStartText()
             }
             slider.trimEndPositionChanged.set { _, position, state ->
-                mPlayer.clip(null)
+                mPlayer.setClip(null)
                 sliderPositionChanged(position, state, AmvSlider.Knob.RIGHT)
                 controls.frameList.trimEnd = position
                 updateTrimEndText()
@@ -491,7 +491,7 @@ class AmvTrimmingController @JvmOverloads constructor(context: Context, attrs: A
         fun tryRestoring() {
             if(isPlayerPrepared && !isPlayerRestored) {
                 if(data.isPlaying) {
-                    mPlayer.clip(trimmingRange)
+                    mPlayer.setClip(trimmingRange)
                     mPlayer.play()
                 }
                 mPlayer.seekTo(data.seekPosition)

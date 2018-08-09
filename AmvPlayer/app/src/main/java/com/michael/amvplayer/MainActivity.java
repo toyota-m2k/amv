@@ -154,6 +154,7 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onStop() {
         UtLogger.debug("LC-Activity: onStop");
+        mBinding.playerUnitView.getVideoPlayer().pause();
         super.onStop();
     }
 

@@ -45,6 +45,7 @@ class AmvExoVideoPlayer @JvmOverloads constructor(
     private var mEnded : Boolean = false                // 動画ファイルの最後まで再生が終わって停止した状態から、Playボタンを押したときに、先頭から再生を開始する動作を実現するためのフラグ
     private var mMediaSource:MediaSource? = null
     private var mClipping : IAmvVideoPlayer.Clipping? = null
+    private val mFitParent : Boolean
     private val mHandler : Handler by lazy {
         Handler()
     }
@@ -143,16 +144,33 @@ class AmvExoVideoPlayer @JvmOverloads constructor(
 
         val sa = context.theme.obtainStyledAttributes(attrs,R.styleable.AmvExoVideoPlayer,defStyleAttr,0)
         try {
-            val playOnTouch = sa.getBoolean(R.styleable.AmvExoVideoPlayer_playOnTouch, true)
-            if (playOnTouch) {
+            // タッチで再生/一時停止をトグルさせる動作の有効・無効
+            //
+            // デフォルト有効
+            //      ユニットプレーヤー以外は無効化
+            if (sa.getBoolean(R.styleable.AmvExoVideoPlayer_playOnTouch, true)) {
 
-                // タッチで再生/一時停止をトグルさせる
                 this.setOnClickListener {
                     if (it is AmvExoVideoPlayer) {
                         it.togglePlay()
                     }
                 }
             }
+            // ExoPlayerのControllerを表示するかしないか・・・表示する場合も、カスタマイズされたControllerが使用される
+            //
+            // デフォルト無効
+            //      フルスクリーン再生の場合のみ有効
+            if(sa.getBoolean(R.styleable.AmvExoVideoPlayer_showControlBar, false)) {
+                mBindings.playerView.useController = true
+            }
+
+            // AmvExoVideoPlayerのサイズに合わせて、プレーヤーサイズを自動調整するかどうか
+            // 汎用的には、AmvExoVideoPlayer.setLayoutHint()を呼び出すことで動画プレーヤー画面のサイズを変更するが、
+            // 実装によっては、この指定の方が便利なケースもありそう。
+            //
+            // デフォルト無効
+            //      フルスクリーン再生の場合のみ有効
+            mFitParent = sa.getBoolean(R.styleable.AmvExoVideoPlayer_fitParent, false)
         } finally {
             sa.recycle()
         }
@@ -170,6 +188,13 @@ class AmvExoVideoPlayer @JvmOverloads constructor(
         super.onDetachedFromWindow()
     }
 
+    override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
+        super.onSizeChanged(w, h, oldw, oldh)
+
+        if(mFitParent) {
+            setLayoutHint(FitMode.Inside, w.toFloat(), h.toFloat())
+        }
+    }
 
     // endregion
 
@@ -312,10 +337,8 @@ class AmvExoVideoPlayer @JvmOverloads constructor(
         }
     }
 
-    override val isClipping : Boolean
-        get() = null!=mClipping
 
-    override fun clip(clipping:IAmvVideoPlayer.Clipping?) {
+    override fun setClip(clipping:IAmvVideoPlayer.Clipping?) {
         if(mClipping == clipping) {
             return
         }
@@ -331,8 +354,9 @@ class AmvExoVideoPlayer @JvmOverloads constructor(
         }
     }
 
-    override val source:File?
-        get() = mSource
+    override val clip:IAmvVideoPlayer.Clipping?
+        get() = mClipping
+
 
     override fun setSource(source: File, autoPlay: Boolean, playFrom: Long) {
         reset()
@@ -350,6 +374,10 @@ class AmvExoVideoPlayer @JvmOverloads constructor(
             playWhenReady = autoPlay
         }
     }
+
+    override val source:File?
+        get() = mSource
+
 
     override fun play() {
         mPlayer?.apply {
@@ -582,7 +610,7 @@ class AmvExoVideoPlayer @JvmOverloads constructor(
                 mHandler.post {
                     mSource = source
                     setSource(source, false, 0)
-                    clip(state.clipping)
+                    setClip(state.clipping)
                 }
             }
         } else {
