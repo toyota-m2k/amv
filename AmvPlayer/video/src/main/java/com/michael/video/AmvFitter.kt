@@ -48,7 +48,18 @@ fun fitSizeTo(original:MuSize, layout:MuSize, mode:FitMode, result:MuSize) {
     }
 }
 
-open class AmvFitter(private var fitMode: FitMode = FitMode.Inside, private var layoutSize: MuSize = MuSize(1000f, 1000f)) {
+interface IAmvLayoutHint {
+    val fitMode: FitMode
+    val layoutWidth: Float
+    val layoutHeight: Float
+}
+
+open class AmvFitter(override var fitMode: FitMode = FitMode.Inside, private var layoutSize: MuSize = MuSize(1000f, 1000f)) : IAmvLayoutHint {
+    override val layoutWidth: Float
+        get() = layoutSize.width
+    override val layoutHeight: Float
+        get() = layoutSize.height
+
 
     fun setHint(fitMode:FitMode, width:Float, height:Float) {
         this.fitMode = fitMode

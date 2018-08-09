@@ -10,12 +10,13 @@ package com.michael.video
 import android.content.Context
 import android.util.AttributeSet
 import android.view.LayoutInflater
+import android.widget.FrameLayout
 import android.widget.LinearLayout
 import java.io.File
 
 class AmvPlayerUnitView @JvmOverloads constructor(
         context: Context, attrs: AttributeSet? = null, defStyleAttr: Int = 0
-) : LinearLayout(context, attrs, defStyleAttr) {
+) : FrameLayout(context, attrs, defStyleAttr) {
 
     inner class Bindings {
         val player: AmvExoVideoPlayer by lazy {

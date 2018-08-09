@@ -28,7 +28,7 @@ class AmvVideoController @JvmOverloads constructor(context: Context, attrs: Attr
     // region Constants
 
     companion object {
-        private const val FRAME_COUNT = 10            // フレームサムネイルの数
+        private const val FRAME_COUNT = 30            // フレームサムネイルの数
         private const val FRAME_HEIGHT = 160f         // フレームサムネイルの高さ(dp)
         private const val LISTENER_NAME = "videoController"
     }

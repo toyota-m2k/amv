@@ -41,9 +41,9 @@ class AmvFrameSelectorView @JvmOverloads constructor(
 
     // Constants
     companion object {
-        const val FRAME_COUNT = 10            // フレームサムネイルの数
+        const val FRAME_COUNT = 30            // フレームサムネイルの数
         const val FRAME_HEIGHT = 160f         // フレームサムネイルの高さ(dp)
-        const val listenerName = "frameSelectorView"
+        const val LISTENER_NAME = "frameSelectorView"
     }
 
     // Control
@@ -91,18 +91,18 @@ class AmvFrameSelectorView @JvmOverloads constructor(
         controls.player?.apply {
 
             // 動画の画面サイズが変わったときのイベント
-//            sizeChangedListener.add(listenerName) { _, width, _ ->
+//            sizeChangedListener.add(LISTENER_NAME) { _, width, _ ->
 //                // layout_widthをBindingすると、どうしてもエラーになるので、直接変更
 //                 controls.sliderGroup.setLayoutWidth(Math.max(width, 300))
 //            }
 
             // プレーヤー上のビデオの読み込みが完了したときのイベント
-            videoPreparedListener.add(listenerName) { _, _ ->
+            videoPreparedListener.add(LISTENER_NAME) { _, _ ->
                 models.isPlayerPrepared = true
                 restoringData?.tryRestoring()
             }
             // 動画ソースが変更されたときのイベント
-            sourceChangedListener.add(listenerName) { _, source ->
+            sourceChangedListener.add(LISTENER_NAME) { _, source ->
                 models.isPlayerPrepared = false
                 models.isVideoInfoPrepared = false
                 extractFrameOnSourceChanged(source)

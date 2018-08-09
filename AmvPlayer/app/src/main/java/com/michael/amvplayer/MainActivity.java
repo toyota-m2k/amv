@@ -26,6 +26,8 @@ import com.michael.amvplayer.dialog.UxFileDialog;
 import com.michael.utils.UtLogger;
 import com.michael.video.AmvCacheManager;
 import com.michael.video.IAmvCache;
+import com.michael.video.IAmvLayoutHint;
+import com.michael.video.IAmvVideoPlayer;
 
 import org.jetbrains.annotations.NotNull;
 
@@ -240,6 +242,19 @@ public class MainActivity extends AppCompatActivity {
             intent.putExtra("source", mCurrentFile);
             startActivity(intent);
         }
+    }
+
+    public void onExpand(View view) {
+        IAmvVideoPlayer player = mBinding.playerUnitView.getVideoPlayer();
+        IAmvLayoutHint hint = player.getLayoutHint();
+        player.setLayoutHint(hint.getFitMode(), hint.getLayoutWidth()*1.2f, hint.getLayoutHeight()*1.2f);
+
+    }
+
+    public void onReduce(View view) {
+        IAmvVideoPlayer player = mBinding.playerUnitView.getVideoPlayer();
+        IAmvLayoutHint hint = player.getLayoutHint();
+        player.setLayoutHint(hint.getFitMode(), hint.getLayoutWidth()/1.2f, hint.getLayoutHeight()/1.2f);
     }
 
 //    public void onClickPlay(View view) {

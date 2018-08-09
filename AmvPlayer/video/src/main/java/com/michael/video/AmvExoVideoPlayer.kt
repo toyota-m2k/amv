@@ -298,6 +298,10 @@ class AmvExoVideoPlayer @JvmOverloads constructor(
 
     }
 
+    override fun getLayoutHint(): IAmvLayoutHint {
+        return mBindings
+    }
+
     override fun reset() {
         mMediaSource = null
         mSource = null

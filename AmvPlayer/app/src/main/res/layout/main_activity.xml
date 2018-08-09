@@ -22,77 +22,85 @@
             <!--app:layout_constraintRight_toRightOf="parent"-->
             <!--app:layout_constraintTop_toTopOf="parent" />-->
 
-        <Button
-            android:id="@+id/camera_button"
+        <LinearLayout
+            android:id="@+id/buttonGroup"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:onClick="@{mainActivity::onClickCamera}"
-            android:text="@string/camera"
-            android:textAllCaps="false"
+            android:orientation="horizontal"
             app:layout_constraintLeft_toLeftOf="parent"
-            />
+            app:layout_constraintTop_toTopOf="parent"
+            >
 
-        <Button
-            android:id="@+id/file_button"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="8dp"
-            android:textAllCaps="false"
-            android:onClick="@{mainActivity::onClickFile}"
-            android:text="@string/open_file"
-            app:layout_constraintStart_toEndOf="@+id/camera_button"
-            />
+            <!--<Button-->
+                <!--android:id="@+id/camera_button"-->
+                <!--android:layout_width="wrap_content"-->
+                <!--android:layout_height="wrap_content"-->
+                <!--android:onClick="@{mainActivity::onClickCamera}"-->
+                <!--android:text="@string/camera"-->
+                <!--android:textAllCaps="false"-->
+                <!--app:layout_constraintLeft_toLeftOf="parent"-->
+                <!--/>-->
 
-        <Button
-            android:id="@+id/transcode_button"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="8dp"
-            android:textAllCaps="false"
-            android:onClick="@{mainActivity::onTranscode}"
-            android:text="@string/transcode"
-            app:layout_constraintStart_toEndOf="@+id/file_button"
-            />
+            <Button
+                android:id="@+id/file_button"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginEnd="8dp"
+                android:textAllCaps="false"
+                android:onClick="@{mainActivity::onClickFile}"
+                android:text="@string/open_file"
+                tools:ignore="ButtonStyle" />
 
-        <Button
-            android:id="@+id/trimming_button"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="8dp"
-            android:textAllCaps="false"
-            android:onClick="@{mainActivity::onTrimming}"
-            android:text="@string/trimming"
-            app:layout_constraintStart_toEndOf="@+id/transcode_button"
-            />
+            <Button
+                android:id="@+id/shuffleButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginEnd="8dp"
+                android:textAllCaps="false"
+                android:onClick="@{mainActivity::onShuffle}"
+                android:text="@string/shuffle"
+                tools:ignore="ButtonStyle" />
 
-        <Button
-            android:id="@+id/selectFrame"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="8dp"
-            android:textAllCaps="false"
-            android:onClick="@{mainActivity::onSelectFrame}"
-            android:text="@string/select_frame"
-            app:layout_constraintStart_toEndOf="@+id/trimming_button"
-            />
+            <!--<Button-->
+            <!--android:id="@+id/transcode_button"-->
+            <!--android:layout_width="wrap_content"-->
+            <!--android:layout_height="wrap_content"-->
+            <!--android:layout_marginStart="8dp"-->
+            <!--android:textAllCaps="false"-->
+            <!--android:onClick="@{mainActivity::onTranscode}"-->
+            <!--android:text="@string/transcode"-->
+            <!--app:layout_constraintStart_toEndOf="@+id/file_button"-->
+            <!--/>-->
 
-        <Button
-            android:id="@+id/shuffleButton"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="8dp"
-            android:textAllCaps="false"
-            android:onClick="@{mainActivity::onShuffle}"
-            android:text="@string/shuffle"
-            app:layout_constraintStart_toEndOf="@+id/selectFrame"
-            />
+            <Button
+                android:id="@+id/trimming_button"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginEnd="8dp"
+                android:textAllCaps="false"
+                android:onClick="@{mainActivity::onTrimming}"
+                android:text="@string/trimming"
+                tools:ignore="ButtonStyle" />
+
+            <Button
+                android:id="@+id/selectFrame"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginEnd="8dp"
+                android:textAllCaps="false"
+                android:onClick="@{mainActivity::onSelectFrame}"
+                android:text="@string/select_frame"
+                tools:ignore="ButtonStyle" />
+
+
+        </LinearLayout>
 
         <com.michael.video.AmvPlayerUnitView
             android:id="@+id/playerUnitView"
             android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
+            android:layout_height="0dp"
             android:layout_marginTop="8dp"
-            app:layout_constraintTop_toBottomOf="@+id/file_button"
+            app:layout_constraintTop_toBottomOf="@+id/buttonGroup"
             app:layout_constraintLeft_toLeftOf="parent"
             app:layout_constraintRight_toRightOf="parent"
             tools:layout_width="300dp"
@@ -116,6 +124,36 @@
             <!--app:layout_constraintLeft_toLeftOf="parent"-->
             <!--app:layout_constraintRight_toRightOf="parent"-->
             <!--/>-->
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginBottom="16dp"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintLeft_toLeftOf="parent"
+            app:layout_constraintRight_toRightOf="parent"
+            >
+            <Button android:id="@+id/reduceButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginEnd="8dp"
+                android:paddingLeft="8dp"
+                android:paddingRight="8dp"
+                android:text="@string/reduceMark"
+                android:onClick="@{mainActivity::onReduce}"
+                tools:ignore="ButtonStyle" />
+
+            <Button android:id="@+id/expandButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginEnd="8dp"
+                android:paddingLeft="8dp"
+                android:paddingRight="8dp"
+                android:text="@string/expandMark"
+                android:onClick="@{mainActivity::onExpand}"
+                tools:ignore="ButtonStyle" />
+        </LinearLayout>
 
     </android.support.constraint.ConstraintLayout>
 </layout>

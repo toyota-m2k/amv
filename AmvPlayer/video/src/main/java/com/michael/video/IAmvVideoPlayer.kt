@@ -107,6 +107,8 @@ interface IAmvVideoPlayer {
 
     fun setLayoutHint(mode: FitMode, width:Float, height:Float)
 
+    fun getLayoutHint() : IAmvLayoutHint
+
     fun reset()
 
     fun setSource(source: File, autoPlay:Boolean=false, playFrom:Long=0)

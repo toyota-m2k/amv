@@ -205,6 +205,9 @@ class AmvVideoPlayer @JvmOverloads constructor(context: Context, attrs: Attribut
         mFitter.setHint(mode, width, height)
     }
 
+    override fun getLayoutHint(): IAmvLayoutHint {
+        return mFitter
+    }
 
     private fun reset(state: IAmvVideoPlayer.PlayerState) {
         mMediaPlayer?.stop()

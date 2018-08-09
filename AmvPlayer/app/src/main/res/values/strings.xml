@@ -14,4 +14,6 @@
     <string name="shuffle">Shuffle</string>
     <string name="select_frame">Select Frame</string>
     <string name="ok">OK</string>
+    <string name="expandMark">＋</string>
+    <string name="reduceMark">－</string>
 </resources>
