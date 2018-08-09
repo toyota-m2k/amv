@@ -84,7 +84,8 @@ class AmvTrimmingPlayerView @JvmOverloads constructor(
         super.onSizeChanged(w, h, oldw, oldh)
 
         val sliderHeight = controls.controller.measuredHeight // + context.dp2px(16)
-        controls.player.setLayoutHint(FitMode.Inside, w.toFloat(), (h-sliderHeight).toFloat())
+        val sliderWidth = w - controls.controller.extentWidth
+        controls.player.setLayoutHint(FitMode.Inside, sliderWidth, (h-sliderHeight).toFloat())
     }
 
 

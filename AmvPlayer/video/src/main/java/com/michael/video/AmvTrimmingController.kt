@@ -43,6 +43,13 @@ class AmvTrimmingController @JvmOverloads constructor(context: Context, attrs: A
     val isTrimmed : Boolean
         get() = models.isPlayerPrepared && models.naturalDuration>0 && controls.slider.isTrimmed
 
+    val leftExtentWidth
+        get() = controls.slider.leftExtentWidth
+    val rightExtentWidth
+        get() = controls.slider.rightExtentWidth
+    val extentWidth
+        get() = controls.slider.extentWidth
+
     /**
      * フレームリストのコンテント幅（スクローラー内コンテントの幅）が確定したときにコールバックされる
      */
@@ -349,7 +356,7 @@ class AmvTrimmingController @JvmOverloads constructor(context: Context, attrs: A
     }
 
     fun adjustSliderPosition() {
-        val max = controls.frameList.contentWidth + controls.slider.leftExtentWidth + controls.slider.rightExtentWidth
+        val max = controls.frameList.contentWidth + controls.slider.extentWidth
         val width = controls.root.measuredWidth
         controls.sliderGroup.setLayoutWidth(Math.min(max.roundToInt(),width))
     }

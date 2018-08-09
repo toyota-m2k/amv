@@ -157,7 +157,19 @@ class AmvSlider @JvmOverloads constructor(
             }
         }
 
-
+    /**
+     * スライダーレールの外側にはみ出す幅（左右合計）
+     */
+    val extentWidth:Float
+        get() {
+            return if(trimmingEnabled) {
+                mTrimRightRect.width() + mTrimLeftRect.width()
+            } else if(!endToEndRail) {
+                mThumbRect.width()
+            } else {
+                0f
+            }
+        }
 
     /**
      * true: トリミングモード有効
