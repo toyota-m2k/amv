@@ -187,14 +187,6 @@ class AmvSlider @JvmOverloads constructor(
      */
     private val mDraggingInfo = DraggingInfo()
 
-//    @ColorInt var railColor : Int = Color.WHITE
-//    @ColorInt var railLeftColor : Int = Color.GRAY
-//    @ColorInt var railNoSelColor: Int = Color.GRAY
-//
-//    var railHeight: Int = 8
-//    var railLeftHeight: Int = 8
-//    var railNoSelHeight: Int = 2
-
     private val drThumb : Drawable
     private val drLeft : Drawable
     private val drRight : Drawable
@@ -220,7 +212,7 @@ class AmvSlider @JvmOverloads constructor(
     // updateLayout()で決定するプロパティ
     private val mSliderRange = Range()
     private var mRailY: Float = 0f
-    private var mScale: Float = 1f
+//    private var mScale: Float = 1f
 
     // updateLayout()でY座標とサイズを決定し、applyPositionで、X座標を決定するプロパティ
     private val mThumbRect = RectF()
@@ -294,6 +286,8 @@ class AmvSlider @JvmOverloads constructor(
             paintRailNoSel = coloredPaint(railNoSelColor)
 
             naturalHeight = calcNaturalHeight()
+
+            initLayoutConstants()
         } finally {
             sa.recycle()
         }
@@ -369,50 +363,49 @@ class AmvSlider @JvmOverloads constructor(
     /**
      * 左上隅とサイズを与えて、RectFの値を初期化する
      */
-    private fun RectF.setOffsetSize(left:Float, top:Float, width:Float, height:Float) {
-        this.left = left
-        this.top = top
-        this.right = left + width
-        this.bottom = top + height
+    private fun RectF.setOffsetSize(left:Int, top:Int, width:Int, height:Int) {
+        this.left = left.toFloat()
+        this.top = top.toFloat()
+        this.right = this.left + width
+        this.bottom = this.top + height
     }
-//    fun RectF.setWidth(width:Float) {
-//        this.right = left + width
-//    }
 
     // updateLayout()の（同じサイズでの）重複実行を回避するために、前回値を覚えておく
     // もともと↑の用途だったが、endToEndRailモードのときに、widthが必要になるので、現在のビューサイズを覚えておくプロパティに格上げ
     private var viewWidth:Int = 0
-    private var viewHeight:Int = 0
 
     /**
-     * Viewのサイズが変わった場合に、レイアウト用の基本情報を更新する
+     * レイアウト情報のうち、スライダー値やビューの幅に依存しない定数となるものを初期化
+     */
+    private fun initLayoutConstants() {
+        mThumbRect.setOffsetSize(0,thumbOffset,drThumb.intrinsicWidth, drThumb.intrinsicHeight)
+        mRailY = railOffset+maxRailHeight/2f
+
+        paintRail.strokeWidth = railHeight.toFloat()
+        paintRailLeft.strokeWidth = railLeftHeight.toFloat()
+
+        if(trimmingEnabled) {
+            mTrimLeftRect.setOffsetSize(0, trimmerOffset, drLeft.intrinsicWidth, drLeft.intrinsicHeight)
+            mTrimRightRect.set(mTrimLeftRect)
+            paintRailNoSel.strokeWidth = railNoSelHeight.toFloat()
+        }
+    }
+
+    /**
+     * ビューのサイズが変化したときに、ビューの幅に依存するレイアウト情報を更新する
      * スライダー値((Current|TrimStart|TrimEnd)Position )に依存するプロパティは、applyPosition()で変更する
      */
-    private fun updateLayout(width:Int, height:Int) {
-        if(viewWidth == width && viewHeight==height) {
+    private fun updateLayout(width:Int) {
+        if(viewWidth == width) {
             // no changed ... return
         }
         viewWidth = width
-        viewHeight = height
-
-        // 高さがNaturalHeightと異なる場合は、そのサイズになるよう拡大/縮小する
-        mScale = height / naturalHeight.toFloat()
-
-        mThumbRect.setOffsetSize(0f,thumbOffset*mScale,drThumb.intrinsicWidth*mScale, drThumb.intrinsicHeight*mScale)
-
-        mRailY = (railOffset+maxRailHeight/2)*mScale
-        paintRail.strokeWidth = railHeight*mScale
-        paintRailLeft.strokeWidth = railLeftHeight*mScale
 
         if(trimmingEnabled) {
-            mTrimLeftRect.setOffsetSize(0f, trimmerOffset*mScale, drLeft.intrinsicWidth*mScale, drLeft.intrinsicHeight*mScale)
-            mTrimRightRect.set(mTrimLeftRect)
             mSliderRange.set(mTrimLeftRect.width(), width-mTrimRightRect.width())
-            paintRailNoSel.strokeWidth = railNoSelHeight*mScale
         } else {
             mSliderRange.set(mThumbRect.width()/2,width.toFloat()-mThumbRect.width()/2)
         }
-
         applyPosition(false)    // そのうち再描画されるはず
     }
 
@@ -464,11 +457,6 @@ class AmvSlider @JvmOverloads constructor(
         }
     }
 
-//    /**
-//     * スライダー上をタップされた
-//     */
-//    val tappedOnSlider = SliderValueChangedListener()
-
     //
     // Properties
     //
@@ -497,15 +485,23 @@ class AmvSlider @JvmOverloads constructor(
             else -> 200
         }
 
-        val heightMode = View.MeasureSpec.getMode(heightMeasureSpec)
-        val heightSize = View.MeasureSpec.getSize(heightMeasureSpec)
 
-        val height = when(heightMode) {
-            MeasureSpec.EXACTLY -> heightSize
-            MeasureSpec.AT_MOST-> Math.min(naturalHeight, heightSize)
-            MeasureSpec.UNSPECIFIED->naturalHeight
-            else -> naturalHeight
-        }
+        // 当初、高さがNaturalHeightと異なる場合は、そのサイズになるよう拡大/縮小するために、mScale を保持して位置調整していたが、
+        // 初期化時にパーツのサイズ（特にextentWidth）が確定しないため、他の連動するビュー（フレームリストやプレーヤー）の位置調整ができなくなるので、
+        // 高さは naturalHeight 固定とする。
+        // mScale = height / naturalHeight.toFloat()
+
+
+        // val heightMode = View.MeasureSpec.getMode(heightMeasureSpec)
+        // val heightSize = View.MeasureSpec.getSize(heightMeasureSpec)
+        // val height = when(heightMode) {
+        //     MeasureSpec.EXACTLY -> heightSize
+        //     MeasureSpec.AT_MOST-> Math.min(naturalHeight, heightSize)
+        //     MeasureSpec.UNSPECIFIED->naturalHeight
+        //     else -> naturalHeight
+        // }
+
+        val height = naturalHeight
         setMeasuredDimension(width,height)
     }
 
@@ -513,15 +509,8 @@ class AmvSlider @JvmOverloads constructor(
      * レイアウト実行
      */
     override fun onLayout(changed: Boolean, left: Int, top: Int, right: Int, bottom: Int) {
-        updateLayout(right-left, bottom-top)
+        updateLayout(right-left)
     }
-
-    /**
-     * サイズが変更されたときの処理
-     */
-//    override fun onSizeChanged(w: Int, h: Int, ow: Int, oh: Int) {
-//        updateLayout(w,h)
-//    }
 
     /**
      * レールを描画する
