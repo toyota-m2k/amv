@@ -485,11 +485,12 @@ class AmvSlider @JvmOverloads constructor(
             else -> 200
         }
 
-
-        // 当初、高さがNaturalHeightと異なる場合は、そのサイズになるよう拡大/縮小するために、mScale を保持して位置調整していたが、
+        // 当初、高さがNaturalHeightと異なる場合は、そのサイズになるよう拡大/縮小するために、mScale( = height / naturalHeight) を保持して位置調整していたが、
         // 初期化時にパーツのサイズ（特にextentWidth）が確定しないため、他の連動するビュー（フレームリストやプレーヤー）の位置調整ができなくなるので、
         // 高さは naturalHeight 固定とする。
-        // mScale = height / naturalHeight.toFloat()
+        //
+        // 変更前：3f4b7058dba6bd98a1f86d9e5c3d32b9820851c3
+        // 変更後：da56b5b32b1ac2d5ec55fdf2d3920146f2e48c31
 
 
         // val heightMode = View.MeasureSpec.getMode(heightMeasureSpec)
