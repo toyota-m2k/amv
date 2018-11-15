@@ -7,6 +7,7 @@
 
 package com.michael.utils
 
+@Suppress("unused")
 /**
  * Push/Pop/Peek をサポートするシンプルなスタッククラス
  */

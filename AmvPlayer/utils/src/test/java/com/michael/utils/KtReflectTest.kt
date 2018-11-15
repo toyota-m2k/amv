@@ -70,7 +70,7 @@ class FuncyTest {
 //        f1.call(1,"a")
 //        f5.call(2,"b")
 //        f3.invoke(3,"c")
-//        f2.call(4,"d")
+//        f2.call(4,"x")
 
 
         val lmd : (String)->Unit = {s:String->5}

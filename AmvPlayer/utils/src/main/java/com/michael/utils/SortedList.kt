@@ -7,6 +7,7 @@
 
 package com.michael.utils
 
+@Suppress("unused")
 /**
  * addしたときに必ずソートされる配列クラス
  */
@@ -118,6 +119,7 @@ class SortedList<T>(capacity: Int, private val comparator: (T, T) -> Int, privat
         }
     }
 
+    @Suppress("MemberVisibilityCanBePrivate")
     fun find(element: T, result:Position?) : Int {
         result?.reset()
 
@@ -142,6 +144,7 @@ class SortedList<T>(capacity: Int, private val comparator: (T, T) -> Int, privat
             m = (s + e) / 2
             val v = mList[m]
             val cmp =comparator(v,element)
+            @Suppress("CascadeIf")
             if (cmp==0) {
                 result?.apply {
                     hit = m

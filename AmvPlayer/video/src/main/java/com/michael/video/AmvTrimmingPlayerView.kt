@@ -58,7 +58,7 @@ class AmvTrimmingPlayerView @JvmOverloads constructor(
         get() = controls.controller
 
     private val mViewModel: AmvTranscodeViewModel?
-    private var mNotified = false   // onCompletedが複数回呼ばれるので、onTrimmingCompletedListenerの通知を1回に限定するためのフラグ
+//    private var mNotified = false   // onCompletedが複数回呼ばれるので、onTrimmingCompletedListenerの通知を1回に限定するためのフラグ
 
     init {
         LayoutInflater.from(context).inflate(R.layout.trimming_player, this)
@@ -110,9 +110,9 @@ class AmvTrimmingPlayerView @JvmOverloads constructor(
         if (result) {
             // 成功したら、進捗表示を消す
             controls.progressLayer.visibility = View.GONE
-            if (!mNotified) {
-                mNotified = true
-                onTrimmingCompletedListener.invoke(this)
+            onTrimmingCompletedListener.apply {
+                invoke(this@AmvTrimmingPlayerView)
+                reset()
             }
         } else {
             // 失敗したら、エラーメッセージを表示
@@ -140,6 +140,12 @@ class AmvTrimmingPlayerView @JvmOverloads constructor(
 
     // region Public API's
 
+    val isBusy:Boolean
+        get() = mViewModel?.isBusy ?: false
+
+    val error: AmvError
+        get() = mViewModel?.status?.value?.error ?: AmvError()
+
     fun setSource(source: File) {
         controls.player.setSource(source, false, 0)
     }
@@ -163,7 +169,6 @@ class AmvTrimmingPlayerView @JvmOverloads constructor(
             return false
         }
 
-        mNotified = false
         controls.progressLayer.visibility = View.VISIBLE
         if (!isTrimmed) {
             vm.transcode(input, output, context)
@@ -171,6 +176,13 @@ class AmvTrimmingPlayerView @JvmOverloads constructor(
             vm.truncate(input, output, trimmingRange.start, trimmingRange.end, context)
         }
         return true
+    }
+
+    fun cancel() {
+        val vm = mViewModel
+        if(null!=vm) {
+            vm.cancel()
+        }
     }
 
     // endregion

@@ -2,8 +2,16 @@ package com.michael.utils
 
 import android.util.Log
 
+interface ILogger {
+    fun debug(msg:String)
+    fun warn(msg:String)
+    fun error(msg:String)
+    fun info(msg:String)
+    fun verbose(msg:String)
+}
+
 @Suppress("unused")
-class UtLogger(val tag:String) {
+class UtLogger(private val tag:String) {
 
     companion object {
         @JvmStatic
@@ -53,6 +61,8 @@ class UtLogger(val tag:String) {
         }
     }
 
+    var externalLogger:ILogger? = null
+
     private fun printToSystemOut(tag: String, s: String): Int {
         System.out.println("$tag:$s")
         Log.DEBUG
@@ -64,7 +74,7 @@ class UtLogger(val tag:String) {
         0 <= runtime.indexOf("Android")
     }
 
-    fun target(level: Int): (String, String) -> Int {
+    private fun target(level: Int): (String, String) -> Int {
         if (!isAndroid) {
             return this::printToSystemOut
         }

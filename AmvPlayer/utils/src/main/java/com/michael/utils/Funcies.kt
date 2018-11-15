@@ -1,5 +1,5 @@
 /**
- * 関数様の何か・・・KOtlinの関数リテラル、ラムダ、Javaのインスタンスメソッドなどをまとめて扱えるようにする、
+ * 関数様の何か・・・Kotlinの関数リテラル、ラムダ、Javaのインスタンスメソッドなどをまとめて扱えるようにする、
  * とても funky monkey な funcy & methody クラス
  *
  * @author M.TOYOTA 2018.07.06 Created
@@ -424,29 +424,37 @@ open class Funcies3<T1:Any?, T2:Any?, T3:Any?, R:Any?> : Funcies<R>(), IFuncy3<T
 /**
  * 高々１つのリスナーを登録するだけの場合、Funcies を使う必要はないので、簡素化したクラスも用意しておく
  */
+@Suppress("unused")
 open class FuncyListener0<R> {
-    var funcy : Funcy0<R>? = null
+    var funcy : IFuncy0<R>? = null
+    fun set(f:IFuncy0<R>) {funcy = f}
     fun set(listener:()->R) { funcy = Funcy0(listener) }
     fun reset() {funcy = null }
     fun invoke() : R?  = funcy?.invoke()
 }
 
+@Suppress("unused")
 open class FuncyListener1<T1,R> {
-    var funcy : Funcy1<T1,R>? = null
+    var funcy : IFuncy1<T1,R>? = null
+    fun set(f:IFuncy1<T1,R>) {funcy = f}
     fun set(listener:(T1)->R) { funcy = Funcy1(listener) }
     fun reset() {funcy = null }
     fun invoke(p1:T1) : R? = funcy?.invoke(p1)
 }
 
+@Suppress("unused")
 open class FuncyListener2<T1,T2,R> {
-    var funcy : Funcy2<T1,T2,R>? = null
+    var funcy : IFuncy2<T1,T2,R>? = null
+    fun set(f:IFuncy2<T1,T2,R>) {funcy = f}
     fun set(listener:(T1,T2)->R) { funcy = Funcy2(listener) }
     fun reset() {funcy = null }
     fun invoke(p1:T1, p2:T2) : R? = funcy?.invoke(p1, p2)
 }
 
+@Suppress("unused")
 open class FuncyListener3<T1,T2,T3,R> {
-    var funcy : Funcy3<T1,T2,T3,R>? = null
+    var funcy : IFuncy3<T1,T2,T3,R>? = null
+    fun set(f:IFuncy3<T1,T2,T3,R>) {funcy = f}
     fun set(listener:(T1,T2,T3)->R) { funcy = Funcy3(listener) }
     fun reset() {funcy = null }
     fun invoke(p1:T1, p2:T2, p3:T3) : R? = funcy?.invoke(p1, p2, p3)

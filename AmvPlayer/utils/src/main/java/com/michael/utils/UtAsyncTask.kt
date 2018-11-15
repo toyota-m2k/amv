@@ -9,7 +9,7 @@ package com.michael.utils
 
 import android.os.AsyncTask
 
-@Suppress("unused")
+@Suppress("unused", "MemberVisibilityCanBePrivate")
 abstract class UtAsyncTask : AsyncTask<Unit,Any,Unit>() {
 
     /**

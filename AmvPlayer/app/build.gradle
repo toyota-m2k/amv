@@ -38,6 +38,7 @@ dependencies {
     // Kotlin Support
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlin_version"
     implementation "org.jetbrains.kotlin:kotlin-reflect:$kotlin_version"
+    implementation "org.jetbrains.kotlinx:kotlinx-coroutines-android:$kotlin_coroutine_version"
 
     // Google Architecture Components
     implementation "android.arch.lifecycle:extensions:$lifecycle_version"
@@ -60,7 +61,7 @@ dependencies {
     implementation "com.android.support:support-media-compat:$support_lib_version"
 
     // sub modules
-    implementation project(':video')
+    implementation project(path: ':video')
     implementation project(path: ':utils')
 }
 repositories {
