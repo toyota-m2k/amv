@@ -1,21 +1,33 @@
+@file:Suppress("unused")
+
 package com.michael.amvplayer.exp
 
+import com.michael.utils.UtLogger
 import java.lang.IllegalStateException
 
-class Promistic constructor(
+open class Promistic constructor(
     private val action: ((Any?, Promistic)->Unit)? = null,
-    private val errorHandler: ((Any?, Promistic)->Unit)? = null,
-    private val anyway: ((Any?)->Unit)? = null,
-    head:(Promistic?) = null
+    private val errorHandler: ((Any?)->Unit)? = null,
+    private val anywayHandler: ((Any?)->Unit)? = null
     ) {
 
     private var _next: Promistic? = null
-    private var _head: Promistic? = head
+    private var _head: Promistic? = null
     private var _burnt: Boolean = false
-    private var _tag: Int = 0
+    private var _tag: Int = Promistic.nextGlobalIndex()
+    private var _label: String? = null
+
+    private fun log(msg:String) {
+        if(_label.isNullOrEmpty()) {
+            UtLogger.debug("$_tag: $msg")
+        } else {
+            UtLogger.debug("$_tag ($_label) : $msg")
+        }
+    }
 
     val first:Promistic
         get() = _head?:this
+
 
     /**
      * Promiseチェーンの末尾のノードを取得
@@ -30,64 +42,92 @@ class Promistic constructor(
         }
 
 
-    fun execute(chainResult:Any?):Unit {
+    open fun execute(chainedResult:Any?) {
         if(_burnt) {
-            throw IllegalAccessException("the task to be executed is already burning or has been burnt.");
+            throw IllegalAccessException("($_tag): the task to be executed is already burning or has been burnt.")
         }
-        _burnt = true;
+        log("execute called")
+
+        _burnt = true
         if(null!=action) {
             try {
-                action.invoke(chainResult, this)
+                action.invoke(chainedResult, this)
             } catch(e:Throwable) {
-                setError(e);
+                setError(e)
             }
-        } else { // action == null
-            _next?.execute(chainResult)
+        } else { // action == null && anywayHandler == null
+            if(null!=anywayHandler){
+                try {
+                    anywayHandler.invoke(chainedResult)
+                } catch(e:Throwable) {
+                    // anywayのエラーは無視
+                }
+            }
+            _next?.execute(chainedResult)
             this.dispose()
         }
     }
 
     private fun abort(error:Any?) {
         if(_burnt) {
-            throw IllegalAccessException("the task to be executed is already burning or has been burnt.");
+            throw IllegalAccessException("($_tag): the task to be executed is already burning or has been burnt.")
         }
 
-        _burnt = true;
+        _burnt = true
         if(null!=errorHandler) {
             try {
-                errorHandler.invoke(error, this)
+                errorHandler.invoke(error)
             } catch(e:Throwable) {
+                // errorHandlerのエラーは無視
+            }
+        }
+        if(null!=anywayHandler){
+            try {
+                anywayHandler.invoke(error)
+            } catch(e:Throwable) {
+                // anywayのエラーは無視
             }
         }
 
-        val next = _next;
+        val next = _next
         if( null!=next ){ // action == null
-            next.abort(error);
-            this.dispose()
+            next.abort(error)
         }
-
+        this.dispose()
     }
 
     private fun setError(error:Any?) {
-        if(null!=errorHandler) {
-            errorHandler.invoke(error, this)
-        }
+        log("rejected")
+
+        assert(errorHandler==null)
+//        try {
+//            errorHandler?.invoke(error)
+//        } catch (e:Throwable) {
+//            log("errorHandler error : $e")
+//        }
+
         val next = _next
         if(null!=next) {
             next.abort(error)
+        } else {
+            log("rejected and reached the last node of the promistic chain - ${first._tag}")
         }
     }
 
     private fun setResult(chainedResult:Any?) {
+        log("resolved")
+
         val next = _next
         if(null!=next) {
-            next.execute(chainedResult);
+            next.execute(chainedResult)
+        } else {
+            log("resolved and reached the last node of the promistic chain - ${first._tag}")
         }
         dispose()
     }
 
-    fun dispose() {
-        // disposed
+    private fun dispose() {
+        log("disposed")
     }
 
 
@@ -120,14 +160,22 @@ class Promistic constructor(
             parentTask.resolve(chainedResult)
             null
         }
-        .failed { error:Any?->
+        .failed {
             parentTask.resolve(null)
         }
         .ignite()
     }
 
+    private fun addNextNode(promistic:Promistic) :Promistic{
+        validateBeforeAddingNode()
+        this.last._next = promistic.first
+        promistic._head = this.first
+        return promistic.last
+    }
+
+
+
     private fun addNextChain(nextAction:(Any?)->Promistic?) : Promistic {
-        validateBeforeAddingNode();
         val node = Promistic(action = { chainedResult: Any?, promix:Promistic ->
             val child = nextAction(chainedResult)
             if(null!=child) {
@@ -135,15 +183,13 @@ class Promistic constructor(
             } else {
                 promix.resolve(chainedResult)
             }
-        }, head=this.first)
-        this.last._next = node
-        return node
+        })
+        return addNextNode(node)
     }
 
 
-    // reject されても resolved として扱う
-    private  fun addNextIgnoringChain(nextAction:(Any?)->Promistic):Promistic {
-        validateBeforeAddingNode();
+    // nextActionが返すPromisticが reject されても resolved として扱うノードとして追加する
+    private  fun addNextIgnoringChain(nextAction:(Any?)->Promistic?):Promistic {
         val node = Promistic(action = { chainedResult: Any?, promix:Promistic ->
             val child = nextAction(chainedResult)
             if(null!=child) {
@@ -151,23 +197,22 @@ class Promistic constructor(
             } else {
                 promix.resolve(chainedResult)
             }
-        }, head=this.first)
-        this.last._next = node
-        return node
+        })
+        return addNextNode(node)
     }
 
     private fun addErrorHandler(errorHandler:(Any?)->Unit):Promistic {
-        validateBeforeAddingNode();
-        val node = Promistic(errorHandler = {error:Any?, promiy:Promistic ->
-            errorHandler(error)
-        }, head=this.first)
-        this.last._next = node
-        return node
+        val node = Promistic(errorHandler = errorHandler)
+        return addNextNode(node)
     }
 
-    private fun addNextParalells(promistics:List<Promistic>, race:Boolean) :Promistic{
-        validateBeforeAddingNode();
+    private fun addAnywayHandler(anywayHandler:(Any?)->Unit):Promistic {
+        val node = Promistic(anywayHandler = anywayHandler)
+        return addNextNode(node)
+    }
 
+    private fun addNextParalells(promistics:List<Promistic>, race:Boolean):Promistic {
+        return addNextNode( ParallelPromistic(promistics, race) )
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////////
@@ -178,16 +223,36 @@ class Promistic constructor(
         setResult(chainedResult)
     }
     fun reject(error: Any?=null) {
-        setResult(error)
+        setError(error)
     }
     fun then(nextAction:(Any?)->Promistic?):Promistic {
         return addNextChain(nextAction)
     }
-    fun ignore(nextAction:(Any?)->Promistic):Promistic {
+    fun ignore(nextAction:(Any?)->Promistic?):Promistic {
         return addNextIgnoringChain(nextAction)
+    }
+    // Promisticを返す fun SomePromisticFunc() があるとして、
+    //
+    // promise.then {
+    //   return SomePromisticFunc()
+    // }
+    //
+    // と書く代わりに
+    //
+    // promise.inject(SomePromisticFunc())
+    //
+    // と書ける。簡潔でPromiseノードが１つ少なくて済むように見えるが、
+    // thenを使った場合は、thenブロックに入ったタイミングで、SomePromisticFunc()が実行され、同時に着火されるのに対して
+    // injectを使う場合は、injectを呼び出したタイミングで、(着火はされないものの)SomePromisticFunc()が実行されてしまう点が異なる。
+    // これを使う理由は、ほとんどない気がする。
+    fun inject(node:Promistic) : Promistic {
+        return addNextNode(node)
     }
     fun failed(errorHandler:(Any?)->Unit):Promistic {
         return addErrorHandler(errorHandler)
+    }
+    fun anyway(anywayHandler:(Any?)->Unit):Promistic {
+        return addAnywayHandler(anywayHandler)
     }
     fun all(promistics:List<Promistic>):Promistic {
         return addNextParalells(promistics, race=false)
@@ -197,58 +262,110 @@ class Promistic constructor(
     }
 
     fun ignite(initialParam:Any?=null) {
-        this.first.execute(initialParam);
+        this.first.execute(initialParam)
+    }
+
+    companion object {
+        private var globalIndex: Int = 0
+
+        fun nextGlobalIndex(): Int {
+            return ++globalIndex
+        }
+
+        // resolved(null)と、ほぼ等価
+        fun promise(): Promistic {
+            return Promistic()
+        }
+
+        fun resolved(chainedResult: Any? = null): Promistic {
+            return Promistic(action = { _: Any?, promix: Promistic ->
+                promix.resolve(chainedResult)
+            })
+        }
+
+        fun rejected(error: Any? = null): Promistic {
+            return Promistic(action = { _: Any?, promix: Promistic ->
+                promix.reject(error)
+            })
+        }
     }
 }
 
-class MMJParallelPromistic constructor(private val aryPromistic:List<Promistic>, private val race:Boolean = false, head:Promistic?=null)
-    : Promistic(head=head) {
-    val aryResults: ArrayList<Any?>
-    var finished = 0
-    var ignored = 0
+class ParallelPromistic
+    constructor(
+            promistics:List<Promistic>,
+            private val race:Boolean = false ) : Promistic() {
+
+    private val aryPromistic: ArrayList<Promistic>
+    private val aryResults: ArrayList<Any?>
+    private var failed = 0
+    private var succeeded = 0
+
+    private val finished
+        get() = succeeded+failed
+    private val isCompleted
+        get() = finished == aryPromistic.size
 
     init {
-        val count = aryPromistic.size
-        aryResults = ArrayList<Any?>(count)
-        for(px in aryPromistic) {
+        val count = promistics.size
+        aryPromistic = ArrayList(count)
+        aryResults = ArrayList(count)
+        for(px in promistics) {
             aryResults.add(null)
+            aryPromistic.add(px.first)
         }
     }
 
-    fun executeSingle(po:Promistic) {
-        po.last.then { chainedResult:Any? ->
-            onSingleTaskCompleted(po, chainedResult)
+    private fun executeSingle(po:Promistic) {
+        po.then { chainedResult:Any? ->
+            onSingleTaskSucceeded(po, chainedResult)
+            null
         }.failed { error:Any? ->
             onSingleTaskFailed(po, error)
         }.ignite()
     }
 
-    fun execute(chainedResult:Any?) {
+    override fun execute(chainedResult:Any?) {
         for(po in aryPromistic) {
-            executeSingle(po);
+            executeSingle(po)
         }
     }
 
-    fun onSingleTaskCompleted(promise:Promistic, chainedResult:Any?) : Promistic {
-        var succeeded = false
-        var failed = false
+    private fun onSingleTaskCompleted(promise:Promistic, result:Any?, resolved:Boolean) {
+        val completed =
         synchronized (this) {
-            finished++;
-            val index = aryPromistic.indexOf(promise.first)
-            val count = aryPromistic.size;
-            if(0<=index && index <count) {
-                aryResults[index] = chainedResult
+            if(resolved) {
+                succeeded++
+            } else {
+                failed++
             }
-            succeeded = finished == count
-            failed = ignored>0 && (ignored+finished) == count
+            val index = aryPromistic.indexOf(promise.first)
+            val count = aryPromistic.size
+            if(index in 0..(count - 1)) {
+                aryResults[index] = result
+            }
+            isCompleted
+        }
 
-            if(race) {
-                // rase条件のときは、１つでも成功したら、その結果をresolveで返す。
-                if()
+        if(completed) {
+            // raceの場合は１つでも成功すればresolve
+            // all の場合はすべて成功すればresolve
+            if((race && succeeded>0) || (!race && failed==0)) {
+                this.resolve(aryResults)
+            } else {
+                this.reject(aryResults)
             }
         }
+
     }
 
+    private fun onSingleTaskSucceeded(promise:Promistic, chainedResult:Any?) {
+        onSingleTaskCompleted(promise, chainedResult, true)
+    }
+
+    private fun onSingleTaskFailed(promise:Promistic, error:Any?) {
+        onSingleTaskCompleted(promise, error, false)
+    }
 
 
 }
