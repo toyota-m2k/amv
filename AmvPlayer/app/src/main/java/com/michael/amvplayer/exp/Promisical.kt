@@ -1,26 +1,26 @@
 package com.michael.amvplayer.exp
 
-interface IPromiseNode {
+interface IPromisicalNode {
 }
 
-interface IPromiseResolvable {
+interface IPromisicalResolvable {
     fun resolve(chainedResult:Any?=null)
     fun reject(error: Any?=null)
 }
 
-interface IPromise : IPromiseResolvable {
-    fun then(nextAction:(Any?)->IPromise?):IPromise
-    fun ignore(nextAction:(Any?)->IPromise?):IPromise
-    fun failed(errorHandler:(Any?)->Unit):IPromise
-    fun anyway(anywayHandler: (Any?)->Unit ):IPromise
-    fun all(IPromises:List<IPromise>):IPromise
-    fun race(IPromises:List<IPromise>):IPromise
+interface IPromisical : IPromisicalResolvable {
+    fun then(nextAction:(Any?)->IPromisical?):IPromisical
+    fun ignore(nextAction:(Any?)->IPromisical?):IPromisical
+    fun failed(errorHandler:(Any?)->Unit):IPromisical
+    fun anyway(anywayHandler: (Any?)->Unit ):IPromisical
+    fun all(IPromisicals:List<IPromisical>):IPromisical
+    fun race(IPromisicals:List<IPromisical>):IPromisical
 
     fun ignite()
 }
 
-class Promisy : IPromise {
-    val aryPromise = ArrayList<IPromise>()
+class Promisy : IPromisical {
+    val aryPromise = ArrayList<IPromisical>()
     var current: Int = 0
 
 
@@ -47,8 +47,8 @@ class Promisy : IPromise {
         }
     }
 
-    override fun then(nextAction: (Any?) -> IPromise?): IPromise {
-        val node = PromiseNode(action = { chainedResult: Any?, promix: IPromiseResolvable ->
+    override fun then(nextAction: (Any?) -> IPromisical?): IPromisical {
+        val node = PromiseNode(action = { chainedResult: Any?, promix: IPromisicalResolvable ->
             val nextPromise = nextAction(chainedResult)
             if(null!=nextPromise) {
                 nextPromise
@@ -68,8 +68,8 @@ class Promisy : IPromise {
         return this
     }
 
-    override fun ignore(nextAction: (Any?) -> IPromise?): IPromise {
-        val node = PromiseNode(action = { chainedResult: Any?, promix: IPromiseResolvable ->
+    override fun ignore(nextAction: (Any?) -> IPromisical?): IPromisical {
+        val node = PromiseNode(action = { chainedResult: Any?, promix: IPromisicalResolvable ->
             val nextPromise = nextAction(chainedResult)
             if(null!=nextPromise) {
                 nextPromise
@@ -85,24 +85,24 @@ class Promisy : IPromise {
         return this
     }
 
-    override fun failed(errorHandler: (Any?) -> Unit): IPromise {
+    override fun failed(errorHandler: (Any?) -> Unit): IPromisical {
         val node = PromiseNode(errorHandler = errorHandler)
         aryPromise.add(node)
         return this;
     }
 
 
-    override fun anyway(anywayHandler: (Any?)->Unit ):IPromise {
+    override fun anyway(anywayHandler: (Any?)->Unit ):IPromisical {
         val node = PromiseNode(anywayHandler = anywayHandler)
         aryPromise.add(node)
         return this
     }
 
-    override fun all(IPromises: List<IPromise>): IPromise {
+    override fun all(IPromisicals: List<IPromisical>): IPromisical {
         TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
     }
 
-    override fun race(IPromises: List<IPromise>): IPromise {
+    override fun race(IPromisicals: List<IPromisical>): IPromisical {
         TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
     }
 
@@ -117,10 +117,10 @@ class Promisy : IPromise {
     }
 
     inner class PromiseNode (
-            val action:((Any?, promix:IPromiseResolvable) -> Unit)? = null, 
+            val action:((Any?, promix:IPromisicalResolvable) -> Unit)? = null, 
             val errorHandler:((Any?)->Unit)? = null,
             val anywayHandler:((Any?)->Unit)? = null
-            )  : IPromise {
+            )  : IPromisical {
 
         override fun resolve(chainedResult: Any?) {
             if(null!=action) {
@@ -145,27 +145,27 @@ class Promisy : IPromise {
             this@Promisy.reject(error);
         }
 
-        override fun then(nextAction: (Any?) -> IPromise?): IPromise {
+        override fun then(nextAction: (Any?) -> IPromisical?): IPromisical {
             return this@Promisy.then(nextAction)
         }
 
-        override fun ignore(nextAction: (Any?) -> IPromise?): IPromise {
+        override fun ignore(nextAction: (Any?) -> IPromisical?): IPromisical {
             return this@Promisy.ignore(nextAction)
         }
 
-        override fun anyway(anywayHandler: (Any?)->Unit ):IPromise {
+        override fun anyway(anywayHandler: (Any?)->Unit ):IPromisical {
             return this@Promisy.anyway(anywayHandler)
         }
 
-        override fun failed(errorHandler: (Any?) -> Unit): IPromise {
+        override fun failed(errorHandler: (Any?) -> Unit): IPromisical {
             return this@Promisy.failed(errorHandler)
         }
 
-        override fun all(promises: List<IPromise>): IPromise {
+        override fun all(promises: List<IPromisical>): IPromisical {
             return this@Promisy.all(promises)
         }
 
-        override fun race(promises: List<IPromise>): IPromise {
+        override fun race(promises: List<IPromisical>): IPromisical {
             return this@Promisy.all(promises)
         }
     }
