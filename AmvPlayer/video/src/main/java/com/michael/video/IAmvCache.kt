@@ -7,7 +7,6 @@
 package com.michael.video
 
 import android.net.Uri
-import com.michael.utils.IFuncy2
 import java.io.File
 
 /**
@@ -27,6 +26,8 @@ interface IAmvCache
         fun onGotFile(cache:IAmvCache, file:File?)
     }
     fun getFile(callback: IGotFileCallback)
+
+    suspend fun getFileAsync() : File?
 
     /**
      * エラー情報
@@ -62,5 +63,10 @@ interface IAmvCache
     /**
      * ターゲットの URI を取得
      */
-    val uri : Uri
+    val uri : Uri?
+
+    /**
+     * 参照キー
+     */
+    val key : String
 }

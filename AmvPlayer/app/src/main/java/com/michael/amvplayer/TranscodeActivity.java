@@ -1,12 +1,12 @@
 package com.michael.amvplayer;
 
-import android.arch.lifecycle.Observer;
-import android.arch.lifecycle.ViewModelProviders;
+import androidx.lifecycle.Observer;
+import androidx.lifecycle.ViewModelProviders;
 import android.content.Intent;
-import android.databinding.BaseObservable;
+import androidx.databinding.BaseObservable;
 import android.os.Bundle;
-import android.support.annotation.NonNull;
-import android.support.v7.app.AppCompatActivity;
+import androidx.annotation.NonNull;
+import androidx.appcompat.app.AppCompatActivity;
 import android.util.Log;
 import android.util.Size;
 import android.view.View;
@@ -96,7 +96,7 @@ public class TranscodeActivity extends AppCompatActivity {
             case "FileDialog":
                 Bundle bundle = state.getResult();
                 if(null!=bundle) {
-                    UxFileDialog.Status result = UxFileDialog.Status.unpack(bundle, null);
+                    UxFileDialog.Status result = UxFileDialog.Status.unpack(bundle);
                     Log.d("Amv", String.format("FileDialog ... select \"%s\"", result.getFileName()));
                     File file = result.getFile();
                     if(null!=file) {
@@ -128,7 +128,7 @@ public class TranscodeActivity extends AppCompatActivity {
             }
         });
         try {
-            File path = File.createTempFile("TCOD_TEST", ".mp4", MainActivity.getWorkFolder());
+            File path = File.createTempFile("TCOD_TEST", ".mp4", MainActivity.Companion.getWorkFolder());
             transcoder.transcode(path);
         } catch (Exception e) {
             e.printStackTrace();

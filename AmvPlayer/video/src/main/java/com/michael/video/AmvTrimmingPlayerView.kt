@@ -9,7 +9,7 @@ package com.michael.video
 
 import android.annotation.SuppressLint
 import android.content.Context
-import android.support.constraint.ConstraintLayout
+import androidx.constraintlayout.widget.ConstraintLayout
 import android.util.AttributeSet
 import android.view.LayoutInflater
 import android.view.View
@@ -19,6 +19,10 @@ import android.widget.ProgressBar
 import android.widget.TextView
 import com.michael.utils.FuncyListener1
 import com.michael.video.viewmodel.AmvTranscodeViewModel
+import kotlinx.android.synthetic.main.trimming_player.view.*
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.launch
 import java.io.File
 import kotlin.math.roundToInt
 
@@ -63,14 +67,25 @@ class AmvTrimmingPlayerView @JvmOverloads constructor(
     init {
         LayoutInflater.from(context).inflate(R.layout.trimming_player, this)
 
+        AmvStringPool.getString(R.string.cancel)?.apply {
+            trp_cancelButton.text = this
+        }
+
+        val sa = context.theme.obtainStyledAttributes(attrs,R.styleable.AmvExoVideoPlayer,defStyleAttr,0)
+        try {
+            if(!sa.getBoolean(R.styleable.AmvTrimmingPlayerView_showCancelButton, false)) {
+                controls.cancelButton.visibility = View.INVISIBLE
+            }
+        } finally {
+            sa.recycle()
+        }
         videoController.setVideoPlayer(videoPlayer)
 
         mViewModel = AmvTranscodeViewModel.registerTo(this, this::onProgress, this::onTrimmingCompleted)
 
         // Transcode/Trimming 中のキャンセル
         controls.cancelButton.setOnClickListener {
-            mViewModel?.cancel()
-            controls.progressLayer.visibility = View.GONE
+            cancel()
         }
 
         val vm = mViewModel
@@ -83,9 +98,9 @@ class AmvTrimmingPlayerView @JvmOverloads constructor(
     override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
         super.onSizeChanged(w, h, oldw, oldh)
 
-        val sliderHeight = controls.controller.measuredHeight // + context.dp2px(16)
+        val sliderHeight = Math.max(h - controls.controller.controllerHeight, context.dp2px(50)).toFloat() // measuredHeight // + context.dp2px(16)
         val sliderWidth = w - controls.controller.extentWidth
-        controls.player.setLayoutHint(FitMode.Inside, sliderWidth, (h-sliderHeight).toFloat())
+        controls.player.setLayoutHint(FitMode.Inside, sliderWidth, sliderHeight)
     }
 
 
@@ -98,15 +113,21 @@ class AmvTrimmingPlayerView @JvmOverloads constructor(
      */
     @SuppressLint("SetTextI18n")
     private fun onProgress(progress:Float) {
-        val percent = (progress*100).roundToInt()
-        controls.progressBar.progress = percent
-        controls.message.text = "$percent %"
+        var percent = (progress*100).roundToInt()
+        if(percent>100) {
+            percent %= 100
+        }
+        if(controls.progressBar.progress!=percent) {
+            controls.progressBar.progress = percent
+            controls.message.text = "$percent %"
+        }
     }
 
     /**
-     * Trimmning/Transcode 完了時の処理
+     * Trimming/Transcode 完了時の処理
      */
-    private fun onTrimmingCompleted(result:Boolean, error:AmvError?) {
+    private fun onTrimmingCompleted(result:Boolean, @Suppress("UNUSED_PARAMETER") error:AmvError?) {
+        controls.controller.resumeFrameExtraction()
         if (result) {
             // 成功したら、進捗表示を消す
             controls.progressLayer.visibility = View.GONE
@@ -116,7 +137,7 @@ class AmvTrimmingPlayerView @JvmOverloads constructor(
             }
         } else {
             // 失敗したら、エラーメッセージを表示
-            controls.message.text = error?.message ?: "Faild"
+            controls.message.text = /*error?.message ?: */ AmvStringPool.getString(R.string.error) ?: context.getString(R.string.error)
         }
     }
 
@@ -146,8 +167,20 @@ class AmvTrimmingPlayerView @JvmOverloads constructor(
     val error: AmvError
         get() = mViewModel?.status?.value?.error ?: AmvError()
 
-    fun setSource(source: File) {
-        controls.player.setSource(source, false, 0)
+    var source:File? = null
+        set(v) {
+            field = v
+            GlobalScope.launch(Dispatchers.Main) {
+                controls.player.setSource(AmvFileSource(v), false, 0)
+            }
+        }
+
+    /**
+     * 後始末
+     * ViewModelに保持しているフレームサムネイルリストをクリアする
+     */
+    fun dispose() {
+        controls.controller.dispose()
     }
 
     @Suppress("MemberVisibilityCanBePrivate")
@@ -164,11 +197,12 @@ class AmvTrimmingPlayerView @JvmOverloads constructor(
      */
     fun startTrimming(output:File) : Boolean {
         val vm = mViewModel
-        val input = videoPlayer.source
+        val input = source
         if (null == vm || null == input || !trimmingRange.isValid && !vm.isBusy) {
             return false
         }
 
+        controls.controller.pauseFrameExtraction()
         controls.progressLayer.visibility = View.VISIBLE
         if (!isTrimmed) {
             vm.transcode(input, output, context)
@@ -178,11 +212,15 @@ class AmvTrimmingPlayerView @JvmOverloads constructor(
         return true
     }
 
-    fun cancel() {
+    fun cancel() : Boolean {
         val vm = mViewModel
-        if(null!=vm) {
+        if(null!=vm && vm.isBusy) {
             vm.cancel()
+            controls.progressLayer.visibility = View.GONE
+            controls.controller.resumeFrameExtraction()
+            return true
         }
+        return false
     }
 
     // endregion

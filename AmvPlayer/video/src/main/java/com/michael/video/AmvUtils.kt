@@ -15,7 +15,8 @@ import com.michael.utils.UtLogger
 import kotlin.math.roundToInt
 import android.content.ContextWrapper
 import android.app.Activity
-
+import java.text.SimpleDateFormat
+import java.util.*
 
 
 interface ImSize {
@@ -50,6 +51,12 @@ data class MuSize(override var width: Float, override var height: Float) : ImSiz
         this.height = height
     }
 
+    fun rotate() {
+        val w = width
+        width = height
+        height = w
+    }
+
     override val asSizeF:SizeF
         get() = SizeF(width,height)
 
@@ -58,6 +65,7 @@ data class MuSize(override var width: Float, override var height: Float) : ImSiz
 
     override val isEmpty:Boolean
         get() = width==0f && height==0f
+
 
     fun empty() {
         set(0f,0f)
@@ -76,7 +84,7 @@ fun View.setLayoutWidth(width:Int) {
 }
 
 fun View.getLayoutWidth() : Int {
-    return if(layoutParams.width>=0) {
+    return if(layoutParams?.width ?: -1 >=0) {
         layoutParams.width
     } else {
         width
@@ -93,10 +101,10 @@ fun View.setLayoutHeight(height:Int) {
 
 @Suppress("unused")
 fun View.getLayoutHeight() : Int {
-    return if(layoutParams.height>=0) {
+    return if(layoutParams?.height ?: -1 >=0) {
         layoutParams.height
     } else {
-        width
+        height
     }
 }
 
@@ -107,6 +115,12 @@ fun View.setLayoutSize(width:Int, height:Int) {
         params.height = height
         layoutParams = params
     }
+}
+
+@Suppress("unused")
+fun View.measureAndGetSize() :Size {
+    this.measure(View.MeasureSpec.UNSPECIFIED, View.MeasureSpec.UNSPECIFIED)
+    return Size(this.measuredWidth, this.measuredHeight)
 }
 
 fun View.setMargin(left:Int, top:Int, right:Int, bottom:Int) {
@@ -129,13 +143,32 @@ fun View.getActivity(): Activity? {
     return null
 }
 
-@Suppress("unused")
+fun Context.getActivity():Activity? {
+    var ctx = this
+    while (ctx is ContextWrapper) {
+        if (ctx is Activity) {
+            return ctx
+        }
+        ctx = ctx.baseContext
+    }
+    return null
+}
+
 fun Context.dp2px(dp:Float) : Float {
     return resources.displayMetrics.density * dp
 }
 
 fun Context.dp2px(dp:Int) : Int {
     return (resources.displayMetrics.density * dp).roundToInt()
+}
+
+fun Context.px2dp(px:Float) : Float {
+    return px / resources.displayMetrics.density
+}
+
+@Suppress("unused")
+fun Context.px2dp(px:Int) : Int {
+    return px2dp(px.toFloat()).toInt()
 }
 
 class AmvTimeSpan(private val ms : Long) {
@@ -146,7 +179,7 @@ class AmvTimeSpan(private val ms : Long) {
         get() = (ms / 1000) % 60
 
     val minutes: Long
-        get() = (ms / 1000 / 60)
+        get() = (ms / 1000 / 60) % 60
 
     val hours: Long
         get() = (ms / 1000 / 60 / 60)
@@ -169,4 +202,21 @@ fun <T> ignoreErrorCall(def:T, f:()->T): T {
         UtLogger.debug("SafeCall: ${e.message}")
         def
     }
+}
+
+fun parseDateString(format:String, dateString:String) : Date? {
+    return try {
+        val dateFormatter = SimpleDateFormat(format, Locale.US)
+        dateFormatter.timeZone = TimeZone.getTimeZone("GMT")
+        dateFormatter.calendar = GregorianCalendar()
+        dateFormatter.parse(dateString)
+    } catch(e:Exception) {
+        // UtLogger.error("date format error. ${dateString}")
+        null
+    }
+}
+
+fun parseIso8601DateString(dateString:String) : Date? {
+    @Suppress("SpellCheckingInspection")
+    return parseDateString("yyyyMMdd'T'HHmmssZ", dateString) ?: parseDateString("yyyy-MM-dd'T'HH:mm:ssZ", dateString)
 }

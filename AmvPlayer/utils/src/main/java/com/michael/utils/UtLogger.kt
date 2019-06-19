@@ -2,6 +2,7 @@ package com.michael.utils
 
 import android.util.Log
 
+@Suppress("unused")
 interface ILogger {
     fun debug(msg:String)
     fun warn(msg:String)
@@ -55,9 +56,7 @@ class UtLogger(private val tag:String) {
 
         @JvmStatic
         fun stackTrace(e:Throwable, message:String?) {
-            if(null!=message) {
-                error("${message}\n${e.message}\n${e.stackTrace}")
-            }
+            error("${message?:""}\n${e.message}\n${e.stackTrace}")
         }
     }
 
@@ -71,7 +70,7 @@ class UtLogger(private val tag:String) {
 
     private val isAndroid: Boolean by lazy {
         val runtime = System.getProperty("java.runtime.name")
-        0 <= runtime.indexOf("Android")
+        0 <= runtime?.indexOf("Android") ?: -1
     }
 
     private fun target(level: Int): (String, String) -> Int {

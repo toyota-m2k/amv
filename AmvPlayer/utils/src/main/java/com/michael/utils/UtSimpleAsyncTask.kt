@@ -1,4 +1,4 @@
-package com.metamoji.lib.utils
+package com.michael.utils
 
 class UtSimpleAsyncTask<T>  : UtAsyncTask() {
     val onResult = FuncyListener1<T?, Unit>()

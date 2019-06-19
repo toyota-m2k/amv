@@ -8,9 +8,11 @@
 
 package com.michael.video
 
-import com.michael.utils.Funcies2
-import java.io.File
+import android.view.View
 
+/**
+ * Videoコントロールパネルのi/f
+ */
 interface IAmvVideoController {
 
     /**
@@ -24,19 +26,36 @@ interface IAmvVideoController {
      */
     var isReadOnly : Boolean
 
-//    /**
-//     * フレームリストのコンテント幅（スクローラー内コンテントの幅）が確定したときにコールバックされる
-//     */
-//    val contentWidthChanged: ContentWidthChanged
-//
-//    class ContentWidthChanged : Funcies2<IAmvVideoController, Int, Unit>() {
-//        interface IHandler {    // for Java
-//            fun contentWidthChanged(vc:IAmvVideoController, width: Int)
-//        }
-//        @JvmOverloads
-//        fun add(listener:IHandler, name:String?=null) = super.add(name, listener::contentWidthChanged)
-//        fun remove(listener:IHandler) = this.remove(listener::contentWidthChanged)
-//    }
+    /**
+     * スライダーを操作中（シーク中）か？
+     */
+    val isSeekingBySlider : Boolean
 
+    fun dispose()
+}
+
+/**
+ * Markerの設定をサポートするVideoコントロールパネルのi/f
+ */
+interface IAmvMarkerEditableController : IAmvVideoController {
+    interface IMarkerEditor {
+        fun setMarkerListener(listener: IMarkerListener?)
+        fun setMarkers(markers: Collection<Double>)
+        fun addMarker(position: Double, clientData: Any?)
+        fun removeMarker(position: Double, clientData: Any?)
+        fun setHighLightMarker(position:Double?)
+        val view: View
+    }
+
+    interface IMarkerListener {
+        fun onMarkerRemoved(sender:IMarkerEditor, marker:Double, clientData:Any?)
+        fun onMarkerAdded(sender:IMarkerEditor, marker:Double, clientData:Any?)
+        fun onMarkerContextMenu(sender:IMarkerEditor, marker:Double, x:Float, clientData: Any?)
+    }
+
+    /**
+     * Marker編集用i/f
+     */
+    val markerEditor: IMarkerEditor
 }
 

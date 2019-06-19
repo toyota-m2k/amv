@@ -1,9 +1,9 @@
 package com.michael.amvplayer.dialog
 
 import android.app.Dialog
-import android.databinding.BaseObservable
-import android.databinding.Bindable
-import android.databinding.DataBindingUtil
+import androidx.databinding.BaseObservable
+import androidx.databinding.Bindable
+import androidx.databinding.DataBindingUtil
 import android.os.Bundle
 import android.view.View
 import android.view.ViewGroup

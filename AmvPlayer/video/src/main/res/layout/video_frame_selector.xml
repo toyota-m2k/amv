@@ -13,6 +13,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_gravity="center_horizontal|center_vertical"
+        android:saveEnabled="false"
         app:playOnTouch = "false"
         tools:layout_height="250dp"
         tools:layout_width="250dp"
@@ -23,13 +24,14 @@
         android:layout_height="wrap_content"
         android:layout_marginTop="16dp"
         android:layout_gravity="center_horizontal|center_vertical"
-        android:background="@color/controller_bg"
+        android:background="@color/transparent"
         >
         <com.michael.video.AmvFrameListView
             android:id="@+id/vfs_frameList"
             android:layout_width="match_parent"
             android:layout_height="80dp"
-            android:layout_marginTop="26dp"
+            android:layout_marginTop="14dp"
+            android:background="@color/controller_bg"
             />
         <com.michael.video.AmvSlider
             android:id="@+id/vfs_slider"

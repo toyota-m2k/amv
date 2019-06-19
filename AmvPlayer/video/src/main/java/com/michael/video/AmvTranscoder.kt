@@ -195,7 +195,7 @@ class AmvTranscoder(val source:File, context:Context) : SurfaceHolder.Callback{
 
     init {
         if (!mediaInfo.hasVideo) {
-            throw AmvException("source format error.")
+            throw AmvException("source format error (no video data).")
         }
         UtLogger.debug(mediaInfo.summary)
     }
@@ -231,7 +231,7 @@ class AmvTranscoder(val source:File, context:Context) : SurfaceHolder.Callback{
         }
 
         override fun onMediaProgress(progress: Float) {
-            UtLogger.debug("AmvTranscoder: progressing ${(progress*100).roundToInt()}")
+            // UtLogger.debug("AmvTranscoder: progressing ${(progress*100).roundToInt()}")
             progressListener.invoke(this@AmvTranscoder, progress)
 
             if(lenderFrame<(progress*100).toInt()) {

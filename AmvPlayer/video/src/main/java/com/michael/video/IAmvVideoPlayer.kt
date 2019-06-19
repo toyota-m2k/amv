@@ -35,9 +35,9 @@ interface IAmvVideoPlayer {
     }
 
     // Event listener class
-    class SourceChangedListener : Funcies2<IAmvVideoPlayer, File, Unit>() {
+    class SourceChangedListener : Funcies2<IAmvVideoPlayer, IAmvSource, Unit>() {
         interface IHandler {    // for Java
-            fun sourceChanged(vp:IAmvVideoPlayer, source:File)
+            fun sourceChanged(vp:IAmvVideoPlayer, source:IAmvSource)
         }
         @JvmOverloads
         fun add(listener:IHandler, name:String?=null) = super.add(name, listener::sourceChanged)
@@ -98,10 +98,13 @@ interface IAmvVideoPlayer {
     val clipChangedListener: ClipChangedListener
 
     val playerState: PlayerState
+    val isPlayingOrReservedToPlay : Boolean
 
     val naturalDuration : Long
 
     val seekPosition : Long
+
+    var isMuted: Boolean
 
     // Operations
 
@@ -109,11 +112,11 @@ interface IAmvVideoPlayer {
 
     fun getLayoutHint() : IAmvLayoutHint
 
-    fun reset()
+    suspend fun reset()
 
-    fun setSource(source: File, autoPlay:Boolean=false, playFrom:Long=0)
+    suspend fun setSource(source: IAmvSource, autoPlay:Boolean=false, playFrom:Long=0)
 
-    val source:File?
+    val source:IAmvSource?
 
     fun setClip(clipping:Clipping?)
 

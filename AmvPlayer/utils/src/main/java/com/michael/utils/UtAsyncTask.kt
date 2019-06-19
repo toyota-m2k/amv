@@ -8,10 +8,17 @@
 package com.michael.utils
 
 import android.os.AsyncTask
+import java.util.concurrent.*
+import java.util.concurrent.atomic.AtomicInteger
 
 @Suppress("unused", "MemberVisibilityCanBePrivate")
-abstract class UtAsyncTask : AsyncTask<Unit,Any,Unit>() {
+abstract class UtAsyncTask(val executorType:ExecutorType = ExecutorType.LOCAL_PARALLEL, val autoDispose:Boolean=true) : AsyncTask<Unit,Any,Unit>() {
 
+    enum class ExecutorType {
+        SEQUENTIAL,
+        GLOBAL_PARALLEL,
+        LOCAL_PARALLEL,
+    }
     /**
      * バックグラウンドタスクの実体（こいつをオーバーライドする）
      * doInBackground()の中の人
@@ -23,13 +30,16 @@ abstract class UtAsyncTask : AsyncTask<Unit,Any,Unit>() {
 
     protected open fun onFinished(result:Boolean) {
         onFinishedListener.invoke(this, result)
+        if(autoDispose) {
+            dispose()
+        }
     }
 
     // イベントハンドラ
 
     /**
      * 処理が完了したときのイベント
-      */
+     */
     val onFinishedListener = Funcies2<UtAsyncTask, Boolean, Unit>()
 
     /**
@@ -68,7 +78,7 @@ abstract class UtAsyncTask : AsyncTask<Unit,Any,Unit>() {
     /**
      * マイルドなキャンセル
      */
-    fun cancel() {
+    open fun cancel() {
         cancel(false)
     }
 
@@ -149,8 +159,47 @@ abstract class UtAsyncTask : AsyncTask<Unit,Any,Unit>() {
         } else {
             val f = values[1]
             if(null!=f && f is IFuncy<*>) {
-                val args= values.copyOfRange(2, 2+3)
+                val args= values.copyOfRange(2, values.size)
                 f.invoke_(*args)
+            }
+        }
+    }
+
+    fun execute() {
+        when(executorType) {
+            ExecutorType.SEQUENTIAL->super.execute()
+            ExecutorType.GLOBAL_PARALLEL->super.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR)
+            else-> super.executeOnExecutor(LocalParallelExecutor)
+        }
+//        if(sequential) {
+//            super.execute()
+//        } else {
+//            super.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR)
+//        }
+    }
+
+    companion object {
+        private val CPU_COUNT by lazy {
+            Runtime.getRuntime().availableProcessors()
+        }
+        private val CORE_POOL_SIZE = Math.max(2, Math.min(CPU_COUNT - 1, 4))
+        private val MAXIMUM_POOL_SIZE = CPU_COUNT * 2 + 1
+        private val KEEP_ALIVE_SECONDS = 30L
+        private val sPoolWorkQueue by lazy {
+            LinkedBlockingQueue<Runnable>(128)
+        }
+
+        private val sThreadFactory = object : ThreadFactory {
+            private val mCount = AtomicInteger(1)
+            override fun newThread(r: Runnable): Thread {
+                return Thread(r, "UtAsyncTask #" + mCount.getAndIncrement())
+            }
+        }
+
+        val LocalParallelExecutor: Executor by lazy {
+            ThreadPoolExecutor(CORE_POOL_SIZE, MAXIMUM_POOL_SIZE, KEEP_ALIVE_SECONDS, TimeUnit.SECONDS,
+                    sPoolWorkQueue, sThreadFactory).apply {
+                allowCoreThreadTimeOut(true)
             }
         }
     }

@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<android.support.constraint.ConstraintLayout
+<androidx.constraintlayout.widget.ConstraintLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
@@ -7,10 +7,36 @@
     android:layout_height="wrap_content"
     >
 
+    <LinearLayout
+        android:id="@+id/evp_altLayer"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        tools:layout_width="400dp"
+        tools:layout_height="300dp"
+        android:visibility="visible"
+        android:background="@color/black"
+        android:alpha="0.5"
+        android:gravity="center_horizontal|center_vertical"
+        >
+        <ProgressBar
+            android:id="@+id/evp_progress"
+            android:layout_width="50dp"
+            android:layout_height="50dp"
+            />
+        <TextView
+            android:id="@+id/evp_message"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textColor="@color/white"
+            tools:text="Something seems to be wrong..."/>
+    </LinearLayout>
+
     <com.michael.video.AmvExoVideoPlayer
         android:id="@+id/evp_videoPlayer"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:saveEnabled="false"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         tools:layout_width="400dp"
@@ -34,4 +60,4 @@
         app:layout_constraintTop_toBottomOf="@+id/evp_videoPlayer"
         />
 
-</android.support.constraint.ConstraintLayout>
+</androidx.constraintlayout.widget.ConstraintLayout>

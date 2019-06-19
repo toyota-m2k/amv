@@ -1,4 +1,4 @@
-package com.metamoji.lib.utils
+package com.michael.utils
 
 import android.os.AsyncTask
 import android.os.Handler

@@ -9,7 +9,6 @@ import java.util.concurrent.TimeUnit
  * （WindowsのEventクラスのように、複数のスレッドで同時に待ち合わせるような使い方はできない）。
  *
  * @author M.TOYOTA 13/10/21 Created.
- * @author Copyright (C) 2013 MetaMoJi Corp. All Rights Reserved.
  */
 class UtResetableEvent(initialSignaled: Boolean, private val mAutoReset: Boolean) {
     private val mSemaphore: Semaphore

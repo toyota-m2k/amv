@@ -48,6 +48,7 @@
 
     <declare-styleable name="AmvMarkerView">
         <attr name="marker" format="integer" />
+        <attr name="markerHighLight" format="integer" />
         <attr name="leftInert" format="dimension" />
         <attr name="rightInert" format="dimension" />
         <attr name="saveFromParent" />
@@ -77,4 +78,7 @@
         <attr name="metaButtonBarButtonStyle" format="reference" />
     </declare-styleable>
 
+    <declare-styleable name="AmvTrimmingPlayerView">
+        <attr name="showCancelButton" format="boolean"/>
+    </declare-styleable>
 </resources>

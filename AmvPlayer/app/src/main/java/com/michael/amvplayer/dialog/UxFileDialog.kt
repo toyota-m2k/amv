@@ -1,22 +1,17 @@
 package com.michael.amvplayer.dialog
 
 import android.app.Dialog
-import android.databinding.BaseObservable
-import android.databinding.Bindable
-import android.databinding.DataBindingUtil
+import androidx.databinding.BaseObservable
+import androidx.databinding.Bindable
+import androidx.databinding.DataBindingUtil
 import android.os.Bundle
 import android.os.Environment
-import android.support.v4.app.FragmentActivity
+import androidx.fragment.app.FragmentActivity
 import android.view.View
 import android.view.ViewGroup
 import com.michael.amvplayer.BR
 import com.michael.amvplayer.R
 import com.michael.amvplayer.databinding.UxFileDialogBinding
-import com.michael.utils.Packing
-import com.michael.utils.UnPacker
-import com.michael.utils.unpack
-import org.parceler.Parcel
-import org.parceler.ParcelConstructor
 import java.io.File
 import java.util.*
 
@@ -72,16 +67,39 @@ class UxFileDialog : UxDialogBase(), UxFileListView.IOnFileSelected {
      * ダイアログの初期値（Showする前にargumentsにセットする）
      * ・・・ダイアログの操作で変更されない
      */
-    @Parcel(Parcel.Serialization.BEAN)
-    data class Args @ParcelConstructor constructor (
+    data class Args constructor (
             val type:ListType,
             val purpose:Purpose,
             val extensions: Array<String>?,
             val initialDir: File?,
             val title: String?
-        ) : Packing {
-        constructor() : this(ListType.INVALID, Purpose.INVALID, null, null, null)
-        fun pack(to:Bundle?=null) = pack(defKey, to)
+        ) {
+        companion object {
+            const val KEY_TYPE = "type";
+            const val KEY_PURPOSE = "purpose"
+            const val KEY_EXTENSIONS = "extensions"
+            const val KEY_INITIAL_DIR = "initialDir"
+            const val KEY_TITLE = "title"
+
+            fun unpack(bundle:Bundle?):Args {
+                return Args(
+                        (bundle?.getSerializable(KEY_TYPE) ?: ListType.ALL) as ListType,
+                        (bundle?.getSerializable(KEY_PURPOSE) ?: Purpose.SELECT_FILE) as Purpose,
+                        bundle?.getStringArray(KEY_EXTENSIONS),
+                        bundle?.getSerializable(KEY_INITIAL_DIR) as? File?,
+                        bundle?.getString(KEY_TITLE))
+            }
+        }
+
+        fun pack():Bundle {
+            return Bundle().apply {
+                putSerializable(KEY_TYPE, type)
+                putSerializable(KEY_PURPOSE, purpose)
+                putStringArray(KEY_EXTENSIONS, extensions)
+                putSerializable(KEY_INITIAL_DIR, initialDir)
+                putString(KEY_TITLE, title)
+            }
+        }
 
         override fun equals(other: Any?): Boolean {
             if (this === other) return true
@@ -107,8 +125,6 @@ class UxFileDialog : UxDialogBase(), UxFileListView.IOnFileSelected {
             return result
         }
 
-        companion object : UnPacker<Args>("UxFileDialog.Args")
-
         val isForDirectory: Boolean
             get() = purpose == Purpose.SELECT_DIR || purpose == Purpose.SELECT_OR_CREATE_DIR
     }
@@ -118,13 +134,25 @@ class UxFileDialog : UxDialogBase(), UxFileListView.IOnFileSelected {
      *  - ビューにバインド
      *  - 利用者(Activity）へ結果として返す
      */
-    @Parcel(Parcel.Serialization.BEAN)
-    class Status : BaseObservable(), Packing {
-        fun pack(to:Bundle?=null) = pack(defKey, to)
-        companion object : UnPacker<Status>("UxFileDialog.Status") {
+    class Status : BaseObservable() {
+        companion object {
+            const val KEY_ROOT = "UxFileDialog_Status"
+
+            const val KEY_BASEDIR: String = "BaseDir"
+            const val KEY_FILE: String = "File"
+
             @JvmStatic
-            override fun unpack(from: Bundle, key: String?): Status {
-                return super.unpack(from, key)
+            fun unpack(bundle:Bundle?) : Status {
+                return Status().apply {
+                    baseDir = bundle?.getSerializable(KEY_BASEDIR) as? File?
+                    file = bundle?.getSerializable(KEY_FILE) as? File?
+                }
+            }
+        }
+        fun pack():Bundle {
+            return Bundle().apply {
+                putSerializable(KEY_BASEDIR, baseDir)
+                putSerializable(KEY_FILE, file)
             }
         }
 
@@ -168,7 +196,7 @@ class UxFileDialog : UxDialogBase(), UxFileListView.IOnFileSelected {
 
         val inflater = activity?.layoutInflater ?: return null
 
-        args = arguments?.unpack(Args.defKey) ?: Args(ListType.ALL, Purpose.SELECT_FILE, null, null,null)
+        args = Args.unpack(arguments)
 
         when(args.purpose) {
             Purpose.SELECT_FILE -> {
@@ -186,11 +214,7 @@ class UxFileDialog : UxDialogBase(), UxFileListView.IOnFileSelected {
         }
 
 
-        status = if(null!=savedInstanceState) {
-            Status.unpack(savedInstanceState)
-        } else {
-            Status()
-        }
+        status = Status.unpack(savedInstanceState?.getBundle(Status.KEY_ROOT))
 
         if(null == status.baseDir) {
             status.baseDir = args.initialDir?: Environment.getExternalStorageDirectory()
@@ -210,7 +234,7 @@ class UxFileDialog : UxDialogBase(), UxFileListView.IOnFileSelected {
 
     override fun onSaveInstanceState(outState: Bundle) {
         super.onSaveInstanceState(outState)
-        status.pack(outState)
+        outState.putBundle(Status.KEY_ROOT, status.pack())
     }
 
     override fun onFileSelected(file: File): Boolean {
@@ -232,7 +256,7 @@ class UxFileDialog : UxDialogBase(), UxFileListView.IOnFileSelected {
 
         @JvmOverloads
         @JvmStatic
-        fun selectFile(activity:FragmentActivity, tag:String="FileSelect", initialDir:File?=null, extensions: Array<String>?=null, title:String?=null) {
+        fun selectFile(activity: androidx.fragment.app.FragmentActivity, tag:String="FileSelect", initialDir:File?=null, extensions: Array<String>?=null, title:String?=null) {
             val dlg = UxFileDialog()
             dlg.arguments = Args(ListType.ALL, Purpose.SELECT_FILE, extensions, initialDir, title).pack()
             dlg.show(activity, tag)

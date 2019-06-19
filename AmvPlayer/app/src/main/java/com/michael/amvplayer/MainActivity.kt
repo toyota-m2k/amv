@@ -1,18 +1,18 @@
 package com.michael.amvplayer
 
 import android.Manifest
-import android.arch.lifecycle.Observer
-import android.arch.lifecycle.ViewModelProviders
+import androidx.lifecycle.Observer
+import androidx.lifecycle.ViewModelProviders
 import android.content.DialogInterface
 import android.content.Intent
-import android.databinding.DataBindingUtil
+import androidx.databinding.DataBindingUtil
 import android.net.Uri
 import android.os.Bundle
 import android.os.Handler
 import android.os.PersistableBundle
 import android.provider.MediaStore
-import android.support.v7.app.AlertDialog
-import android.support.v7.app.AppCompatActivity
+import androidx.appcompat.app.AlertDialog
+import androidx.appcompat.app.AppCompatActivity
 import android.util.Log
 import android.view.View
 import android.widget.Toast
@@ -28,6 +28,9 @@ import com.michael.video.AmvSettings
 import com.michael.video.IAmvCache
 import com.michael.video.IAmvLayoutHint
 import com.michael.video.IAmvVideoPlayer
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 
 import java.io.File
 
@@ -158,15 +161,15 @@ class MainActivity : AppCompatActivity() {
 
     override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<String>, grantResults: IntArray) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
-        MainActivityPermissionsDispatcher.onRequestPermissionsResult(this, requestCode, grantResults)
+        onRequestPermissionsResult(requestCode, grantResults)
     }
 
     fun onClickCamera(view: View) {
-        MainActivityPermissionsDispatcher.useCameraWithPermissionCheck(this)
+        useCameraWithPermissionCheck()
     }
 
     fun onClickFile(view: View) {
-        MainActivityPermissionsDispatcher.selectFileWithPermissionCheck(this)
+        selectFileWithPermissionCheck()
         //selectFile();
     }
 
@@ -196,8 +199,8 @@ class MainActivity : AppCompatActivity() {
             override fun onGotFile(cache: IAmvCache, file: File?) {
                 if (null != file) {
                     UtLogger.debug("file retrieved")
-                    mHandler.post {
-                        mCurrentFile = file
+                    mCurrentFile = file
+                    CoroutineScope(Dispatchers.Main).launch {
                         mBinding!!.playerUnitView.setSource(AmvFileSource(file), false, 0, true)
                     }
                 } else {
@@ -233,12 +236,14 @@ class MainActivity : AppCompatActivity() {
             "FileDialog" -> {
                 val bundle = state.result
                 if (null != bundle) {
-                    val result = UxFileDialog.Status.unpack(bundle, null)
+                    val result = UxFileDialog.Status.unpack(bundle)
                     Log.d("Amv", String.format("FileDialog ... select \"%s\"", result.fileName))
                     val file = result.file
                     if (null != file) {
                         mCurrentFile = file
-                        mBinding!!.playerUnitView.setSource(file, false, 0)
+                        CoroutineScope(Dispatchers.Main).launch {
+                            mBinding!!.playerUnitView.setSource(AmvFileSource(file), false, 0, true)
+                        }
                     }
                     //                    mBinding.videoPlayer.play();
                 }

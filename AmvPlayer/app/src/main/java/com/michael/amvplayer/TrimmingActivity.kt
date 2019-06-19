@@ -1,9 +1,12 @@
 package com.michael.amvplayer
 
 import android.os.Bundle
-import android.support.v7.app.AppCompatActivity
+import androidx.appcompat.app.AppCompatActivity
 import android.widget.Button
 import com.michael.video.AmvTrimmingPlayerView
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import java.io.File
 
 class TrimmingActivity : AppCompatActivity() {
@@ -42,7 +45,7 @@ class TrimmingActivity : AppCompatActivity() {
 
             trimmingButton.setOnClickListener {
                 try {
-                    val path = File.createTempFile("TRIM_", ".mp4", MainActivity.getWorkFolder())
+                    val path = File.createTempFile("TRIM_", ".mp4", MainActivity.workFolder)
                     trimmingPlayer.startTrimming(path)
                 } catch (e: Exception) {
                     e.printStackTrace()
@@ -74,7 +77,7 @@ class TrimmingActivity : AppCompatActivity() {
         val s = intent.getSerializableExtra("source")
         mSource = s as? File
         if (null != mSource && null == savedInstanceState) {
-            controls.trimmingPlayer.setSource(mSource!!)
+            controls.trimmingPlayer.source = mSource
         }
         controls.initialize()
     }

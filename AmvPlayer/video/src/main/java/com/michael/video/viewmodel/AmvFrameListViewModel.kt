@@ -1,12 +1,12 @@
 package com.michael.video.viewmodel
 
-import android.arch.lifecycle.MutableLiveData
-import android.arch.lifecycle.Observer
-import android.arch.lifecycle.ViewModel
-import android.arch.lifecycle.ViewModelProviders
+import androidx.lifecycle.MutableLiveData
+import androidx.lifecycle.Observer
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProviders
 import android.graphics.Bitmap
 import android.os.Handler
-import android.support.v4.app.FragmentActivity
+import androidx.fragment.app.FragmentActivity
 import android.util.Size
 import android.view.View
 import com.michael.utils.UtLogger
@@ -48,6 +48,10 @@ class AmvFrameListViewModel : ViewModel() {
      * 実際のデータを保持する内部データクラス
      */
     private inner class FrameListInfo : IFrameListInfo {
+        var fitMode: FitMode = FitMode.Height
+        var hintWidth = 200f
+        var hintHeight = 200f
+
         override val frameList = ArrayList<Bitmap>(32)
         override val count: Int
             get() = frameList.size
@@ -83,10 +87,14 @@ class AmvFrameListViewModel : ViewModel() {
         /**
          * 次のフレーム抽出に備えてパラメータをリセットし、新しいFrameExtractorを返す
          */
-        fun reset(file: File): AmvFrameExtractor {
+        fun reset(file: File, count:Int, mode:FitMode, width:Float, height:Float): AmvFrameExtractor {
             assert(!isBusy)
             clear()
             source = file
+            maxCount = count
+            fitMode = mode
+            hintWidth = width
+            hintHeight = height
             return AmvFrameExtractor().apply { mFrameExtractor = this }
         }
 
@@ -97,6 +105,9 @@ class AmvFrameListViewModel : ViewModel() {
         fun clear() {
             source = null
             error = null
+            for(bmp in frameList) {
+                bmp.recycle()
+            }
             frameList.clear()
             status = IFrameListInfo.Status.INIT
             duration = 0L
@@ -110,6 +121,13 @@ class AmvFrameListViewModel : ViewModel() {
 
         fun finish() {
             mFrameExtractor = null
+        }
+
+        fun pause() {
+            mFrameExtractor?.pause()
+        }
+        fun resume() {
+            mFrameExtractor?.resume()
         }
     }
 
@@ -146,42 +164,55 @@ class AmvFrameListViewModel : ViewModel() {
      * Amv***の利用を終了するときに、リソース（主にビットマップ）を解放する目的で実行する。
      */
     fun clear() {
+        cancel()
         mFrameListInfo.clear()
     }
+
+    fun pause() {
+        mFrameListInfo.pause()
+    }
+
+    fun resume() {
+        mFrameListInfo.resume()
+    }
+
+
 
     /**
      * 設定値
      */
-    private var fitMode: FitMode = FitMode.Height
-    private var hintWidth = 200f
-    private var hintHeight = 200f
 
-    /**
-     * フレーム抽出時のサイズ決定ルールを指定
-     */
-    fun setSizingHint(fitMode: FitMode, width: Float, height: Float) {
-        this.fitMode = fitMode
-        this.hintWidth = width
-        this.hintHeight = height
-    }
-
-    /**
-     * 切り出すフレーム数を指定
-     */
-    fun setFrameCount(count: Int) {
-        mFrameListInfo.maxCount = count
-    }
+//    /**
+//     * フレーム抽出時のサイズ決定ルールを指定
+//     */
+//    fun setSizingHint(fitMode: FitMode, width: Float, height: Float) {
+//        this.fitMode = fitMode
+//        this.hintWidth = width
+//        this.hintHeight = height
+//    }
+//
+//    /**
+//     * 切り出すフレーム数を指定
+//     */
+//    fun setFrameCount(count: Int) {
+//        mFrameListInfo.maxCount = count
+//    }
 
     /**
      * フレームの抽出を開始する
      */
-    fun extractFrame(file: File): Boolean {
-        if (isBusy) {
+    fun extractFrame(file: File, count:Int, fitMode:FitMode, width:Float, height:Float): Boolean {
+        if(mFrameListInfo.error!=null || (mFrameListInfo.source==file && mFrameListInfo.maxCount == count && mFrameListInfo.fitMode == fitMode && mFrameListInfo.hintWidth==width && mFrameListInfo.hintHeight==height)) {
+            // エラー発生時、または、同じ条件でのフレーム抽出要求
             return false
         }
 
-        mFrameListInfo.reset(file).apply {
-            setSizingHint(fitMode, hintWidth, hintHeight)
+        if (isBusy) {
+            cancel()
+        }
+
+        mFrameListInfo.reset(file, count, fitMode, width, height).apply {
+            setSizingHint(fitMode, width, height)
             onVideoInfoRetrievedListener.add(null) {
                 UtLogger.debug("AmvFrameExtractor:duration=${it.duration} / ${it.videoSize}")
                 mFrameListInfo.size = it.thumbnailSize
@@ -199,38 +230,42 @@ class AmvFrameListViewModel : ViewModel() {
                 }
                 mFrameListInfo.status = IFrameListInfo.Status.TERM
                 mFrameListInfo.finish()
-                Handler().post {
-                    // リスナーの中でdispose()を呼ぶのはいかがなものかと思われるので、次のタイミングでお願いする
-                    dispose()
-                }
+//                Handler().post {
+//                    // リスナーの中でdispose()を呼ぶのはいかがなものかと思われるので、次のタイミングでお願いする
+//                    dispose()
+//                }
             }
             extract(file, mFrameListInfo.maxCount)
         }
         return true
     }
 
+    fun setObserver(view:View,fn:(IFrameListInfo)->Unit) : Observer<IFrameListInfo> {
+        val observer = Observer<IFrameListInfo> {
+            if(it!=null) {
+                fn(it)
+            }
+        }
+        val activity = view.getActivity() as androidx.fragment.app.FragmentActivity
+        frameListInfo.observe(activity, observer)
+        return observer
+    }
+
+    fun resetObserver(observer:Observer<IFrameListInfo>?) {
+        if(null!=observer) {
+            frameListInfo.removeObserver(observer)
+        }
+    }
+
     companion object {
         /**
          * ビューをオブザーバーとして登録する
          */
-        fun registerToView(view: View, fn: (IFrameListInfo) -> Unit): AmvFrameListViewModel? {
-            val activity = view.getActivity() as? FragmentActivity
-            return if (null != activity) {
-                ViewModelProviders.of(activity).get(AmvFrameListViewModel::class.java).apply {
-                    var first = true
-                    frameListInfo.observe(activity, Observer<IFrameListInfo> { info ->
-                        if (null != info) {
-                            if(first) {
-                                first = false   // ビュー生成時（新規or回転）に、observeしたタイミングで１回、無効な通知が発生し、リストア処理が空振りしてしまうのを回避するため、最初の１回をスキップする
-                            } else {
-                                fn(info)
-                            }
-                        }
-                    })
-                }
-            } else {
-                null
-            }
+        fun getInstance(view:View) : AmvFrameListViewModel {
+            val activity = view.getActivity() as androidx.fragment.app.FragmentActivity
+            return ViewModelProviders.of(activity).get(AmvFrameListViewModel::class.java)
         }
+
+
     }
 }
