@@ -149,7 +149,7 @@ abstract class UtAsyncTask : AsyncTask<Unit,Any,Unit>() {
         } else {
             val f = values[1]
             if(null!=f && f is IFuncy<*>) {
-                val args= values.copyOfRange(2, 2+3)
+                val args= values.copyOfRange(2, values.size)
                 f.invoke_(*args)
             }
         }

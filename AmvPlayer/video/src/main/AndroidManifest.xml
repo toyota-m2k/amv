@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
     package="com.michael.video">
 
     <uses-permission android:name="android.permission.INTERNET" />
@@ -7,8 +8,12 @@
     <application>
         <activity
             android:name=".AmvFullscreenActivity"
-            android:configChanges="orientation|keyboardHidden|screenSize"
-            android:label="@string/title_activity_amv_fullscreen">
+            android:resizeableActivity="true"
+            android:supportsPictureInPicture="true"
+            android:configChanges="orientation|keyboardHidden|screenSize|smallestScreenSize|screenLayout"
+            android:label="@string/title_activity_amv_fullscreen"
+            android:launchMode="singleTask"
+            tools:targetApi="n">
             </activity>
     </application>
 

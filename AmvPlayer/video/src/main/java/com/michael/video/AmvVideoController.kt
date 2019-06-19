@@ -538,9 +538,13 @@ class AmvVideoController @JvmOverloads constructor(context: Context, attrs: Attr
     }
 
     fun onPinP(@Suppress("UNUSED_PARAMETER") view: View) {
-
+        showFullScreenViewer(true)
     }
     fun onFullScreen(@Suppress("UNUSED_PARAMETER") view: View) {
+        showFullScreenViewer(false)
+    }
+
+    private fun showFullScreenViewer(pinp:Boolean) {
         val activity = getActivity()
         val source = mPlayer.source
         if(null!=activity && null!=source) {
@@ -550,6 +554,14 @@ class AmvVideoController @JvmOverloads constructor(context: Context, attrs: Attr
             intent.putExtra(AmvFullscreenActivity.KEY_SOURCE, source)
             intent.putExtra(AmvFullscreenActivity.KEY_POSITION, position)
             intent.putExtra(AmvFullscreenActivity.KEY_PLAYING, models.isPlaying)
+            intent.putExtra(AmvFullscreenActivity.KEY_PINP, pinp)
+            if(pinp) {
+                val vs = mPlayer.videoSize
+                if(vs.width>0 && vs.height>0) {
+                    intent.putExtra(AmvFullscreenActivity.KEY_VIDEO_WIDTH, vs.width)
+                    intent.putExtra(AmvFullscreenActivity.KEY_VIDEO_HEIGHT, vs.height)
+                }
+            }
             if(null!=clipping) {
                 intent.putExtra(AmvFullscreenActivity.KEY_CLIP_START, clipping.start)
                 intent.putExtra(AmvFullscreenActivity.KEY_CLIP_END, clipping.end)
@@ -560,7 +572,7 @@ class AmvVideoController @JvmOverloads constructor(context: Context, attrs: Attr
 
     // Sliderの操作
     fun onCurrentPositionChanged(@Suppress("UNUSED_PARAMETER") caller:AmvSlider, position:Long, dragState: AmvSlider.SliderDragState) {
-        UtLogger.debug("CurrentPosition: $position ($dragState)")
+//        UtLogger.debug("CurrentPosition: $position ($dragState)")
         when(dragState) {
             AmvSlider.SliderDragState.BEGIN-> {
                 mPausingOnTracking = models.isPlaying

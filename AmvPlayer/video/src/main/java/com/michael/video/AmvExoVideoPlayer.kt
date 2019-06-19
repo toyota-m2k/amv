@@ -12,6 +12,7 @@ import android.os.Handler
 import android.os.Parcel
 import android.os.Parcelable
 import android.util.AttributeSet
+import android.util.Size
 import android.view.LayoutInflater
 import android.view.View
 import android.widget.FrameLayout
@@ -192,7 +193,11 @@ class AmvExoVideoPlayer @JvmOverloads constructor(
         super.onSizeChanged(w, h, oldw, oldh)
 
         if(mFitParent) {
-            setLayoutHint(FitMode.Inside, w.toFloat(), h.toFloat())
+            UtLogger.debug("##AmvExoVideoPlayer.onSizeChanged($w,$h)-->setLayoutHint.")
+            // PinPのときに、サイズ指定が反映されないことがあったので、postを使って遅延してみる
+            this.post {
+                setLayoutHint(FitMode.Inside, w.toFloat(), h.toFloat())
+            }
         }
     }
 
@@ -229,6 +234,8 @@ class AmvExoVideoPlayer @JvmOverloads constructor(
                     updateState()
                 }
             }
+        val videoSize:Size
+            get() = mVideoSize.asSize
 
         fun setVideoSize(width: Float, height: Float) {
             if (mVideoSize.width != width || mVideoSize.height != height) {
@@ -326,6 +333,9 @@ class AmvExoVideoPlayer @JvmOverloads constructor(
     override fun getLayoutHint(): IAmvLayoutHint {
         return mBindings
     }
+
+    override val videoSize: Size
+        get() = mBindings.videoSize
 
     override fun reset() {
         mMediaSource = null
@@ -468,6 +478,7 @@ class AmvExoVideoPlayer @JvmOverloads constructor(
             createClippingSource(orgSource)
         }
     }
+
     // endregion
 
     // region Seek
@@ -656,7 +667,7 @@ class AmvExoVideoPlayer @JvmOverloads constructor(
 
         companion object {
             @Suppress("unused")
-            @JvmStatic
+            @JvmField
             val CREATOR: Parcelable.Creator<SavedState> = object : Parcelable.Creator<SavedState> {
                 override fun createFromParcel(parcel: Parcel): SavedState {
                     return SavedState(parcel)
@@ -669,6 +680,14 @@ class AmvExoVideoPlayer @JvmOverloads constructor(
     }
 
 
+
+    // endregion
+
+    // region Settings
+
+    var showDefaultController:Boolean
+        get() = mBindings.playerView.useController
+        set(v) { mBindings.playerView.useController = v }
 
     // endregion
 }

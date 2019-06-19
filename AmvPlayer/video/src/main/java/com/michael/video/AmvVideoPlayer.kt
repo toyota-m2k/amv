@@ -11,6 +11,7 @@ import android.os.Parcel
 import android.os.Parcelable
 import android.util.AttributeSet
 import android.util.Log
+import android.util.Size
 //import android.util.SizeF
 import android.view.LayoutInflater
 import android.view.View
@@ -134,6 +135,9 @@ class AmvVideoPlayer @JvmOverloads constructor(context: Context, attrs: Attribut
 
     override val seekPosition: Long
         get() = mBinding.player.currentPosition.toLong()
+
+    override val videoSize: Size
+        get() = mVideoSize.asSize
 
     // Construction
 

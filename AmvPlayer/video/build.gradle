@@ -5,7 +5,7 @@ apply plugin: 'kotlin-kapt'
 apply plugin: 'maven'
 
 android {
-    compileSdkVersion 27
+    compileSdkVersion 28
 
 
 
