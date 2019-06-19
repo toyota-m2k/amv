@@ -8,13 +8,14 @@
     <application>
         <activity
             android:name=".AmvFullscreenActivity"
+            android:theme="@style/Theme.AppCompat.Light.NoActionBar"
             android:resizeableActivity="true"
             android:supportsPictureInPicture="true"
             android:configChanges="orientation|keyboardHidden|screenSize|smallestScreenSize|screenLayout"
             android:label="@string/title_activity_amv_fullscreen"
             android:launchMode="singleTask"
             tools:targetApi="n">
-            </activity>
+        </activity>
     </application>
 
 </manifest>

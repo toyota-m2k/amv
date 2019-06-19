@@ -12,12 +12,17 @@ import android.graphics.drawable.Icon
 import android.os.Build
 import android.os.Bundle
 import android.os.Handler
-import android.support.v7.app.AppCompatActivity
 import android.util.Rational
 import android.view.View
 import android.widget.ImageButton
+//import android.support.v7.app.AppCompatActivity
+import androidx.appcompat.app.AppCompatActivity
+import com.michael.utils.Funcies1
 import com.michael.utils.UtLogger
 import kotlinx.android.synthetic.main.activity_amv_fullscreen.*
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import java.io.File
 import java.lang.IllegalStateException
 
@@ -124,8 +129,10 @@ class AmvFullscreenActivity : AppCompatActivity() {
         }
     }
 
+    private var mSource:IAmvSource? = null
+
     private fun initWithIntent(intent:Intent) {
-        val source = intent.getSerializableExtra(KEY_SOURCE) as? File
+        val source = intent.getParcelableExtra<IAmvSource>(KEY_SOURCE)
         requestPinP = intent.getBooleanExtra(KEY_PINP, false)
         if (null != source) {
             val playing = intent.getBooleanExtra(KEY_PLAYING, false)
@@ -137,7 +144,11 @@ class AmvFullscreenActivity : AppCompatActivity() {
             if (start >= 0) {
                 fsa_player.setClip(IAmvVideoPlayer.Clipping(start, end))
             }
-            fsa_player.setSource(source, playing, position)
+            CoroutineScope(Dispatchers.Default).launch {
+                fsa_player.setSource(source, playing, position)
+                mSource?.release()
+                mSource = source
+            }
         }
     }
 
@@ -227,9 +238,6 @@ class AmvFullscreenActivity : AppCompatActivity() {
     override fun onPause() {
         UtLogger.debug("##AmvFullScreenActivity.onPause")
         super.onPause()
-        if(!intent.getBooleanExtra(KEY_PINP, false)) {
-            fsa_player.pause()
-        }
     }
 
     private lateinit var receiver: BroadcastReceiver
@@ -279,6 +287,13 @@ class AmvFullscreenActivity : AppCompatActivity() {
 
     override fun onDestroy() {
         super.onDestroy()
+        val source = mSource
+        if(null!=source) {
+            mSource = null
+            CoroutineScope(Dispatchers.Default).launch {
+                source.release()
+            }
+        }
         fsa_player.playerStateChangedListener.remove(handlerName)
         UtLogger.debug("##AmvFullScreenActivity.onDestroy")
     }

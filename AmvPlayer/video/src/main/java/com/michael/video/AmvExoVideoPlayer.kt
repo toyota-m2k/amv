@@ -28,9 +28,8 @@ import com.google.android.exoplayer2.ui.PlayerView
 import com.google.android.exoplayer2.upstream.DefaultDataSourceFactory
 import com.google.android.exoplayer2.video.VideoListener
 import com.michael.utils.UtLogger
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.GlobalScope
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.*
+import java.lang.Runnable
 import kotlin.math.absoluteValue
 import kotlin.math.roundToInt
 
@@ -191,7 +190,7 @@ class AmvExoVideoPlayer @JvmOverloads constructor(
         sizeChangedListener.clear()
         clipChangedListener.clear()
 
-        GlobalScope.launch {
+        CoroutineScope(Dispatchers.Default).launch {
             mSource?.release()
             mSource = null
         }
@@ -408,6 +407,22 @@ class AmvExoVideoPlayer @JvmOverloads constructor(
     override val isPlayingOrReservedToPlay : Boolean
         get() = mBindings.isPlaying || mPlayer.playWhenReady
 
+    override val videoSize: Size
+        get() = mBindings.videoSize
+
+    /**
+     * ExoPlayerのデフォルトのコントローラーを表示するか？
+     * 通常はAmvVideoControllerなど、Amvで実装したコントローラーを使用するが、
+     * FullScreenActivity / PinP では、デフォルトのコントローラーを使用する。
+     */
+    var showDefaultController: Boolean
+        get() = mBindings.playerView.useController
+        set(v) {
+            mBindings.playerView.useController = v
+            if(v) {
+                mBindings.playerView.showController()   // 非表示は自動的に隠れるが、表示するときは明示的に表示してやらないダメっぽい
+            }
+        }
 
     // Methods
     override fun setLayoutHint(mode: FitMode, width: Float, height: Float) {
@@ -419,7 +434,7 @@ class AmvExoVideoPlayer @JvmOverloads constructor(
         return mBindings
     }
 
-    override fun reset() {
+    override suspend fun reset() {
         mMediaSource = null
         mSource?.release()
         mSource = null
@@ -467,23 +482,21 @@ class AmvExoVideoPlayer @JvmOverloads constructor(
         source.addRef()
         mSource = source
 
-        GlobalScope.launch(Dispatchers.Default) {
-            val uri = source.getUriAsync()
-            launch(Dispatchers.Main) {
-                if (uri == null) {
-                    mBindings.errorMessage = source.error.toString()
-                } else {
-                    sourceChangedListener.invoke(this@AmvExoVideoPlayer, source)
-                    val mediaSource = ExtractorMediaSource.Factory(        // ExtractorMediaSource ... non-adaptiveなほとんどのファイルに対応
-                            DefaultDataSourceFactory(context, "amv")    //
-                    ).createMediaSource(uri)
-                    mMediaSource = mediaSource
-                    mPlayer.prepare(createClippingSource(mediaSource), true, true)
-                    if (null != mClipping || playFrom > 0) {
-                        playerSeek(playFrom)
-                    }
-                    mPlayer.playWhenReady = autoPlay
+        val uri = source.getUriAsync()
+        withContext(Dispatchers.Main) {
+            if (uri == null) {
+                mBindings.errorMessage = source.error.toString()
+            } else {
+                sourceChangedListener.invoke(this@AmvExoVideoPlayer, source)
+                val mediaSource = ExtractorMediaSource.Factory(        // ExtractorMediaSource ... non-adaptiveなほとんどのファイルに対応
+                        DefaultDataSourceFactory(context, "amv")    //
+                ).createMediaSource(uri)
+                mMediaSource = mediaSource
+                mPlayer.prepare(createClippingSource(mediaSource), true, true)
+                if (null != mClipping || playFrom > 0) {
+                    playerSeek(playFrom)
                 }
+                mPlayer.playWhenReady = autoPlay
             }
         }
     }
@@ -710,87 +723,6 @@ class AmvExoVideoPlayer @JvmOverloads constructor(
             get() = mSeeking
     }
     private var seekManager = SeekManager()
-
-    // endregion
-
-    // region Saving States
-
-    override fun onSaveInstanceState(): Parcelable {
-        UtLogger.debug("LC-View: onSaveInstanceState")
-        val parent =  super.onSaveInstanceState()
-        return SavedState(parent, mSource, mClipping)
-    }
-
-    override fun onRestoreInstanceState(state: Parcelable?) {
-        UtLogger.debug("LC-View: onRestoreInstanceState")
-        if(state is SavedState) {
-            super.onRestoreInstanceState(state.superState)
-            val source = state.source
-            if(source!=null) {
-                // このタイミング（リストア中）に setSource()すると、ExoPlayerにファイルは読み込まれるが、読み込んだ後のイベントが返ってこないことがあり、
-                // ビューが更新されなかったりしたので、少し遅延させて回避する。
-                mHandler.post {
-                    mSource = source
-                    setSource(source, false, 0)
-                    setClip(state.clipping)
-                }
-            }
-        } else {
-            super.onRestoreInstanceState(state)
-        }
-    }
-
-    private class SavedState : View.BaseSavedState {
-
-        val source : File?
-        val clipping: IAmvVideoPlayer.Clipping?
-
-        /**
-         * Constructor called from [AmvSlider.onSaveInstanceState]
-         */
-        constructor(superState: Parcelable, file:File?, clipping: IAmvVideoPlayer.Clipping?) : super(superState) {
-            this.source = file
-            this.clipping = clipping
-        }
-
-        /**
-         * Constructor called from [.CREATOR]
-         */
-        private constructor(parcel: Parcel) : super(parcel) {
-            source = parcel.readSerializable() as? File
-            clipping = if(parcel.readInt()==1) {
-                IAmvVideoPlayer.Clipping(parcel.readLong(), parcel.readLong())
-            } else {
-                null
-            }
-        }
-
-        override fun writeToParcel(parcel: Parcel, flags: Int) {
-            parcel.writeSerializable(source)
-            if(null!=clipping) {
-                parcel.writeInt(1)
-                parcel.writeLong(clipping.start)
-                parcel.writeLong(clipping.end)
-            } else {
-                parcel.writeInt(0)
-            }
-        }
-
-        companion object {
-            @Suppress("unused")
-            @JvmStatic
-            val CREATOR: Parcelable.Creator<SavedState> = object : Parcelable.Creator<SavedState> {
-                override fun createFromParcel(parcel: Parcel): SavedState {
-                    return SavedState(parcel)
-                }
-                override fun newArray(size: Int): Array<SavedState?> {
-                    return arrayOfNulls(size)
-                }
-            }
-        }
-    }
-
-
 
     // endregion
 }
