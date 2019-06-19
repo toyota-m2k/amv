@@ -9,6 +9,7 @@ package com.michael.video
 import android.content.Context
 import android.os.Handler
 import android.util.AttributeSet
+import android.util.Size
 import android.view.LayoutInflater
 import android.view.View
 import android.view.animation.AlphaAnimation
@@ -244,6 +245,8 @@ class AmvExoVideoPlayer @JvmOverloads constructor(
                     updateState()
                 }
             }
+        val videoSize:Size
+            get() = mVideoSize.asSize
 
         fun setVideoSize(width: Float, height: Float) {
             if (mVideoSize.width != width || mVideoSize.height != height) {
@@ -416,7 +419,7 @@ class AmvExoVideoPlayer @JvmOverloads constructor(
         return mBindings
     }
 
-    override suspend fun reset() {
+    override fun reset() {
         mMediaSource = null
         mSource?.release()
         mSource = null
@@ -582,6 +585,7 @@ class AmvExoVideoPlayer @JvmOverloads constructor(
             createClippingSource(orgSource)
         }
     }
+
     // endregion
 
     // region Seek
@@ -709,4 +713,84 @@ class AmvExoVideoPlayer @JvmOverloads constructor(
 
     // endregion
 
+    // region Saving States
+
+    override fun onSaveInstanceState(): Parcelable {
+        UtLogger.debug("LC-View: onSaveInstanceState")
+        val parent =  super.onSaveInstanceState()
+        return SavedState(parent, mSource, mClipping)
+    }
+
+    override fun onRestoreInstanceState(state: Parcelable?) {
+        UtLogger.debug("LC-View: onRestoreInstanceState")
+        if(state is SavedState) {
+            super.onRestoreInstanceState(state.superState)
+            val source = state.source
+            if(source!=null) {
+                // このタイミング（リストア中）に setSource()すると、ExoPlayerにファイルは読み込まれるが、読み込んだ後のイベントが返ってこないことがあり、
+                // ビューが更新されなかったりしたので、少し遅延させて回避する。
+                mHandler.post {
+                    mSource = source
+                    setSource(source, false, 0)
+                    setClip(state.clipping)
+                }
+            }
+        } else {
+            super.onRestoreInstanceState(state)
+        }
+    }
+
+    private class SavedState : View.BaseSavedState {
+
+        val source : File?
+        val clipping: IAmvVideoPlayer.Clipping?
+
+        /**
+         * Constructor called from [AmvSlider.onSaveInstanceState]
+         */
+        constructor(superState: Parcelable, file:File?, clipping: IAmvVideoPlayer.Clipping?) : super(superState) {
+            this.source = file
+            this.clipping = clipping
+        }
+
+        /**
+         * Constructor called from [.CREATOR]
+         */
+        private constructor(parcel: Parcel) : super(parcel) {
+            source = parcel.readSerializable() as? File
+            clipping = if(parcel.readInt()==1) {
+                IAmvVideoPlayer.Clipping(parcel.readLong(), parcel.readLong())
+            } else {
+                null
+            }
+        }
+
+        override fun writeToParcel(parcel: Parcel, flags: Int) {
+            parcel.writeSerializable(source)
+            if(null!=clipping) {
+                parcel.writeInt(1)
+                parcel.writeLong(clipping.start)
+                parcel.writeLong(clipping.end)
+            } else {
+                parcel.writeInt(0)
+            }
+        }
+
+        companion object {
+            @Suppress("unused")
+            @JvmStatic
+            val CREATOR: Parcelable.Creator<SavedState> = object : Parcelable.Creator<SavedState> {
+                override fun createFromParcel(parcel: Parcel): SavedState {
+                    return SavedState(parcel)
+                }
+                override fun newArray(size: Int): Array<SavedState?> {
+                    return arrayOfNulls(size)
+                }
+            }
+        }
+    }
+
+
+
+    // endregion
 }

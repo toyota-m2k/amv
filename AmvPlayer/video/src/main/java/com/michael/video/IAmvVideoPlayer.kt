@@ -7,6 +7,7 @@
 
 package com.michael.video
 
+import android.util.Size
 import com.michael.utils.Funcies2
 import com.michael.utils.Funcies3
 import java.io.File
@@ -112,6 +113,7 @@ interface IAmvVideoPlayer {
 
     fun getLayoutHint() : IAmvLayoutHint
 
+    val videoSize: Size
     suspend fun reset()
 
     suspend fun setSource(source: IAmvSource, autoPlay:Boolean=false, playFrom:Long=0)

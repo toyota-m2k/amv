@@ -1,16 +1,25 @@
 package com.michael.video
 
+import android.app.PendingIntent
+import android.app.PictureInPictureParams
+import android.app.RemoteAction
+import android.content.BroadcastReceiver
+import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
+import android.content.res.Configuration
+import android.graphics.drawable.Icon
+import android.os.Build
 import android.os.Bundle
-import androidx.appcompat.app.AppCompatActivity
+import android.os.Handler
+import android.support.v7.app.AppCompatActivity
+import android.util.Rational
 import android.view.View
 import android.widget.ImageButton
-import com.michael.video.IAmvSource
-import com.michael.utils.Funcies1
+import com.michael.utils.UtLogger
 import kotlinx.android.synthetic.main.activity_amv_fullscreen.*
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.GlobalScope
-import kotlinx.coroutines.launch
+import java.io.File
+import java.lang.IllegalStateException
 
 /**
  * An example full-screen activity that shows and hides the system UI (i.e.
@@ -24,6 +33,9 @@ class AmvFullscreenActivity : AppCompatActivity() {
         const val KEY_PLAYING:String = "playing"
         const val KEY_CLIP_START:String = "start"
         const val KEY_CLIP_END:String = "end"
+        const val KEY_PINP:String = "pinp"
+        const val KEY_VIDEO_WIDTH = "videoWidth"
+        const val KEY_VIDEO_HEIGHT = "videoHeight"
 
         // Fixed: classroom#3217
         // このActivityの呼び出し元（AmvVideoController)に対して、再生位置を返すための簡単な仕掛け。
@@ -33,7 +45,15 @@ class AmvFullscreenActivity : AppCompatActivity() {
         val onResultListener = Funcies1<Intent, Unit>()
     }
 
+    private val handlerName="fsa"
+
+    private var closing:Boolean = false
+    private var requestPinP:Boolean = false
+    private var reloadingPinP:Boolean = false
+    private var isPinP:Boolean = false
+
     override fun onCreate(savedInstanceState: Bundle?) {
+        UtLogger.debug("##AmvFullScreenActivity.onCreate -- enter")
         super.onCreate(savedInstanceState)
 
         setContentView(R.layout.activity_amv_fullscreen)
@@ -46,20 +66,27 @@ class AmvFullscreenActivity : AppCompatActivity() {
                 View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION or
                 View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
 
-        if(null!=intent) {
-            val source = intent.getParcelableExtra<IAmvSource>(KEY_SOURCE)
-            if(null!=source) {
-                val playing = intent.getBooleanExtra(KEY_PLAYING, false)
-                val position = intent.getLongExtra(KEY_POSITION, 0)
-                val start = intent.getLongExtra(KEY_CLIP_START, -1)
-                val end = intent.getLongExtra(KEY_CLIP_END, -1)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            fsa_player.playerStateChangedListener.add(handlerName) { _, state ->
+                if(requestPinP) {
+                    val playing = when (state) {
+                        IAmvVideoPlayer.PlayerState.Playing -> true
+                        else -> false
+                    }
+                    playAction.isEnabled = !playing
+                    pauseAction.isEnabled = playing
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                        playAction.setShouldShowIcon(!playing)
+                        pauseAction.setShouldShowIcon(playing)
+                    }
+                }
+            }
+        }
 
-                if(start>=0) {
-                    fsa_player.setClip(IAmvVideoPlayer.Clipping(start, end))
-                }
-                GlobalScope.launch(Dispatchers.Main) {
-                    fsa_player.setSource(source, playing, position)
-                }
+        if(null!=intent) {
+            initWithIntent(intent)
+            if(requestPinP) {
+                enterPinP()
             }
         }
 
@@ -69,13 +96,190 @@ class AmvFullscreenActivity : AppCompatActivity() {
         findViewById<ImageButton>(R.id.amv_ctr_close_button)?.setOnClickListener {
             finish()
         }
+        /**
+         * PinPボタン
+         */
+        val pinpBtn = findViewById<ImageButton>(R.id.amv_ctr_pinp_button)
+        if(pinpBtn!=null) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                pinpBtn.setOnClickListener {
+                    requestPinP = true
+                    enterPinP()
+                }
+            } else {
+                pinpBtn.visibility=View.GONE
+            }
+        }
+        UtLogger.debug("##AmvFullScreenActivity.onCreate -- exit")
     }
 
+    override fun onNewIntent(intent: Intent?) {
+        UtLogger.debug("##AmvFullScreenActivity.onNewIntent")
+        super.onNewIntent(intent)
+        if(intent!=null) {
+            initWithIntent(intent)
+            if(requestPinP && isPinP) {
+                reloadingPinP = true
+            }
+        }
+    }
+
+    private fun initWithIntent(intent:Intent) {
+        val source = intent.getSerializableExtra(KEY_SOURCE) as? File
+        requestPinP = intent.getBooleanExtra(KEY_PINP, false)
+        if (null != source) {
+            val playing = intent.getBooleanExtra(KEY_PLAYING, false)
+            val position = intent.getLongExtra(KEY_POSITION, 0)
+            val start = intent.getLongExtra(KEY_CLIP_START, -1)
+            val end = intent.getLongExtra(KEY_CLIP_END, -1)
+
+
+            if (start >= 0) {
+                fsa_player.setClip(IAmvVideoPlayer.Clipping(start, end))
+            }
+            fsa_player.setSource(source, playing, position)
+        }
+    }
+
+    private fun enterPinP() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val w = intent.getIntExtra(KEY_VIDEO_WIDTH, 0)
+            val h = intent.getIntExtra(KEY_VIDEO_HEIGHT, 0)
+            val ro = Rational(w, h)
+            val rational = when {
+                ro.isNaN || ro.isInfinite || ro.isZero -> Rational(1, 1)
+                ro.toFloat() > 2.39 -> Rational(239, 100)
+                ro.toFloat() < 1 / 2.39 -> Rational(100, 239)
+                else -> ro
+            }
+            val param = PictureInPictureParams.Builder()
+                    .setAspectRatio(rational)
+                    .setActions(listOf(playAction, pauseAction))
+                    .build()
+            enterPictureInPictureMode(param)
+        }
+    }
+
+    enum class Action(val code:Int) {
+        PLAY(1),
+        PAUSE(2),
+    }
+
+    private val INTENT_NAME = "PlayVideo"
+    private val ACTION_TYPE_KEY = "ActionType"
+
+    val playAction: RemoteAction by lazy {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val context = this@AmvFullscreenActivity
+            val icon = Icon.createWithResource(context, R.drawable.ic_play)
+            val title = context.getText(R.string.play)
+            val pendingIntent = PendingIntent.getBroadcast(context, Action.PLAY.code, Intent(INTENT_NAME).putExtra(ACTION_TYPE_KEY, Action.PLAY.code),0)
+            RemoteAction(icon, title, title, pendingIntent)
+        } else {
+            throw IllegalStateException("needs Android O or later.")
+        }
+    }
+    val pauseAction:RemoteAction by lazy {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val context = this@AmvFullscreenActivity
+            val icon = Icon.createWithResource(context, R.drawable.ic_pause)
+            val title = context.getText(R.string.pause)
+            val pendingIntent = PendingIntent.getBroadcast(context, Action.PAUSE.code, Intent(INTENT_NAME).putExtra(ACTION_TYPE_KEY, Action.PAUSE.code),0)
+            RemoteAction(icon, title, title, pendingIntent)
+        } else {
+            throw IllegalStateException("needs Android O or later.")
+        }
+    }
+
+    override fun onRestart() {
+        UtLogger.debug("##AmvFullScreenActivity.onRestart")
+        super.onRestart()
+    }
+
+    override fun onStart() {
+        UtLogger.debug("##AmvFullScreenActivity.onStart")
+        super.onStart()
+    }
+
+    override fun onResume() {
+        UtLogger.debug("##AmvFullScreenActivity.onResume")
+        super.onResume()
+    }
+
+
+
+    /**
+     * PinP画面で、×ボタンを押したとき（閉じる）と、□ボタンを押したとき（全画面に戻る）で、
+     * onPictureInPictureModeChanged()のパラメータに区別がないのだが、
+     * ×を押したときは、onPictureInPictureModeChangedが呼ばれる前に onStop()が呼ばれ、□ボタンの場合は呼ばれないことが分かったので、
+     * これによって、×と□を区別する。
+     */
     override fun onStop() {
+        UtLogger.debug("##AmvFullScreenActivity.onStop")
+        closing = true
         intent.putExtra(KEY_PLAYING, fsa_player.isPlayingOrReservedToPlay)
         intent.putExtra(KEY_POSITION, fsa_player.seekPosition)
         fsa_player.pause()
         super.onStop()
         onResultListener.invoke(intent)
+    }
+
+    override fun onPause() {
+        UtLogger.debug("##AmvFullScreenActivity.onPause")
+        super.onPause()
+        if(!intent.getBooleanExtra(KEY_PINP, false)) {
+            fsa_player.pause()
+        }
+    }
+
+    private lateinit var receiver: BroadcastReceiver
+
+    override fun onPictureInPictureModeChanged(isInPictureInPictureMode: Boolean, newConfig: Configuration?) {
+        UtLogger.debug("##AmvFullScreenActivity.onPictureInPictureModeChanged($isInPictureInPictureMode)")
+        UtLogger.info("-------")
+        UtLogger.info(newConfig?.toString()?:"null")
+        UtLogger.info("-------")
+        super.onPictureInPictureModeChanged(isInPictureInPictureMode, newConfig)
+        isPinP = isInPictureInPictureMode
+        if(!isInPictureInPictureMode) {
+            // PinPモードで×ボタンが押されたときに、ここに入ってくる
+//            fsa_player.showDefaultController = true
+            unregisterReceiver(receiver)
+            if(closing) {
+                finish()
+            } else {
+                if(reloadingPinP) {
+                    // PinP中に、onNewIntent()で、もう一度pinpでの実行が要求された
+                    Handler().postDelayed({
+                        enterPinP()
+                    }, 500)
+                } else {
+                    requestPinP = false
+                    fsa_player.showDefaultController = true
+                }
+            }
+        } else {
+            fsa_player.showDefaultController = false
+            receiver = object: BroadcastReceiver() {
+                override fun onReceive(context: Context?, intent: Intent?) {
+                    if (intent == null||intent.action!=INTENT_NAME) {
+                        return
+                    }
+
+                    when(intent.getIntExtra(ACTION_TYPE_KEY, -1)) {
+                        Action.PAUSE.code -> fsa_player.pause()
+                        Action.PLAY.code -> fsa_player.play()
+                        else -> {}
+                    }
+                }
+            }
+            registerReceiver(receiver, IntentFilter(INTENT_NAME))
+        }
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        fsa_player.playerStateChangedListener.remove(handlerName)
+        UtLogger.debug("##AmvFullScreenActivity.onDestroy")
     }
 }
