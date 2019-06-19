@@ -91,20 +91,10 @@ data class AmvMediaInfo(val mediaFileInfo: MediaFileInfo) {
     val audioProfile
         get() = ignoreErrorCall(-1) {audioFormat?.audioProfile ?: -1}
 
-    val cMaxBitRate : Int = 4000     // 4000K bps = 4M bps
+    val cMaxBitRate : Int = AmvSettings.maxBitRate
 
     val hd720Size : Size
-        get() {
-            var r = if (size.width > size.height) { // 横長
-                Math.min(1280f / size.width, 720f / size.height)
-            } else { // 縦長
-                Math.min(720f / size.width, 1280f / size.height)
-            }
-            if (r > 1) { // 拡大はしない
-                r = 1f
-            }
-            return Size((size.width*r).roundToInt(), (size.height*r).roundToInt())
-        }
+        get() = calcHD720Size(size.width, size.height)
 
     private fun applyVideoParameters(composer:MediaComposer) {
         val size = hd720Size
@@ -140,5 +130,20 @@ data class AmvMediaInfo(val mediaFileInfo: MediaFileInfo) {
 
         applyVideoParameters(composer)
         applyAudioParameters(composer)
+    }
+
+    companion object {
+        @JvmStatic
+        fun calcHD720Size(width:Int, height:Int) : Size {
+            var r = if (width > height) { // 横長
+                Math.min(1280f / width, 720f / height)
+            } else { // 縦長
+                Math.min(720f / width, 1280f / height)
+            }
+            if (r > 1) { // 拡大はしない
+                r = 1f
+            }
+            return Size((width * r).roundToInt(), (height * r).roundToInt())
+        }
     }
 }

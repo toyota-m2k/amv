@@ -70,4 +70,10 @@ open class AmvFitter(override var fitMode: FitMode = FitMode.Inside, private var
     fun fit(original:MuSize, result:MuSize) {
         fitSizeTo(original, layoutSize, fitMode, result)
     }
+
+    fun fit(w:Float, h:Float):ImSize {
+        val result = MuSize()
+        fit(MuSize(w,h), result)
+        return result
+    }
 }

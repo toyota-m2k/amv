@@ -13,7 +13,7 @@ package com.michael.utils
  */
 class SortedList<T>(capacity: Int, private val comparator: (T, T) -> Int, private val allowDuplication: Boolean) : List<T>, MutableCollection<T> {
 
-    private val mList : ArrayList<T> = ArrayList<T>(capacity)
+    private val mList : ArrayList<T> = ArrayList(capacity)
 
     override val size: Int
         get() = mList.size
@@ -58,7 +58,7 @@ class SortedList<T>(capacity: Int, private val comparator: (T, T) -> Int, privat
         return mList.subList(fromIndex, toIndex)
     }
 
-    private fun addCore(element: T, pos:Position) : Boolean {
+    fun addCore(element: T, pos:Position) : Boolean {
         if(find(element, pos)>=0 && !allowDuplication) {
             return false
         }

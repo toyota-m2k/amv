@@ -6,12 +6,13 @@
  */
 package com.michael.video
 
+import androidx.lifecycle.Observer
 import android.content.Context
 import android.graphics.drawable.Drawable
 import android.os.Handler
 import android.os.Parcel
 import android.os.Parcelable
-import android.support.constraint.ConstraintLayout
+import androidx.constraintlayout.widget.ConstraintLayout
 import android.util.AttributeSet
 import android.view.LayoutInflater
 import android.view.View
@@ -19,11 +20,10 @@ import android.widget.FrameLayout
 import android.widget.ImageButton
 import android.widget.TextView
 import com.michael.utils.UtLogger
-import com.michael.utils.readParceler
-import com.michael.utils.writeParceler
 import com.michael.video.viewmodel.AmvFrameListViewModel
-import org.parceler.ParcelConstructor
-import java.io.File
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
 
 class AmvTrimmingController @JvmOverloads constructor(context: Context, attrs: AttributeSet? = null, defStyleAttr: Int = 0)
@@ -43,10 +43,10 @@ class AmvTrimmingController @JvmOverloads constructor(context: Context, attrs: A
     val isTrimmed : Boolean
         get() = models.isPlayerPrepared && models.naturalDuration>0 && controls.slider.isTrimmed
 
-    val leftExtentWidth
-        get() = controls.slider.leftExtentWidth
-    val rightExtentWidth
-        get() = controls.slider.rightExtentWidth
+//    val leftExtentWidth
+//        get() = controls.slider.leftExtentWidth
+//    val rightExtentWidth
+//        get() = controls.slider.rightExtentWidth
     val extentWidth
         get() = controls.slider.extentWidth
 
@@ -62,9 +62,10 @@ class AmvTrimmingController @JvmOverloads constructor(context: Context, attrs: A
     // constants
     companion object {
         private const val FRAME_COUNT = 10            // フレームサムネイルの数
-        private const val FRAME_HEIGHT = 160f         // フレームサムネイルの高さ(dp)
+        private const val FRAME_HEIGHT_IN_DP = 80f   // フレームサムネイルの高さ(dp)
         private const val LISTENER_NAME = "trimmingController"
     }
+    private var FRAME_HEIGHT = 160f
 
     private val models = Models()
     private val controls = Controls()
@@ -85,17 +86,16 @@ class AmvTrimmingController @JvmOverloads constructor(context: Context, attrs: A
 
     init {
         LayoutInflater.from(context).inflate(R.layout.video_trimming_controller, this)
-        drPlay = context.getDrawable(R.drawable.ic_play)
-        drPause = context.getDrawable(R.drawable.ic_pause)
+        drPlay = context.getDrawable(R.drawable.ic_play)!!
+        drPause = context.getDrawable(R.drawable.ic_pause)!!
+        FRAME_HEIGHT = context.dp2px(FRAME_HEIGHT_IN_DP)
 
         val sa = context.theme.obtainStyledAttributes(attrs,R.styleable.AmvTrimmingtController,defStyleAttr,0)
         try {
             val enableViewModel = sa.getBoolean(R.styleable.AmvTrimmingtController_frameCache, true)
+
             mFrameListViewModel = if (enableViewModel) {
-                AmvFrameListViewModel.registerToView(this, this::updateFrameListByViewModel)?.apply {
-                    setSizingHint(FitMode.Height, 0f, FRAME_HEIGHT)
-                    setFrameCount(FRAME_COUNT)
-                }
+                AmvFrameListViewModel.getInstance(this)
             } else {
                 null
             }
@@ -106,6 +106,24 @@ class AmvTrimmingController @JvmOverloads constructor(context: Context, attrs: A
         controls.initialize()
     }
 
+    /**
+     * TrimmingController の高さを取得
+     */
+    val controllerHeight : Int
+        get() = controls.height
+
+    private var mFrameListObserver: Observer<AmvFrameListViewModel.IFrameListInfo>? = null
+    override fun onAttachedToWindow() {
+        super.onAttachedToWindow()
+        mFrameListObserver = mFrameListViewModel?.setObserver(this, ::updateFrameListByViewModel)
+    }
+
+    override fun onDetachedFromWindow() {
+        mFrameListViewModel?.resetObserver(mFrameListObserver)
+        mFrameListObserver = null
+        super.onDetachedFromWindow()
+    }
+
     // endregion
 
     // region Bindings
@@ -113,7 +131,7 @@ class AmvTrimmingController @JvmOverloads constructor(context: Context, attrs: A
     // Views
     inner class Controls {
         // Controls
-        val root:ConstraintLayout by lazy {
+        val root: ConstraintLayout by lazy {
             findViewById<ConstraintLayout>(R.id.vtc_root)
         }
         val sliderGroup: FrameLayout by lazy {
@@ -129,10 +147,13 @@ class AmvTrimmingController @JvmOverloads constructor(context: Context, attrs: A
             findViewById<ImageButton>(R.id.vtc_playButton)
         }
 
-        val trimStartText: TextView by lazy {
+        private val trimStartText: TextView by lazy {
             findViewById<TextView>(R.id.vtc_trimStartText)
         }
-        val trimEndText: TextView by lazy {
+        private val trimmedRangeText: TextView by lazy {
+            findViewById<TextView>(R.id.vtc_trimmedRangeText)
+        }
+        private val trimEndText: TextView by lazy {
             findViewById<TextView>(R.id.vtc_trimEndText)
         }
 
@@ -170,9 +191,15 @@ class AmvTrimmingController @JvmOverloads constructor(context: Context, attrs: A
 
         fun updateTrimStartText() {
             trimStartText.text = formatTime(slider.trimStartPosition)
+            updateTrimmedRangeText()
         }
         fun updateTrimEndText() {
             trimEndText.text = formatTime(slider.trimEndPosition)
+            updateTrimmedRangeText()
+        }
+
+        private fun updateTrimmedRangeText() {
+            trimmedRangeText.text = formatTime(slider.trimmedRange)
         }
 
 
@@ -217,6 +244,19 @@ class AmvTrimmingController @JvmOverloads constructor(context: Context, attrs: A
             updateTrimStartText()
             updateTrimEndText()
         }
+
+        /**
+         * TrimmingController全体の高さ
+         */
+        val height : Int
+            get() {
+                val sliderHeight = slider.getSliderHeight(false)
+                val frameListHeight = FRAME_HEIGHT.toInt()
+                trimStartText.measure(MeasureSpec.UNSPECIFIED,MeasureSpec.UNSPECIFIED)
+                val textHeight = trimStartText.measuredHeight
+                val buttonHeight = playButton.getLayoutHeight()
+                return sliderHeight + frameListHeight + textHeight + buttonHeight
+            }
     }
 
     // Models
@@ -242,6 +282,9 @@ class AmvTrimmingController @JvmOverloads constructor(context: Context, attrs: A
     // region IAmvVideoController implements
 
     override var isReadOnly: Boolean = true
+
+    override val isSeekingBySlider: Boolean
+        get() = pausingOnTracking
 
     override fun setVideoPlayer(player: IAmvVideoPlayer) {
         mPlayer = player
@@ -286,48 +329,56 @@ class AmvTrimmingController @JvmOverloads constructor(context: Context, attrs: A
         }
     }
 
-    private fun extractFrameOnSourceChanged(source: File) {
-        models.naturalDuration = 0L  // ViewModelから読み込むとき、Durationがゼロかどうかで初回かどうか判断するので、ここでクリアする
-        if(null!=mFrameListViewModel) {
-            val info = mFrameListViewModel.frameListInfo.value!!
-            if(source != info.source || null!=info.error) {
-                // ソースが変更されているか、エラーが発生しているときはフレーム抽出を実行
-                mFrameListViewModel.cancel()
-                mFrameListViewModel.extractFrame(source)
-            } else {
-                // それ以外はViewModel（キャッシュ）から読み込む
-                updateFrameListByViewModel(info)
-            }
-        } else {
-            // フレームサムネイルを列挙する
-            mFrameExtractor = AmvFrameExtractor().apply {
-                setSizingHint(FitMode.Height, 0f, FRAME_HEIGHT)
-                onVideoInfoRetrievedListener.add(null) {
-                    UtLogger.debug("AmvFrameExtractor:duration=${it.duration} / ${it.videoSize}")
-                    val thumbnailSize = it.thumbnailSize
-                    controls.frameList.prepare(FRAME_COUNT, thumbnailSize.width, thumbnailSize.height)
-                    models.naturalDuration = it.duration
-                    controls.resetWithDuration(it.duration)
-                    models.isVideoInfoPrepared = true
-                    restoringData?.tryRestoring()
-                    //contentWidthChanged.invoke(this@AmvTrimmingController, controls.frameList.contentWidth)
-                    adjustSliderPosition()
-                }
-                onThumbnailRetrievedListener.add(null) { _, index, bmp ->
-                    UtLogger.debug("AmvFrameExtractor:Bitmap(${index+1}): width=${bmp.width}, height=${bmp.height}")
-                    controls.frameList.add(bmp)
-                }
-                onFinishedListener.add(null) { _, result ->
-                    post {
-                        // リスナーの中でdispose()を呼ぶのはいかがなものかと思われるので、次のタイミングでお願いする
-                        dispose()
-                        mFrameExtractor = null
-                        if(!result) {
-                            restoringData?.onFatalError()
+    override fun dispose() {
+        mFrameListViewModel?.clear()
+    }
+
+    fun pauseFrameExtraction() {
+        mFrameListViewModel?.pause()
+    }
+    fun resumeFrameExtraction() {
+        mFrameListViewModel?.resume()
+    }
+
+    private fun extractFrameOnSourceChanged(source: IAmvSource) {
+        GlobalScope.launch(Dispatchers.Main) {
+            val file = source.getFileAsync()
+            if(file!=null) {
+                models.naturalDuration = 0L  // ViewModelから読み込むとき、Durationがゼロかどうかで初回かどうか判断するので、ここでクリアする
+                if (null != mFrameListViewModel) {
+                    val info = mFrameListViewModel.frameListInfo.value!!
+                    if (!mFrameListViewModel.extractFrame(file, FRAME_COUNT, FitMode.Height, 0f, FRAME_HEIGHT)) {
+                        // 抽出条件が変更されていない場合はfalseを返してくるのでキャッシュから構築する
+                        updateFrameListByViewModel(info)
+                    }
+                } else {
+                    // フレームサムネイルを列挙する
+                    mFrameExtractor = AmvFrameExtractor().apply {
+                        setSizingHint(FitMode.Height, 0f, FRAME_HEIGHT)
+                        onVideoInfoRetrievedListener.add(null) {
+                            UtLogger.debug("AmvFrameExtractor:duration=${it.duration} / ${it.videoSize}")
+                            val thumbnailSize = it.thumbnailSize
+                            controls.frameList.prepare(FRAME_COUNT, thumbnailSize.width, thumbnailSize.height)
+                            models.naturalDuration = it.duration
+                            controls.resetWithDuration(it.duration)
+                            models.isVideoInfoPrepared = true
+                            restoringData?.tryRestoring()
+                            //contentWidthChanged.invoke(this@AmvTrimmingController, controls.frameList.contentWidth)
+                            adjustSliderPosition()
                         }
+                        onThumbnailRetrievedListener.add(null) { _, index, bmp ->
+                            UtLogger.debug("AmvFrameExtractor:Bitmap(${index + 1}): width=${bmp.width}, height=${bmp.height}")
+                            controls.frameList.add(bmp)
+                        }
+                        onFinishedListener.add(null) { _, result ->
+                            mFrameExtractor = null
+                            if (!result) {
+                                restoringData?.onFatalError()
+                            }
+                        }
+                        extract(file, FRAME_COUNT)
                     }
                 }
-                extract(source, FRAME_COUNT)
             }
         }
     }
@@ -346,7 +397,6 @@ class AmvTrimmingController @JvmOverloads constructor(context: Context, attrs: A
                 controls.updateTrimEndText()
                 models.isVideoInfoPrepared = true
                 restoringData?.tryRestoring()
-//                contentWidthChanged.invoke(this@AmvTrimmingController, controls.frameList.contentWidth)
                 adjustSliderPosition()
             }
             if(info.count>0) {
@@ -355,7 +405,7 @@ class AmvTrimmingController @JvmOverloads constructor(context: Context, attrs: A
         }
     }
 
-    fun adjustSliderPosition() {
+    private fun adjustSliderPosition() {
         val max = controls.frameList.contentWidth + controls.slider.extentWidth
         val width = controls.root.measuredWidth
         controls.sliderGroup.setLayoutWidth(Math.min(max.roundToInt(),width))
@@ -452,16 +502,21 @@ class AmvTrimmingController @JvmOverloads constructor(context: Context, attrs: A
     /**
      * 状態を退避するデータクラス
      */
-    @org.parceler.Parcel
-    internal class SavedData @ParcelConstructor constructor(
+    internal class SavedData (
             var isPlaying:Boolean,
             var seekPosition: Long,
             var current: Long,
             var trimStart: Long,
             var trimEnd: Long) {
+        fun writeToParcel(parcel:Parcel) {
+            parcel.writeInt(if(isPlaying) 1 else 0)
+            parcel.writeLong(seekPosition)
+            parcel.writeLong(current)
+            parcel.writeLong(trimStart)
+            parcel.writeLong(trimEnd)
+        }
 
-        @Suppress("unused")
-        constructor() : this(false, 0,0, 0, -1)
+        constructor(parcel:Parcel) : this(parcel.readInt()!=0, parcel.readLong(),parcel.readLong(), parcel.readLong(), parcel.readLong())
     }
 
     // 復元中のデータ
@@ -542,13 +597,13 @@ class AmvTrimmingController @JvmOverloads constructor(context: Context, attrs: A
     /**
      * onSaveInstanceState用
      */
-    internal class SavedState : View.BaseSavedState {
+    internal class SavedState : BaseSavedState {
         val data : SavedData?
 
         /**
          * Constructor called from [AmvSlider.onSaveInstanceState]
          */
-        constructor(superState: Parcelable, savedData: SavedData) : super(superState) {
+        constructor(superState: Parcelable?, savedData: SavedData) : super(superState) {
             this.data = savedData
         }
 
@@ -557,16 +612,16 @@ class AmvTrimmingController @JvmOverloads constructor(context: Context, attrs: A
          */
         private constructor(parcel: Parcel) : super(parcel) {
             @Suppress("UNCHECKED_CAST")
-            data = parcel.readParceler<SavedData>()
+            data = SavedData(parcel)
         }
 
         override fun writeToParcel(parcel: Parcel, flags: Int) {
-            parcel.writeParceler(data)
+            data?.writeToParcel(parcel)
         }
 
         companion object {
             @Suppress("unused")
-            @JvmStatic
+            @JvmField
             val CREATOR: Parcelable.Creator<SavedState> = object : Parcelable.Creator<SavedState> {
                 override fun createFromParcel(parcel: Parcel): SavedState {
                     return SavedState(parcel)

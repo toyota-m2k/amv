@@ -6,8 +6,8 @@
  */
 package com.michael.video
 
+import androidx.lifecycle.Observer
 import android.content.Context
-import android.os.Handler
 import android.os.Parcel
 import android.os.Parcelable
 import android.util.AttributeSet
@@ -16,9 +16,10 @@ import android.view.View
 import android.widget.FrameLayout
 import android.widget.LinearLayout
 import com.michael.utils.UtLogger
-import com.michael.utils.readParceler
-import com.michael.utils.writeParceler
 import com.michael.video.viewmodel.AmvFrameListViewModel
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.launch
 import java.io.File
 
 
@@ -27,13 +28,36 @@ class AmvFrameSelectorView @JvmOverloads constructor(
 ) : LinearLayout(context, attrs, defStyleAttr) {
 
     // region Public API's
-    fun setSource(source:File) {
-        controls.player?.setSource(source, false,0)
+    fun setSource(source: File?) {
+        GlobalScope.launch(Dispatchers.Main) {
+            controls.player?.setSource(AmvFileSource(source), false, 0)
+        }
     }
 
-    @Suppress("unused")
-    val framePosition:Long
-        get() = controls.slider.currentPosition
+    fun dispose() {
+        mFrameListViewModel.clear()
+    }
+
+    private var requestedFramePosition:Long = -1L
+
+    /**
+     * フレーム位置の取得/設定
+     */
+    var framePosition:Long
+        get() = if(requestedFramePosition>=0) requestedFramePosition else controls.slider.currentPosition
+        set(v) {
+            if(v>0) {
+                if (models.isPlayerPrepared && models.isVideoInfoPrepared) {
+                    controls.player?.seekTo(v)
+                    controls.slider.currentPosition = v
+                    controls.frameListView.position = v
+                    requestedFramePosition = -1
+                } else {
+                    requestedFramePosition = v
+                }
+            }
+        }
+
 
     // endregion
 
@@ -41,10 +65,12 @@ class AmvFrameSelectorView @JvmOverloads constructor(
 
     // Constants
     companion object {
-        const val FRAME_COUNT = 30            // フレームサムネイルの数
-        const val FRAME_HEIGHT = 160f         // フレームサムネイルの高さ(dp)
+        const val FRAME_COUNT = 10            // フレームサムネイルの数
+        const val FRAME_HEIGHT_IN_DP = 80f         // フレームサムネイルの高さ(dp)
         const val LISTENER_NAME = "frameSelectorView"
     }
+
+    private var FRAME_HEIGHT = 160f
 
     // Control
     private inner class Controls {
@@ -74,10 +100,10 @@ class AmvFrameSelectorView @JvmOverloads constructor(
     }
     private val models = Models()
 
-    // PrivPrivate fields
-    private var mFrameExtractor :AmvFrameExtractor? = null
-    private val mFrameListViewModel : AmvFrameListViewModel?
-    private val mHandler = Handler()
+    // Private fields
+//    private var mFrameExtractor :AmvFrameExtractor? = null
+    private val mFrameListViewModel : AmvFrameListViewModel
+//    private val mHandler = Handler()
 
     // endregion
 
@@ -87,6 +113,7 @@ class AmvFrameSelectorView @JvmOverloads constructor(
         LayoutInflater.from(context).inflate(R.layout.video_frame_selector, this)
         controls.slider.currentPositionChanged.set(this::onSliderChanged)
         controls.frameListView.touchFriendListener.set(controls.slider::onTouchAtFriend)
+        FRAME_HEIGHT = context.dp2px(FRAME_HEIGHT_IN_DP)
 
         controls.player?.apply {
 
@@ -100,6 +127,10 @@ class AmvFrameSelectorView @JvmOverloads constructor(
             videoPreparedListener.add(LISTENER_NAME) { _, _ ->
                 models.isPlayerPrepared = true
                 restoringData?.tryRestoring()
+
+                if(requestedFramePosition>0) {
+                    framePosition = requestedFramePosition
+                }
             }
             // 動画ソースが変更されたときのイベント
             sourceChangedListener.add(LISTENER_NAME) { _, source ->
@@ -108,59 +139,36 @@ class AmvFrameSelectorView @JvmOverloads constructor(
                 extractFrameOnSourceChanged(source)
             }
         }
-
-        mFrameListViewModel = AmvFrameListViewModel.registerToView(this, this::updateFrameListByViewModel)?.apply {
-                setSizingHint(FitMode.Height, 0f, FRAME_HEIGHT)
-                setFrameCount(FRAME_COUNT)
-            }
+        mFrameListViewModel = AmvFrameListViewModel.getInstance(this)
     }
+
+    private var mFrameListObserver: Observer<AmvFrameListViewModel.IFrameListInfo>? = null
+
+    override fun onAttachedToWindow() {
+        super.onAttachedToWindow()
+        mFrameListObserver = mFrameListViewModel.setObserver(this, ::updateFrameListByViewModel)
+    }
+
+    override fun onDetachedFromWindow() {
+        mFrameListViewModel.resetObserver(mFrameListObserver)
+        mFrameListObserver = null
+        super.onDetachedFromWindow()
+    }
+
 
     /**
      * ソースが切り替わったタイミングで、フレームサムネイルリストを作成する
      */
-    private fun extractFrameOnSourceChanged(source: File) {
-        models.duration = 0L  // ViewModelから読み込むとき、Durationがゼロかどうかで初回かどうか判断するので、ここでクリアする
-        if(null!=mFrameListViewModel) {
+    private fun extractFrameOnSourceChanged(source: IAmvSource) {
+        GlobalScope.launch(Dispatchers.Main) {
+            models.duration = 0L  // ViewModelから読み込むとき、Durationがゼロかどうかで初回かどうか判断するので、ここでクリアする
             val info = mFrameListViewModel.frameListInfo.value!!
-            if(source != info.source || null!=info.error) {
-                // ソースが変更されているか、エラーが発生しているときはフレーム抽出を実行
-                mFrameListViewModel.cancel()
-                mFrameListViewModel.extractFrame(source)
-            } else {
-                // それ以外はViewModel（キャッシュ）から読み込む
-                updateFrameListByViewModel(info)
-            }
-        } else {
-            // フレームサムネイルを列挙する
-            mFrameExtractor = AmvFrameExtractor().apply {
-                setSizingHint(FitMode.Height, 0f, FRAME_HEIGHT)
-                onVideoInfoRetrievedListener.add(null) {
-                    UtLogger.debug("AmvFrameExtractor:duration=${it.duration} / ${it.videoSize}")
-                    models.duration = it.duration
-                    val thumbnailSize = it.thumbnailSize
-
-                    controls.frameListView.prepare(FRAME_COUNT, thumbnailSize.width, thumbnailSize.height)
-                    controls.slider.resetWithValueRange(it.duration, true)      // スライダーを初期化
-                    controls.frameListView.totalRange = it.duration
-                    adjustSliderPosition()
-
-                    models.isVideoInfoPrepared = true
-                    restoringData?.tryRestoring()
+            val file = source.getFileAsync()
+            if(null!=file) {
+                if (!mFrameListViewModel.extractFrame(file, FRAME_COUNT, FitMode.Height, 0f, FRAME_HEIGHT)) {
+                    // 抽出条件が変更されていない場合はfalseを返してくるのでキャッシュから構築する
+                    updateFrameListByViewModel(info)
                 }
-                onThumbnailRetrievedListener.add(null) { _, index, bmp ->
-                    UtLogger.debug("AmvFrameExtractor:Bitmap($index): width=${bmp.width}, height=${bmp.height}")
-                    controls.frameListView.add(bmp)
-                }
-                onFinishedListener.add(null) { _, _ ->
-                    // サブスレッドの処理がすべて終了しても、UIスレッド側でのビットマップ追加処理待ちになっていることがあり、
-                    // このイベントハンドラから、dispose()してしまうと、待ち中のビットマップが破棄されてしまう。
-                    mHandler.post {
-                        // リスナーの中でdispose()を呼ぶのはいかがなものかと思われるので、次のタイミングでお願いする
-                        dispose()
-                        mFrameExtractor = null
-                    }
-                }
-                extract(source, FRAME_COUNT)
             }
         }
     }
@@ -181,6 +189,7 @@ class AmvFrameSelectorView @JvmOverloads constructor(
                 adjustSliderPosition()
                 models.isVideoInfoPrepared = true
                 restoringData?.tryRestoring()
+                framePosition = requestedFramePosition
             }
             if(info.count>0) {
                 controls.frameListView.setFrames(info.frameList)
@@ -227,6 +236,9 @@ class AmvFrameSelectorView @JvmOverloads constructor(
 
         val sliderHeight = controls.sliderGroup.measuredHeight + context.dp2px(16)
         controls.player?.setLayoutHint(FitMode.Inside, w.toFloat(), (h-sliderHeight).toFloat())
+        if(models.isVideoInfoPrepared) {
+            adjustSliderPosition()
+        }
     }
 
     /**
@@ -285,9 +297,11 @@ class AmvFrameSelectorView @JvmOverloads constructor(
      * 状態を退避するデータクラス
      * 保存するデータは１つだけだけど、他と同じ処理が流用できるので、クラスにしておく
      */
-    @org.parceler.Parcel
     internal class SavedData(val seekPosition:Long) {
-        constructor() : this(0L)
+        fun writeToParcel(parcel:Parcel) {
+            parcel.writeLong(seekPosition)
+        }
+        constructor(parcel:Parcel) : this(parcel.readLong())
     }
 
     override fun onSaveInstanceState(): Parcelable {
@@ -318,7 +332,7 @@ class AmvFrameSelectorView @JvmOverloads constructor(
         /**
          * Constructor called from [AmvSlider.onSaveInstanceState]
          */
-        constructor(superState: Parcelable, savedData: SavedData) : super(superState) {
+        constructor(superState: Parcelable?, savedData: SavedData) : super(superState) {
             this.data = savedData
         }
 
@@ -327,16 +341,16 @@ class AmvFrameSelectorView @JvmOverloads constructor(
          */
         private constructor(parcel: Parcel) : super(parcel) {
             @Suppress("UNCHECKED_CAST")
-            data = parcel.readParceler<SavedData>()
+            data = SavedData(parcel)
         }
 
         override fun writeToParcel(parcel: Parcel, flags: Int) {
-            parcel.writeParceler(data)
+            data?.writeToParcel(parcel)
         }
 
         companion object {
             @Suppress("unused")
-            @JvmStatic
+            @JvmField
             val CREATOR: Parcelable.Creator<SavedState> = object : Parcelable.Creator<SavedState> {
                 override fun createFromParcel(parcel: Parcel): SavedState {
                     return SavedState(parcel)

@@ -4,8 +4,11 @@
  * @author M.TOYOTA 2018.07.27 Created
  * Copyright © 2018 M.TOYOTA  All Rights Reserved.
  */
+@file:Suppress("unused")
+
 package com.michael.video
 
+import android.annotation.SuppressLint
 import android.net.Uri
 import com.michael.utils.Funcies2
 import com.michael.utils.Funcy2
@@ -18,14 +21,20 @@ import java.io.IOException
 import java.nio.charset.Charset
 import java.security.MessageDigest
 import java.util.*
+import kotlin.coroutines.resume
+import kotlin.coroutines.suspendCoroutine
 
 object AmvCacheManager {
+    private val DEBUG = true
+    private val MAX_CACHE_SIZE = if(BuildConfig.DEBUG) 20L * 1000 * 1000 else 1L * 1000*1000*1000   // 20MB(Debug) / 1GB(Release)
+    private const val MAX_CACHE_COUNT = 200
 
     private const val DEFAULT_MAX_CACHE_COUNT = 10
-    private var mMaxCacheCount = DEFAULT_MAX_CACHE_COUNT
-    private var mLock = java.lang.Object()
+
+//    private var mMaxCacheCount = DEFAULT_MAX_CACHE_COUNT
+    private var mLock = Object()
     private lateinit var mCacheFolder : File
-    private val mCacheList = HashMap<String,IAmvCache>(DEFAULT_MAX_CACHE_COUNT+5)
+    private val mCacheList = HashMap<String,IAmvCache>(MAX_CACHE_COUNT)
     private var mSweeping = false
 
     /**
@@ -33,9 +42,7 @@ object AmvCacheManager {
      * 他の機能を利用する前に1度だけ実行しておく
      */
     @JvmStatic
-    @JvmOverloads
-    fun initialize(folder:File, maxCache:Int=DEFAULT_MAX_CACHE_COUNT) {
-        mMaxCacheCount = maxCache
+    fun initialize(folder:File) {
         mCacheFolder = folder
         if(!folder.exists()) {
             folder.mkdir()
@@ -127,10 +134,67 @@ object AmvCacheManager {
         return cache
     }
 
+    fun peekCache(key:String) : IAmvCache? {
+        synchronized(mLock) {
+            return mCacheList[key]?.apply {
+                addRef()
+            }
+        }
+    }
+
+    fun putCache(key:String, existingFile:File, preferToMove:Boolean) : Boolean {
+            val targetFile = synchronized(mLock) {
+                val cache = mCacheList[key]
+                if (null != cache) {
+                    return false
+                }
+                val targetFile = File(mCacheFolder, key)
+                if (targetFile.exists()) {
+                    return false
+                }
+                try {
+                    if (preferToMove) {
+                        existingFile.renameTo(targetFile)
+                    } else {
+                        existingFile.copyTo(targetFile)
+                    }
+                } catch(e:Throwable) {
+                    return false
+                }
+                targetFile
+            }
+            val cache = AmvCache(key, null, targetFile)
+            touch(targetFile)
+            mCacheList[key] = cache
+            return true
+    }
+
+    data class DiskCapacity(val capacity:Long, val freeSpace:Long)
+    private val diskCapacity :DiskCapacity
+        @SuppressLint("UsableSpace")
+        get() = DiskCapacity(mCacheFolder.totalSpace, Math.min(mCacheFolder.freeSpace,mCacheFolder.usableSpace))
+
+    private fun maxCacheSize(currentTotal:Long):Long {
+        val capa = diskCapacity
+        var maxCacheSize = MAX_CACHE_SIZE
+        maxCacheSize = Math.min(maxCacheSize, capa.capacity*5/100)
+        maxCacheSize = Math.min(maxCacheSize, (capa.freeSpace+currentTotal)/10)
+        return maxCacheSize
+    }
+
+    data class Statistics(val count:Int, val totalSize:Long)
+    val cacheStatistics:Statistics
+        get() {
+            val list = mCacheFolder.listFiles()
+            val totalSize = if(list.isNotEmpty()) list.map { it.length() }.reduce { acc, v -> acc + v } else 0
+            return Statistics(list.size, totalSize)
+        }
+
+
     /**
      * 古いキャッシュを削除
      */
-    private fun sweep() {
+    fun sweep(maxCount:Int = MAX_CACHE_COUNT) {
         // 再入防止
         if (mSweeping) {
             return
@@ -140,7 +204,12 @@ object AmvCacheManager {
         try {
             // キャッシュファイル列挙
             val list = mCacheFolder.listFiles()
-            if (list.size < mMaxCacheCount) {
+
+            // トータルファイルサイズの計算
+            var count = list.size
+            var totalSize = list.map {it.length()}.reduce {acc, v -> acc+v }
+            val maxCacheSize = maxCacheSize(totalSize)
+            if (count < maxCount && totalSize < maxCacheSize) {
                 return
             }
 
@@ -156,19 +225,24 @@ object AmvCacheManager {
 
             // 古いファイルから削除
             synchronized(mLock) {
-                for (i in mMaxCacheCount until list.size) {
-                        val file = list[i]
-                        val key = file.name
-                        val cache = mCacheList[key]
-                        if(null==cache || cache.refCount<=0) {
-                            UtLogger.debug("AmvCacheManager: $key: remove cache")
-                            mCacheList.remove(key)
-                            file.delete()
+                for(i in list.size-1 downTo 0) {
+                    val file = list[i]
+                    val key = file.name
+                    val cache = mCacheList[key]
+                    if(null==cache || cache.refCount<=0) {
+                        UtLogger.debug("AmvCacheManager: $key: remove cache")
+                        totalSize -= file.length()
+                        count--
+                        mCacheList.remove(key)
+                        file.delete()
+                        if (count < maxCount && totalSize < maxCacheSize) {
+                            break
                         }
                     }
                 }
+            }
         } catch (e:Throwable) {
-            UtLogger.error( "AmvCacheManager.Sweep\n${e.stackTrace}")
+            UtLogger.error( "AmvCacheManager.sweep\n${e.stackTrace}")
         }
         finally {
             mSweeping = false
@@ -206,11 +280,29 @@ object AmvCacheManager {
      * (Unitテスト用）
      */
     fun clearAllCache() {
-        val list = mCacheFolder.listFiles()
-        if(null!=list) {
-            for(f in list) {
-                f.delete()
+        try {
+            synchronized(mLock) {
+                mCacheList.clear()
+                val list = mCacheFolder.listFiles()
+                if (null != list) {
+                    for (f in list) {
+                        f.delete()
+                    }
+                }
             }
+        } catch (e:Throwable) {
+            UtLogger.error( "AmvCacheManager.clearAllCache\n${e.stackTrace}")
+        }
+    }
+
+    internal fun removeCache(cache:IAmvCache) {
+        try {
+            synchronized(mLock) {
+                mCacheList.remove(cache.key)
+                cache.cacheFile?.delete()
+            }
+        } catch (e:Throwable) {
+            UtLogger.error( "AmvCacheManager.removeCache\n${e.stackTrace}")
         }
     }
 }
@@ -218,26 +310,26 @@ object AmvCacheManager {
 /**
  * キャッシュファイルの内部表現
  */
-private class AmvCache(private val key:String, override val uri:Uri, existsFile:File?) : IAmvCache{
+private class AmvCache(override val key:String, override val uri:Uri?, existsFile:File?) : IAmvCache{
     private var mFile: File? = null
-    private var mInvalidFile: File? = null
+    private var mInvalidated = false
     private var mRefCount: Int = 0
-    private var mLock = java.lang.Object()
+    private var mLock = Object()
     private var mDownloading : Boolean = false
     private var mDownloadedListener = Funcies2<IAmvCache, File?, Unit>()
 
     init {
         if(null!=existsFile) {
             mFile = existsFile
-        } else {
-            download()
+        } else if(uri!=null){
+            download(uri)
         }
     }
 
     /**
      * ファイルのダウンロードを開始する
      */
-    private fun download() {
+    private fun download(uri:Uri) {
         if(mDownloading) {
             throw AmvException("internal error: download twice")
         }
@@ -252,15 +344,23 @@ private class AmvCache(private val key:String, override val uri:Uri, existsFile:
         OkHttpClient().newCall(request).enqueue(object : Callback{
             override fun onResponse(call: Call?, response: Response?) {
                 error.reset()
-                val inStream = response?.body()?.byteStream()
-                if(null==inStream) {
+
+                val file = response?.use { res->
+                    res.body()?.use { body->
+                        body.byteStream().use { inStream ->
+                            AmvCacheManager.getFileForKey(key).apply {
+                                FileOutputStream(this, false).use { outStream ->
+                                    inStream.copyTo(outStream, 128 * 1024) // buffer size 128KB
+                                    UtLogger.debug("AmvCacheManager: $key: file created")
+                                }
+                            }
+                        }
+                    }
+                }
+                if(null==file) {
                     onFailure(call, IOException("no body data."))
                     return
                 }
-                val file = AmvCacheManager.getFileForKey(key)
-                val outStream = FileOutputStream(file, false)
-                inStream.copyTo(outStream, 128*1024) // buffer size 128KB
-                UtLogger.debug("AmvCacheManager: $key: file created")
                 synchronized(mLock) {
                     mDownloading = false
                     mFile = file
@@ -293,15 +393,35 @@ private class AmvCache(private val key:String, override val uri:Uri, existsFile:
         getFile(Funcy2(callback::onGotFile))
     }
 
+    override suspend fun getFileAsync() : File? {
+        return suspendCoroutine {cont->
+            getFile {_, file ->
+                cont.resume(file)
+            }
+        }
+    }
+
     /**
      * ファイルをダウンロードして取得
      * ダウンロードが終わったら、callbackする
      */
     fun getFile(callback: IFuncy2<IAmvCache, File?, Unit>) {
         synchronized (mLock) {
+            if(mInvalidated) {
+                error.setError("cache has been invalidated.")
+                callback.invoke(this, null)
+                return
+            }
             if (null == mFile) {
                 if(!mDownloading) {
-                    download()  // コンストラクタでダウロードが開始されるので、ここには入ってこないはず
+                    // コンストラクタでダウロードが開始されるので、ここには入ってこないはず
+                    if(uri==null) {
+                        error.setError("no uri to download.")
+                        callback.invoke(this, null)
+                        return
+                    } else {
+                        download(uri)
+                    }
                 }
                 mDownloadedListener.add(null, callback)
                 return
@@ -335,16 +455,6 @@ private class AmvCache(private val key:String, override val uri:Uri, existsFile:
     override fun release() : Int {
         synchronized (mLock) {
             mRefCount--
-            if(mRefCount==0 && mFile==null && !mDownloading && mInvalidFile!=null) {
-                // キャッシュが無効化されていて、参照がなくなった場合・・・キャッシュファイルを削除する
-                try {
-                    mInvalidFile?.delete()
-                    mInvalidFile = null
-                }
-                catch(e:Throwable) {
-                    UtLogger.stackTrace( e,"AmvCache.Release (deleting file).")
-                }
-            }
             return mRefCount
         }
     }
@@ -358,9 +468,9 @@ private class AmvCache(private val key:String, override val uri:Uri, existsFile:
 
     override fun invalidate() {
         synchronized(mLock) {
-            mInvalidFile = mFile
-            mFile = null
+            mInvalidated = true
         }
+        AmvCacheManager.removeCache(this)
     }
 
     override val cacheFile: File?

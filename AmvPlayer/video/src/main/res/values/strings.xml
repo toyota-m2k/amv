@@ -1,5 +1,6 @@
 <resources>
     <string name="app_name">video</string>
+
     <string name="back">Back</string>
     <string name="play">Play</string>
     <string name="stop">Stop</string>
@@ -9,6 +10,7 @@
     <string name="fullscreen">Full screen</string>
     <string name="cancel">Cancel</string>
     <string name="play_stop">play or stop</string>
+    <string name="error">error.</string>
 
     <string name="title_activity_amv_fullscreen">AmvFullscreenActivity</string>
     <string name="dummy_button">Dummy Button</string>

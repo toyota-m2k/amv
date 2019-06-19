@@ -1,11 +1,16 @@
 package com.michael.video
 
+import android.content.Intent
 import android.os.Bundle
-import android.support.v7.app.AppCompatActivity
+import androidx.appcompat.app.AppCompatActivity
 import android.view.View
 import android.widget.ImageButton
+import com.michael.video.IAmvSource
+import com.michael.utils.Funcies1
 import kotlinx.android.synthetic.main.activity_amv_fullscreen.*
-import java.io.File
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.launch
 
 /**
  * An example full-screen activity that shows and hides the system UI (i.e.
@@ -19,6 +24,13 @@ class AmvFullscreenActivity : AppCompatActivity() {
         const val KEY_PLAYING:String = "playing"
         const val KEY_CLIP_START:String = "start"
         const val KEY_CLIP_END:String = "end"
+
+        // Fixed: classroom#3217
+        // このActivityの呼び出し元（AmvVideoController)に対して、再生位置を返すための簡単な仕掛け。
+        // 本来はstartActivityForResult + onActivityResult を使って値を返すべきなのだが、
+        // 動作をvideoライブラリ内に閉じ込めたかったので、少し強引だが、グローバルな領域の変数を介して、
+        // 情報を受け渡しすることにした。
+        val onResultListener = Funcies1<Intent, Unit>()
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -35,7 +47,7 @@ class AmvFullscreenActivity : AppCompatActivity() {
                 View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
 
         if(null!=intent) {
-            val source = intent.getSerializableExtra(KEY_SOURCE) as? File
+            val source = intent.getParcelableExtra<IAmvSource>(KEY_SOURCE)
             if(null!=source) {
                 val playing = intent.getBooleanExtra(KEY_PLAYING, false)
                 val position = intent.getLongExtra(KEY_POSITION, 0)
@@ -45,7 +57,9 @@ class AmvFullscreenActivity : AppCompatActivity() {
                 if(start>=0) {
                     fsa_player.setClip(IAmvVideoPlayer.Clipping(start, end))
                 }
-                fsa_player.setSource(source, playing, position)
+                GlobalScope.launch(Dispatchers.Main) {
+                    fsa_player.setSource(source, playing, position)
+                }
             }
         }
 
@@ -58,7 +72,10 @@ class AmvFullscreenActivity : AppCompatActivity() {
     }
 
     override fun onStop() {
+        intent.putExtra(KEY_PLAYING, fsa_player.isPlayingOrReservedToPlay)
+        intent.putExtra(KEY_POSITION, fsa_player.seekPosition)
         fsa_player.pause()
         super.onStop()
+        onResultListener.invoke(intent)
     }
 }

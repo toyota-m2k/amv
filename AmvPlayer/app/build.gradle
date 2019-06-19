@@ -4,14 +4,14 @@ apply plugin: 'kotlin-android-extensions'
 apply plugin: 'kotlin-kapt'
 
 android {
-    compileSdkVersion 27
+    compileSdkVersion 28
     defaultConfig {
         applicationId "com.michael.amvplayer"
         minSdkVersion 21
-        targetSdkVersion 27
+        targetSdkVersion 28
         versionCode 1
         versionName "1.0"
-        testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
+        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
     buildTypes {
         release {
@@ -27,38 +27,39 @@ android {
 dependencies {
     // Google Support Libraries
     implementation fileTree(include: ['*.jar'], dir: 'libs')
-    implementation "com.android.support:appcompat-v7:$support_lib_version"
-    implementation "com.android.support.constraint:constraint-layout:$c_layout_version"
+    implementation "androidx.appcompat:appcompat:$androidx_compat_version"
+    implementation "androidx.constraintlayout:constraintlayout:$androidx_constraint_version"
 
     // Unit Test
     testImplementation 'junit:junit:4.12'
-    androidTestImplementation 'com.android.support.test:runner:1.0.2'
-    androidTestImplementation 'com.android.support.test.espresso:espresso-core:3.0.2'
+    androidTestImplementation "androidx.test:runner:$androidx_test_runner_version"
+    androidTestImplementation "androidx.test.espresso:espresso-core:$androidx_test_espresso_version"
 
     // Kotlin Support
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlin_version"
     implementation "org.jetbrains.kotlin:kotlin-reflect:$kotlin_version"
-    implementation "org.jetbrains.kotlinx:kotlinx-coroutines-android:$kotlin_coroutine_version"
+    implementation "org.jetbrains.kotlinx:kotlinx-coroutines-android:$coroutine_version"
 
     // Google Architecture Components
-    implementation "android.arch.lifecycle:extensions:$lifecycle_version"
+    implementation 'androidx.lifecycle:lifecycle-extensions:2.0.0'
 
     // Permission Dispatcher
     // https://permissions-dispatcher.github.io/PermissionsDispatcher/
-    implementation 'com.github.hotchemi:permissionsdispatcher:3.2.0'
-    kapt "com.github.hotchemi:permissionsdispatcher-processor:3.2.0"
+    implementation "org.permissionsdispatcher:permissionsdispatcher:$permission_dispatcher_version"
+    kapt "org.permissionsdispatcher:permissionsdispatcher-processor:$permission_dispatcher_version"
+
     // permissionsdispatcher-processorは、kotlin-kapt と一緒に使うと、恐ろしいエラーが起きるので、kapt版を使う
     // annotationProcessor 'com.github.hotchemi:permissionsdispatcher-processor:3.2.0'
 
     // Parceler
     // https://github.com/johncarl81/parceler
-    implementation 'org.parceler:parceler-api:1.1.10'
-    kapt "org.parceler:parceler:1.1.10"
+//    implementation 'org.parceler:parceler-api:1.1.10'
+//    kapt "org.parceler:parceler:1.1.10"
 
     // for Compatibility to permission dispatcher
-    implementation "com.android.support:support-v4:$support_lib_version"
-    implementation "com.android.support:support-v13:$support_lib_version"
-    implementation "com.android.support:support-media-compat:$support_lib_version"
+    implementation 'androidx.legacy:legacy-support-v4:1.0.0'
+    implementation 'androidx.legacy:legacy-support-v13:1.0.0'
+    implementation "androidx.media:media:$androidx_media_version"
 
     // sub modules
     implementation project(path: ':video')

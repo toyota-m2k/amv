@@ -7,13 +7,12 @@
 package com.michael.video
 
 import android.content.Context
-import android.net.Uri
 import android.os.Handler
-import android.os.Parcel
-import android.os.Parcelable
 import android.util.AttributeSet
 import android.view.LayoutInflater
 import android.view.View
+import android.view.animation.AlphaAnimation
+import android.view.animation.Animation
 import android.widget.FrameLayout
 import android.widget.ProgressBar
 import android.widget.TextView
@@ -28,7 +27,9 @@ import com.google.android.exoplayer2.ui.PlayerView
 import com.google.android.exoplayer2.upstream.DefaultDataSourceFactory
 import com.google.android.exoplayer2.video.VideoListener
 import com.michael.utils.UtLogger
-import java.io.File
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.launch
 import kotlin.math.absoluteValue
 import kotlin.math.roundToInt
 
@@ -40,8 +41,8 @@ class AmvExoVideoPlayer @JvmOverloads constructor(
     // region Private Properties
 
     private val mBindings = Bindings()
-    private var mSource : File? = null
-    private var mPlayer : SimpleExoPlayer? = null
+    private var mSource : IAmvSource? = null
+    private val mPlayer : SimpleExoPlayer = ExoPlayerFactory.newSimpleInstance(DefaultRenderersFactory(context),DefaultTrackSelector(),DefaultLoadControl())
     private var mEnded : Boolean = false                // 動画ファイルの最後まで再生が終わって停止した状態から、Playボタンを押したときに、先頭から再生を開始する動作を実現するためのフラグ
     private var mMediaSource:MediaSource? = null
     private var mClipping : IAmvVideoPlayer.Clipping? = null
@@ -69,21 +70,26 @@ class AmvExoVideoPlayer @JvmOverloads constructor(
         }
 
         override fun onSeekProcessed() {
-            seekCompletedListener.invoke(this@AmvExoVideoPlayer, seekPosition)
+            if(!seekManager.isSeeking && !mBindings.isPlaying) {
+                seekCompletedListener.invoke(this@AmvExoVideoPlayer, seekPosition)
+            }
         }
 
         override fun onTracksChanged(trackGroups: TrackGroupArray?, trackSelections: TrackSelectionArray?) {
         }
 
         override fun onPlayerError(error: ExoPlaybackException?) {
-            UtLogger.error(error.toString())
-            mBindings.errorMessage = error?.message ?: "error"
+            if(error!=null) {
+                UtLogger.stackTrace(error, "ExoPlayer: error")
+            }
+            mSource?.invalidate()
+            mBindings.errorMessage = /*error?.message ?:*/ AmvStringPool.getString(R.string.error) ?: context.getString(R.string.error)
             mBindings.playerState = IAmvVideoPlayer.PlayerState.Error
         }
 
         override fun onLoadingChanged(isLoading: Boolean) {
             UtLogger.debug("EXO: loading = $isLoading")
-            if(isLoading) {
+            if(isLoading && mPlayer.playbackState==Player.STATE_BUFFERING) {
                 mBindings.playerState = IAmvVideoPlayer.PlayerState.Loading
             }
         }
@@ -133,14 +139,10 @@ class AmvExoVideoPlayer @JvmOverloads constructor(
 
     init {
         LayoutInflater.from(context).inflate(R.layout.video_exo_player, this)
-        val player  = ExoPlayerFactory.newSimpleInstance(
-                                            DefaultRenderersFactory(context),
-                                            DefaultTrackSelector(),
-                                            DefaultLoadControl())
-        mBindings.playerView.player = player
-        player.addListener(mEventListener)
-        player.addVideoListener(mVideoListener)
-        mPlayer = player
+        mBindings.playerView.player = mPlayer
+        mPlayer.addListener(mEventListener)
+        mPlayer.addVideoListener(mVideoListener)
+        isSaveFromParentEnabled = false
 
         val sa = context.theme.obtainStyledAttributes(attrs,R.styleable.AmvExoVideoPlayer,defStyleAttr,0)
         try {
@@ -177,12 +179,20 @@ class AmvExoVideoPlayer @JvmOverloads constructor(
     }
 
     override fun onDetachedFromWindow() {
-        val player = mPlayer
-        if(null!=player) {
-            mPlayer = null
-            player.removeListener(mEventListener)
-            player.removeVideoListener(mVideoListener)
-            player.release()
+        mPlayer.removeListener(mEventListener)
+        mPlayer.removeVideoListener(mVideoListener)
+        mPlayer.release()
+
+        sourceChangedListener.clear()
+        videoPreparedListener.clear()
+        playerStateChangedListener.clear()
+        seekCompletedListener.clear()
+        sizeChangedListener.clear()
+        clipChangedListener.clear()
+
+        GlobalScope.launch {
+            mSource?.release()
+            mSource = null
         }
 
         super.onDetachedFromWindow()
@@ -192,7 +202,12 @@ class AmvExoVideoPlayer @JvmOverloads constructor(
         super.onSizeChanged(w, h, oldw, oldh)
 
         if(mFitParent) {
-            setLayoutHint(FitMode.Inside, w.toFloat(), h.toFloat())
+            // このタイミングで setLayoutHint()を呼び出すと、回転時に layout_width/heightによる指定サイズと、
+            // 実際の表示サイズが一致しなくなる。おそらく、システムによるレンダリングの途中なので、うまくいかないのだろう。
+            // 少し遅延させることで正しく動くようになった。
+            mHandler.postDelayed( {
+                setLayoutHint(FitMode.Inside, w.toFloat(), h.toFloat())
+            }, 200)
         }
     }
 
@@ -218,7 +233,7 @@ class AmvExoVideoPlayer @JvmOverloads constructor(
             get() = errorMessageView.text?.toString() ?: ""
             set(v) {
                 errorMessageView.text = v
-                updateState()
+                isError = !v.isBlank()
             }
 
         var playerState: IAmvVideoPlayer.PlayerState
@@ -260,10 +275,13 @@ class AmvExoVideoPlayer @JvmOverloads constructor(
             get() = mPlayerState == IAmvVideoPlayer.PlayerState.Loading
 
 
-        private val isError: Boolean
-            get() = mPlayerState == IAmvVideoPlayer.PlayerState.Error
+        private var isError: Boolean = false
+            set(v) {
+                field = v
+                updateState()
+            }
+            get() = field || mPlayerState == IAmvVideoPlayer.PlayerState.Error
 
-        @Suppress("unused")
         val isPlaying: Boolean
             get() = mPlayerState == IAmvVideoPlayer.PlayerState.Playing
 
@@ -277,13 +295,70 @@ class AmvExoVideoPlayer @JvmOverloads constructor(
             sizeChangedListener.invoke(this@AmvExoVideoPlayer, w, h)
         }
 
+        inner class ProgressRingManager : Animation.AnimationListener {
+            var currentAnimation : Animation? = null
+
+            private val fadeInAnim = AlphaAnimation(0f,1f).apply {
+                duration = 3000
+                setAnimationListener(this@ProgressRingManager)
+            }
+
+            private val fadeOutAnim =  AlphaAnimation(1f,0f).apply {
+                duration = 200
+                setAnimationListener(this@ProgressRingManager)
+            }
+
+            fun show() {
+                if(currentAnimation == fadeOutAnim) {
+                    fadeOutAnim.cancel()
+                } else if (null!=currentAnimation || progressRing.visibility==View.VISIBLE) {
+                    return
+                }
+                currentAnimation = fadeInAnim
+                progressRing.startAnimation(fadeInAnim)
+            }
+
+            fun hide() {
+                if(currentAnimation == fadeInAnim) {
+                    fadeInAnim.cancel()
+                } else if (null!=currentAnimation || progressRing.visibility==View.INVISIBLE) {
+                    return
+                }
+                currentAnimation = fadeOutAnim
+                progressRing.startAnimation(fadeOutAnim)
+            }
+
+            override fun onAnimationRepeat(animation: Animation?) {
+            }
+
+            override fun onAnimationStart(animation: Animation?) {
+                if(currentAnimation === fadeInAnim) {
+                    progressRing.visibility = View.VISIBLE
+                }
+            }
+
+            override fun onAnimationEnd(animation: Animation?) {
+                if(currentAnimation === fadeOutAnim) {
+                    progressRing.visibility = View.INVISIBLE
+                }
+                currentAnimation = null
+                progressRing.clearAnimation()
+            }
+        }
+
+        private val progressRingManager = ProgressRingManager()
+
         // Update States
         private fun updateState() {
             if (mInitial && isReady) {
                 mInitial = false
                 videoPreparedListener.invoke(this@AmvExoVideoPlayer, naturalDuration)
             }
-            progressRing.visibility = if (isLoading) View.VISIBLE else View.INVISIBLE
+            if (isLoading&&!isPlaying) {
+                progressRingManager.show()
+            } else {
+                progressRingManager.hide()
+            }
             errorMessageView.visibility = if (isError && errorMessage.isNotEmpty()) View.VISIBLE else View.INVISIBLE
             playerStateChangedListener.invoke(this@AmvExoVideoPlayer, mPlayerState)
         }
@@ -292,7 +367,6 @@ class AmvExoVideoPlayer @JvmOverloads constructor(
             setHint(fitMode, width, height)
             updateLayout()
         }
-
     }
 
     // endregion
@@ -309,13 +383,28 @@ class AmvExoVideoPlayer @JvmOverloads constructor(
 
     // Properties
     override val naturalDuration: Long
-        get() = mPlayer?.duration ?: 1000L
+        get() = mPlayer.duration
 
     override val seekPosition: Long
-        get() = mPlayer?.currentPosition ?: 0L
+        get() = mPlayer.currentPosition
+
+    override var isMuted:Boolean
+        get() = mPlayer.volume != 0f
+        set(v) {
+            if(v) {
+                mPlayer.volume = 0f
+            } else {
+                mPlayer.volume = 1f
+            }
+        }
+
 
     override val playerState: IAmvVideoPlayer.PlayerState
         get() = mBindings.playerState
+
+    override val isPlayingOrReservedToPlay : Boolean
+        get() = mBindings.isPlaying || mPlayer.playWhenReady
+
 
     // Methods
     override fun setLayoutHint(mode: FitMode, width: Float, height: Float) {
@@ -327,14 +416,13 @@ class AmvExoVideoPlayer @JvmOverloads constructor(
         return mBindings
     }
 
-    override fun reset() {
+    override suspend fun reset() {
         mMediaSource = null
+        mSource?.release()
         mSource = null
         mEnded = false
         mBindings.reset()
-        mPlayer?.apply {
-            stop()
-        }
+        mPlayer.stop()
     }
 
 
@@ -343,13 +431,11 @@ class AmvExoVideoPlayer @JvmOverloads constructor(
             return
         }
         mClipping = clipping
-        mPlayer?.apply {
-            val source = createClippingSource()
-            if(null!=source) {
-                prepare(source, true, true)
-                if(null!=clipping) {
-                    playerSeek(clipping.start)
-                }
+        val source = createClippingSource()
+        if(null!=source) {
+            mPlayer.prepare(source, true, true)
+            if(null!=clipping) {
+                playerSeek(clipping.start)
             }
         }
     }
@@ -357,43 +443,69 @@ class AmvExoVideoPlayer @JvmOverloads constructor(
     override val clip:IAmvVideoPlayer.Clipping?
         get() = mClipping
 
+    /**
+     * Uriを直接再生する
+     * （特殊用途向け・・・AmvExoVideoPlayer単体で使い、イベントとか、あまり気にしない場合にのみ使えるかも）
+     */
+//    fun setUri(uri:Uri) {
+//        reset()
+//        val mediaSource = ExtractorMediaSource.Factory(        // ExtractorMediaSource ... non-adaptiveなほとんどのファイルに対応
+//                DefaultDataSourceFactory(context, "amv")    //
+//        ).createMediaSource(uri)
+//        mMediaSource = mediaSource
+//        mPlayer.prepare(mediaSource, true, true)
+//    }
 
-    override fun setSource(source: File, autoPlay: Boolean, playFrom: Long) {
+
+    override suspend fun setSource(source: IAmvSource, autoPlay: Boolean, playFrom: Long) {
         reset()
+        mBindings.progressRing.visibility = View.VISIBLE
+
+        source.addRef()
         mSource = source
-        sourceChangedListener.invoke(this, source)
-        mPlayer?.apply {
-            val mediaSource = ExtractorMediaSource.Factory(        // ExtractorMediaSource ... non-adaptiveなほとんどのファイルに対応
-                    DefaultDataSourceFactory(context, "amv")    //
-            ).createMediaSource(Uri.fromFile(source))
-            mMediaSource = mediaSource
-            prepare(createClippingSource(mediaSource), true, true)
-            if(null!=mClipping ||playFrom > 0) {
-                playerSeek(playFrom)
+
+        GlobalScope.launch(Dispatchers.Default) {
+            val uri = source.getUriAsync()
+            launch(Dispatchers.Main) {
+                if (uri == null) {
+                    mBindings.errorMessage = source.error.toString()
+                } else {
+                    sourceChangedListener.invoke(this@AmvExoVideoPlayer, source)
+                    val mediaSource = ExtractorMediaSource.Factory(        // ExtractorMediaSource ... non-adaptiveなほとんどのファイルに対応
+                            DefaultDataSourceFactory(context, "amv")    //
+                    ).createMediaSource(uri)
+                    mMediaSource = mediaSource
+                    mPlayer.prepare(createClippingSource(mediaSource), true, true)
+                    if (null != mClipping || playFrom > 0) {
+                        playerSeek(playFrom)
+                    }
+                    mPlayer.playWhenReady = autoPlay
+                }
             }
-            playWhenReady = autoPlay
         }
     }
 
-    override val source:File?
+    override val source:IAmvSource?
         get() = mSource
 
 
     override fun play() {
-        mPlayer?.apply {
-            if(mEnded) {
-                // 動画ファイルの最後まで再生して止まっている場合は、先頭にシークしてから再生を開始する
-                mEnded = false
-                playerSeek(0)
-            }
-            playWhenReady = true
+        if(mEnded) {
+            // 動画ファイルの最後まで再生して止まっている場合は、先頭にシークしてから再生を開始する
+            mEnded = false
+            playerSeek(0)
         }
+        mPlayer.playWhenReady = true
     }
 
+//    fun playFrom(pos:Long) {
+//        mEnded = false
+//        playerSeek(pos)
+//        mPlayer.playWhenReady = true
+//    }
+
     override fun pause() {
-        mPlayer?.apply {
-            playWhenReady = false
-        }
+        mPlayer.playWhenReady = false
     }
 
     override fun seekTo(pos: Long) {
@@ -421,10 +533,12 @@ class AmvExoVideoPlayer @JvmOverloads constructor(
     /**
      * 再生/停止をトグル
      */
-    private fun togglePlay() {
+    fun togglePlay() {
         if(null!=mSource) {
-            mPlayer?.apply {
-                playWhenReady = !playWhenReady
+            when(playerState) {
+                IAmvVideoPlayer.PlayerState.Paused -> play()
+                IAmvVideoPlayer.PlayerState.Playing->pause()
+                else -> {}
             }
         }
     }
@@ -441,7 +555,7 @@ class AmvExoVideoPlayer @JvmOverloads constructor(
      * mPlayer.seekTo()を直接呼び出してはいけない。
      */
     private fun playerSeek(pos:Long) {
-        mPlayer?.seekTo(clipPos(pos))
+        mPlayer.seekTo(clipPos(pos))
     }
 
     /**
@@ -526,7 +640,8 @@ class AmvExoVideoPlayer @JvmOverloads constructor(
             UtLogger.debug("EXO-Seek: begin")
             if(!mSeeking) {
                 mSeeking = true
-                mPlayer?.setSeekParameters(SeekParameters.CLOSEST_SYNC)
+                mFastMode = true
+                mPlayer.setSeekParameters(SeekParameters.CLOSEST_SYNC)
                 mSeekTarget = -1L
                 mThreshold = (duration * mPercent) / 100
                 mHandler.postDelayed(mLoop, 0)
@@ -572,7 +687,7 @@ class AmvExoVideoPlayer @JvmOverloads constructor(
             if(!mFastMode) {
                 UtLogger.debug("EXO-Seek: switch to fast seek")
                 mFastMode = true
-                mPlayer?.setSeekParameters(SeekParameters.CLOSEST_SYNC)
+                mPlayer.setSeekParameters(SeekParameters.CLOSEST_SYNC)
             }
             playerSeek(pos)
         }
@@ -582,93 +697,16 @@ class AmvExoVideoPlayer @JvmOverloads constructor(
             if(mFastMode) {
                 UtLogger.debug("EXO-Seek: switch to exact seek")
                 mFastMode = false
-                mPlayer?.setSeekParameters(SeekParameters.EXACT)
+                mPlayer.setSeekParameters(SeekParameters.EXACT)
             }
             playerSeek(pos)
         }
+
+        val isSeeking:Boolean
+            get() = mSeeking
     }
     private var seekManager = SeekManager()
 
     // endregion
 
-    // region Saving States
-
-    override fun onSaveInstanceState(): Parcelable {
-        UtLogger.debug("LC-View: onSaveInstanceState")
-        val parent =  super.onSaveInstanceState()
-        return SavedState(parent, mSource, mClipping)
-    }
-
-    override fun onRestoreInstanceState(state: Parcelable?) {
-        UtLogger.debug("LC-View: onRestoreInstanceState")
-        if(state is SavedState) {
-            super.onRestoreInstanceState(state.superState)
-            val source = state.source
-            if(source!=null) {
-                // このタイミング（リストア中）に setSource()すると、ExoPlayerにファイルは読み込まれるが、読み込んだ後のイベントが返ってこないことがあり、
-                // ビューが更新されなかったりしたので、少し遅延させて回避する。
-                mHandler.post {
-                    mSource = source
-                    setSource(source, false, 0)
-                    setClip(state.clipping)
-                }
-            }
-        } else {
-            super.onRestoreInstanceState(state)
-        }
-    }
-
-    private class SavedState : View.BaseSavedState {
-
-        val source : File?
-        val clipping: IAmvVideoPlayer.Clipping?
-
-        /**
-         * Constructor called from [AmvSlider.onSaveInstanceState]
-         */
-        constructor(superState: Parcelable, file:File?, clipping: IAmvVideoPlayer.Clipping?) : super(superState) {
-            this.source = file
-            this.clipping = clipping
-        }
-
-        /**
-         * Constructor called from [.CREATOR]
-         */
-        private constructor(parcel: Parcel) : super(parcel) {
-            source = parcel.readSerializable() as? File
-            clipping = if(parcel.readInt()==1) {
-                IAmvVideoPlayer.Clipping(parcel.readLong(), parcel.readLong())
-            } else {
-                null
-            }
-        }
-
-        override fun writeToParcel(parcel: Parcel, flags: Int) {
-            parcel.writeSerializable(source)
-            if(null!=clipping) {
-                parcel.writeInt(1)
-                parcel.writeLong(clipping.start)
-                parcel.writeLong(clipping.end)
-            } else {
-                parcel.writeInt(0)
-            }
-        }
-
-        companion object {
-            @Suppress("unused")
-            @JvmStatic
-            val CREATOR: Parcelable.Creator<SavedState> = object : Parcelable.Creator<SavedState> {
-                override fun createFromParcel(parcel: Parcel): SavedState {
-                    return SavedState(parcel)
-                }
-                override fun newArray(size: Int): Array<SavedState?> {
-                    return arrayOfNulls(size)
-                }
-            }
-        }
-    }
-
-
-
-    // endregion
 }

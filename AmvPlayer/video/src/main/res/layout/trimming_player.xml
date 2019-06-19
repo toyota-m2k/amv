@@ -12,7 +12,7 @@
         android:layout_height="match_parent"
         android:gravity="center_horizontal|center_vertical"
         android:orientation="vertical"
-        tools:visibility="gone"
+        tools:visibility="visible"
         >
 
         <com.michael.video.AmvExoVideoPlayer
@@ -23,6 +23,7 @@
             app:playOnTouch = "false"
             tools:layout_height="250dp"
             tools:layout_width="250dp"
+            android:saveEnabled="false"
             />
 
         <com.michael.video.AmvTrimmingController
@@ -34,13 +35,14 @@
             tools:layout_height="100dp"
             />
     </LinearLayout>
-    <android.support.constraint.ConstraintLayout
+
+    <androidx.constraintlayout.widget.ConstraintLayout
         android:id="@+id/trp_progressLayer"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:visibility="gone"
         android:background="#a0000000"
-        tools:visibility="visible"
+        tools:visibility="gone"
         >
         <ProgressBar
             android:id="@+id/trp_progressBar"
@@ -78,5 +80,5 @@
             app:layout_constraintTop_toBottomOf="@+id/trp_message"
             android:layout_marginTop="4dp"
             />
-    </android.support.constraint.ConstraintLayout>
+    </androidx.constraintlayout.widget.ConstraintLayout>
 </FrameLayout>

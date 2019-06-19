@@ -66,7 +66,7 @@ class AmvHorzScrollView @JvmOverloads constructor(
 
     // endregion
 
-    // region Publics (refered from AmvFrameListView)
+    // region Public Fields (referred from AmvFrameListView)
 
     /**
      * トリミングは有効か？
@@ -146,6 +146,10 @@ class AmvHorzScrollView @JvmOverloads constructor(
         controls.container.addView(img)
     }
 
+    fun getImageViewAt(index:Int):ImageView? {
+        return controls.container.getChildAt(index) as? ImageView
+    }
+
     val imageCount:Int
         get() = controls.container.childCount
 
@@ -215,7 +219,7 @@ class AmvHorzScrollView @JvmOverloads constructor(
     }
 
     private fun hitTestSub(x:Float, pivot:Int) : Boolean {
-        return x in pivot - hitTestMargin .. pivot + hitTestMargin
+        return  pivot - hitTestMargin <= x && x <= pivot + hitTestMargin
     }
 
     /**

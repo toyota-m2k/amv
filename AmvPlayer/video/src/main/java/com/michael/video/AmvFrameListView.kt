@@ -14,6 +14,7 @@ import android.view.KeyEvent.ACTION_DOWN
 import android.view.LayoutInflater
 import android.view.MotionEvent
 import android.view.View
+import android.view.ViewGroup
 import android.widget.FrameLayout
 import android.widget.ImageView
 import com.michael.utils.FuncyListener1
@@ -28,7 +29,6 @@ class AmvFrameListView @JvmOverloads constructor(
 
     private var mKnobPosition = 0L          // 主ノブの位置（TrimStart/Endの管理は、scrollerに任せる
     private val controls = Controls()
-//    private val models = Models()
     private val trimmingEnabled:Boolean
         get() = controls.scroller.trimmingEnabled
 
@@ -76,13 +76,29 @@ class AmvFrameListView @JvmOverloads constructor(
      */
     val trimmingFriendListener = FuncyListener2<MotionEvent, AmvSlider.Knob, Boolean>()
 
+    private var frameWidth:Int = 0      // 1フレームの幅(px)
+    private var frameCount:Int = 0      // フレーム数
+    private var currentImageCount = 0   // 現在リストに登録済みのフレーム数
+
     /**
      * 動画情報が取得されたときの初期化処理
      */
     fun prepare(frameCount: Int, frameWidth: Int, frameHeight: Int) {
+        this.frameCount = frameCount
+        this.frameWidth = frameWidth
+        currentImageCount = 0
         controls.scroller.prepare(frameCount,frameWidth, frameHeight)
+        controls.scroller.setLayoutHeight(frameHeight)
         this.setLayoutHeight(frameHeight)
         updateScroll()
+
+        for(i in 0 until frameCount) {
+            controls.scroller.addImage(ImageView(context).apply {
+                scaleType = ImageView.ScaleType.FIT_XY
+                layoutParams = ViewGroup.LayoutParams(frameWidth, frameHeight)
+            })
+        }
+
     }
 
     /**
@@ -116,19 +132,24 @@ class AmvFrameListView @JvmOverloads constructor(
      * フレーム画像を追加
      */
     fun add(bmp: Bitmap) {
-        ImageView(context).apply {
-            setImageBitmap(bmp)
-            layoutParams = FrameLayout.LayoutParams(bmp.width, bmp.height)
-            controls.scroller.addImage(this)
-        }
+        val view = controls.scroller.getImageViewAt(currentImageCount) ?: return
+        view.setImageBitmap(bmp)
+        currentImageCount++
     }
 
     /**
      * フレーム画像を一括設定
      */
     fun setFrames(frameList: ArrayList<Bitmap>) {
-        for(i in controls.scroller.imageCount until frameList.size) {
+        for(i in currentImageCount until frameList.size) {
             add(frameList[i])
+        }
+        // Android版はフレームの抽出が遅く、再生開始後しばらくフレームリストの空白が目立ってブサイクなので、
+        // 最後のフレーム画像で残りのフレームを埋めることにより、少し見栄えを改善する
+        // #3153対応のおまけ
+        for(i in currentImageCount until frameCount) {
+            val view = controls.scroller.getImageViewAt(i) ?: return
+            view.setImageBitmap(frameList[frameList.size-1])
         }
     }
 
@@ -213,7 +234,7 @@ class AmvFrameListView @JvmOverloads constructor(
     @SuppressLint("ClickableViewAccessibility")
     override fun onTouchEvent(event: MotionEvent?): Boolean {
         if (null != event) {
-            if(touchFriendListener.invoke(event)?:false) {
+            if(touchFriendListener.invoke(event) == true) {
                return true
             }
 

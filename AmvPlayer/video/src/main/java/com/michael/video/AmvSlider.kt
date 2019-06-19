@@ -12,7 +12,7 @@ import android.graphics.*
 import android.graphics.drawable.Drawable
 import android.os.Parcel
 import android.os.Parcelable
-import android.support.annotation.ColorInt
+import androidx.annotation.ColorInt
 import android.util.AttributeSet
 import android.view.MotionEvent
 import android.view.View
@@ -109,6 +109,9 @@ class AmvSlider @JvmOverloads constructor(
             }
         }
 
+    val trimmedRange : Long
+        get() = trimEndPosition - trimStartPosition;
+
     /**
      * トリミングされているか？
      */
@@ -133,29 +136,29 @@ class AmvSlider @JvmOverloads constructor(
     /**
      * スライダーレールの外側にはみ出す幅（左）
      */
-    val leftExtentWidth:Float
-        get() {
-            return if(trimmingEnabled) {
-                mTrimLeftRect.width()
-            } else if(!endToEndRail) {
-                mThumbRect.width()/2
-            } else {
-                0f
-            }
-        }
+//    val leftExtentWidth:Float
+//        get() {
+//            return if(trimmingEnabled) {
+//                mTrimLeftRect.width()
+//            } else if(!endToEndRail) {
+//                mThumbRect.width()/2
+//            } else {
+//                0f
+//            }
+//        }
     /**
      * スライダーレールの外側にはみ出す幅（右）
      */
-    val rightExtentWidth:Float
-        get() {
-            return if(trimmingEnabled) {
-                mTrimRightRect.width()
-            } else if(!endToEndRail) {
-                mThumbRect.width()/2
-            } else {
-                0f
-            }
-        }
+//    val rightExtentWidth:Float
+//        get() {
+//            return if(trimmingEnabled) {
+//                mTrimRightRect.width()
+//            } else if(!endToEndRail) {
+//                mThumbRect.width()/2
+//            } else {
+//                0f
+//            }
+//        }
 
     /**
      * スライダーレールの外側にはみ出す幅（左右合計）
@@ -244,11 +247,11 @@ class AmvSlider @JvmOverloads constructor(
             resetWithValueRange(sa.getInteger(R.styleable.AmvSlider_valueRange, 1000).toLong(), false)
 
             // drawables
-            drThumb = sa.getDrawable(R.styleable.AmvSlider_thumb) ?: context.getDrawable(R.drawable.ic_slider_knob)
-            drLeft = sa.getDrawable(R.styleable.AmvSlider_startThumb) ?: context.getDrawable(R.drawable.ic_trim_left)
-            drRight = sa.getDrawable(R.styleable.AmvSlider_endThumb) ?: context.getDrawable(R.drawable.ic_trim_right)
+            drThumb = sa.getDrawable(R.styleable.AmvSlider_thumb) ?: context.getDrawable(R.drawable.ic_slider_knob)!!
+            drLeft = sa.getDrawable(R.styleable.AmvSlider_startThumb) ?: context.getDrawable(R.drawable.ic_trim_left)!!
+            drRight = sa.getDrawable(R.styleable.AmvSlider_endThumb) ?: context.getDrawable(R.drawable.ic_trim_right)!!
 
-            drThumbBg = sa.getDrawable(R.styleable.AmvSlider_thumbBg) ?: context.getDrawable(R.drawable.ic_slider_knob_bg)
+            drThumbBg = sa.getDrawable(R.styleable.AmvSlider_thumbBg) ?: context.getDrawable(R.drawable.ic_slider_knob_bg)!!
             showThumbBg = sa.getBoolean(R.styleable.AmvSlider_showThumbBg, false)
 
             // colors
@@ -257,7 +260,7 @@ class AmvSlider @JvmOverloads constructor(
             val railNoSelColor = sa.getColor(R.styleable.AmvSlider_railNoSelColor, Color.GRAY)
 
             // dimensions
-            railHeight = sa.getDimensionPixelSize(R.styleable.AmvSlider_railHeight, context.dp2px(8))
+            railHeight = sa.getDimensionPixelSize(R.styleable.AmvSlider_railHeight, context.dp2px(4))
             railLeftHeight = sa.getDimensionPixelSize(R.styleable.AmvSlider_railLeftHeight, railHeight)
             railNoSelHeight= sa.getDimensionPixelSize(R.styleable.AmvSlider_railNoSelHeight, context.dp2px(2))
 
@@ -313,6 +316,17 @@ class AmvSlider @JvmOverloads constructor(
         return drThumb.intrinsicWidth + if(trimmingEnabled) drLeft.intrinsicWidth else 0
     }
 
+    /**
+     * 外部（利用側）のレンダリング情報として、スライダーの高さ(px)を取得する
+     * @param withTrimmingKnob true:トリミング用ノブの高さを含む / false:含まない
+     */
+    fun getSliderHeight(withTrimmingKnob:Boolean=false) : Int {
+        return if(withTrimmingKnob) {
+            calcNaturalHeight()
+        } else {
+            maxOf(thumbOffset + drThumb.intrinsicHeight,railOffset + maxRailHeight)
+        }
+    }
 
     /**
      * 最小値と最大値を保持するデータクラス
@@ -793,7 +807,7 @@ class AmvSlider @JvmOverloads constructor(
         /**
          * Constructor called from [AmvSlider.onSaveInstanceState]
          */
-        constructor(superState: Parcelable) : super(superState)
+        constructor(superState: Parcelable?) : super(superState)
 
         /**
          * Constructor called from [.CREATOR]
@@ -815,7 +829,7 @@ class AmvSlider @JvmOverloads constructor(
 
         companion object {
             @Suppress("unused")
-            @JvmStatic
+            @JvmField
             val CREATOR: Parcelable.Creator<SavedState> = object : Parcelable.Creator<SavedState> {
                 override fun createFromParcel(parcel: Parcel): SavedState {
                     return SavedState(parcel)

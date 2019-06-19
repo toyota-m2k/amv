@@ -309,6 +309,9 @@ abstract class Funcies<R> : IFuncy<Unit> {
 
     private val mArray = ArrayList<NamedFunc<R>>()
 
+    val size:Int
+        get() = mArray.size
+
     fun add(name:String?, funcy:IFuncy<R>) {
         mArray.add(NamedFunc(name, funcy))
     }
@@ -426,6 +429,7 @@ open class Funcies3<T1:Any?, T2:Any?, T3:Any?, R:Any?> : Funcies<R>(), IFuncy3<T
  */
 @Suppress("unused")
 open class FuncyListener0<R> {
+    @Suppress("MemberVisibilityCanBePrivate")
     var funcy : IFuncy0<R>? = null
     fun set(f:IFuncy0<R>) {funcy = f}
     fun set(listener:()->R) { funcy = Funcy0(listener) }
@@ -435,6 +439,7 @@ open class FuncyListener0<R> {
 
 @Suppress("unused")
 open class FuncyListener1<T1,R> {
+    @Suppress("MemberVisibilityCanBePrivate")
     var funcy : IFuncy1<T1,R>? = null
     fun set(f:IFuncy1<T1,R>) {funcy = f}
     fun set(listener:(T1)->R) { funcy = Funcy1(listener) }
@@ -444,6 +449,7 @@ open class FuncyListener1<T1,R> {
 
 @Suppress("unused")
 open class FuncyListener2<T1,T2,R> {
+    @Suppress("MemberVisibilityCanBePrivate")
     var funcy : IFuncy2<T1,T2,R>? = null
     fun set(f:IFuncy2<T1,T2,R>) {funcy = f}
     fun set(listener:(T1,T2)->R) { funcy = Funcy2(listener) }
@@ -453,6 +459,7 @@ open class FuncyListener2<T1,T2,R> {
 
 @Suppress("unused")
 open class FuncyListener3<T1,T2,T3,R> {
+    @Suppress("MemberVisibilityCanBePrivate")
     var funcy : IFuncy3<T1,T2,T3,R>? = null
     fun set(f:IFuncy3<T1,T2,T3,R>) {funcy = f}
     fun set(listener:(T1,T2,T3)->R) { funcy = Funcy3(listener) }

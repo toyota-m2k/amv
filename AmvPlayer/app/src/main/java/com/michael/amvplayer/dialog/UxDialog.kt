@@ -1,12 +1,12 @@
 package com.michael.amvplayer.dialog
 
 import android.app.Dialog
-import android.arch.lifecycle.ViewModelProviders
+import androidx.lifecycle.ViewModelProviders
 import android.os.Bundle
-import android.support.v4.app.DialogFragment
-import android.support.v4.app.FragmentActivity
-import android.support.v4.app.FragmentManager
-import android.support.v4.app.FragmentTransaction
+import androidx.fragment.app.DialogFragment
+import androidx.fragment.app.FragmentActivity
+import androidx.fragment.app.FragmentManager
+import androidx.fragment.app.FragmentTransaction
 import android.view.View
 
 /**
@@ -15,7 +15,7 @@ import android.view.View
  *
  * サブクラスでcreateContentView()をオーバーライドすることにより、任意のダイアログを実装可能。
  */
-abstract class UxDialog : DialogFragment() {
+abstract class UxDialog : androidx.fragment.app.DialogFragment() {
 
     private lateinit var mViewModel: UxDialogViewModel
 
@@ -51,7 +51,7 @@ abstract class UxDialog : DialogFragment() {
         if(null!=activity) {
             val tag = viewModel.onClosed(state, result)
             if(null!=tag) {
-                val dlg = fragmentManager?.findFragmentByTag(tag) as? DialogFragment
+                val dlg = fragmentManager?.findFragmentByTag(tag) as? androidx.fragment.app.DialogFragment
                 dlg?.dialog?.show()
             }
         }
@@ -61,7 +61,7 @@ abstract class UxDialog : DialogFragment() {
     /**
      * このメソッドは直接呼んではならない
      */
-    override fun show(manager: FragmentManager?, tag: String?) {
+    override fun show(manager: androidx.fragment.app.FragmentManager?, tag: String?) {
         assert(false)
         super.show(manager, tag)
     }
@@ -69,7 +69,7 @@ abstract class UxDialog : DialogFragment() {
     /**
      * このメソッドは直接呼んではならない
      */
-    override fun show(transaction: FragmentTransaction?, tag: String?): Int {
+    override fun show(transaction: androidx.fragment.app.FragmentTransaction?, tag: String?): Int {
         assert(false)
         return super.show(transaction, tag)
     }
@@ -77,7 +77,7 @@ abstract class UxDialog : DialogFragment() {
     /**
      * ダイアログを表示する
      */
-    fun show(activity: FragmentActivity, tag: String) {
+    fun show(activity: androidx.fragment.app.FragmentActivity, tag: String) {
         val viewModel = ViewModelProviders.of(activity).get(UxDialogViewModel::class.java)
         viewModel.onOpened(tag)
         super.show(activity.supportFragmentManager, tag)

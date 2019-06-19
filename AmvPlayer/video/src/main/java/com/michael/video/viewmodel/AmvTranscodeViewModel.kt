@@ -1,13 +1,14 @@
 package com.michael.video.viewmodel
 
-import android.arch.lifecycle.MutableLiveData
-import android.arch.lifecycle.Observer
-import android.arch.lifecycle.ViewModel
-import android.arch.lifecycle.ViewModelProviders
+import androidx.lifecycle.MutableLiveData
+import androidx.lifecycle.Observer
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProviders
 import android.content.Context
 import android.os.Handler
-import android.support.v4.app.FragmentActivity
+import androidx.fragment.app.FragmentActivity
 import android.view.View
+import com.michael.utils.UtLogger
 import com.michael.video.AmvError
 import com.michael.video.AmvTranscoder
 import com.michael.video.getActivity
@@ -64,7 +65,7 @@ class AmvTranscodeViewModel : ViewModel() {
         if(isBusy) {
             return false
         }
-        createTranscoder(input,context).transcode(output)
+        createTranscoder(input,context)?.transcode(output) ?: return false
         return true
     }
 
@@ -72,40 +73,45 @@ class AmvTranscodeViewModel : ViewModel() {
         if(isBusy) {
             return false
         }
-        createTranscoder(input,context).truncate(output, start, end)
+        createTranscoder(input,context)?.truncate(output, start, end) ?: return false
         return true
     }
 
-    private fun createTranscoder(input:File, context:Context) : AmvTranscoder {
+    private fun createTranscoder(input:File, context:Context) : AmvTranscoder? {
         mStatus.reset()
-        return AmvTranscoder(input, context).apply {
-            mTranscoder = this
-            progressListener.set {_,p->
-                handler.post {
-                    progress.value = p
+        try {
+            mTranscoder = AmvTranscoder(input, context).apply {
+                progressListener.set { _, p ->
+                    handler.post {
+                        progress.value = p
+                    }
+                }
+                completionListener.set { t, r ->
+                    handler.post {
+                        mStatus.completed = true
+                        mStatus.result = r
+                        mStatus.error.copyFrom(t.error)
+                        status.value = mStatus
+
+                        mTranscoder = null
+                        mStatus.reset()
+
+                        t.completionListener.reset()
+                        t.progressListener.reset()
+                    }
                 }
             }
-            completionListener.set {t,r->
-                handler.post {
-                    mStatus.completed = true
-                    mStatus.result = r
-                    mStatus.error.copyFrom(t.error)
-                    status.value = mStatus
-
-                    mTranscoder = null
-                    mStatus.reset()
-
-                    t.completionListener.reset()
-                    t.progressListener.reset()
-                }
-            }
+        } catch(e:Throwable) {
+            UtLogger.stackTrace(e,"Cannot create transcoder.")
+            mTranscoder = null
         }
+        return mTranscoder
     }
 
 
     companion object {
         @Suppress("MemberVisibilityCanBePrivate")
-        fun registerTo(activity:FragmentActivity, onProgress: (Float) -> Unit, onCompleted:(Boolean, AmvError?)->Unit): AmvTranscodeViewModel {
+        fun registerTo(activity: androidx.fragment.app.FragmentActivity, onProgress: (Float) -> Unit, onCompleted:(Boolean, AmvError?)->Unit): AmvTranscodeViewModel {
             return ViewModelProviders.of(activity).get(AmvTranscodeViewModel::class.java).apply {
                 progress.observe(activity, Observer<Float> { p->
                     if(null!=p) {
@@ -126,7 +132,7 @@ class AmvTranscodeViewModel : ViewModel() {
          * ビューをオブザーバーとして登録する
          */
         fun registerTo(view: View, onProgress: (Float) -> Unit, onCompleted:(Boolean,AmvError?)->Unit): AmvTranscodeViewModel? {
-            val activity = view.getActivity() as? FragmentActivity
+            val activity = view.getActivity() as? androidx.fragment.app.FragmentActivity
             return if(null!=activity) {
                 registerTo(activity, onProgress, onCompleted)
             } else {
