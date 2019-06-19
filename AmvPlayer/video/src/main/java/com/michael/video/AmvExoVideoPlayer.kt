@@ -687,7 +687,12 @@ class AmvExoVideoPlayer @JvmOverloads constructor(
 
     var showDefaultController:Boolean
         get() = mBindings.playerView.useController
-        set(v) { mBindings.playerView.useController = v }
+        set(v) {
+            mBindings.playerView.useController = v
+            if(v) {
+                mBindings.playerView.showController()
+            }
+        }
 
     // endregion
 }

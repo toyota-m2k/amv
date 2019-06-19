@@ -53,6 +53,7 @@ class AmvFullscreenActivity : AppCompatActivity() {
                 View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION or
                 View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
 
+
         if(null!=intent) {
             val source = intent.getSerializableExtra(KEY_SOURCE) as? File
             if(null!=source) {
@@ -109,6 +110,7 @@ class AmvFullscreenActivity : AppCompatActivity() {
         UtLogger.debug("##AmvFullScreenActivity.onCreate -- exit")
     }
 
+
     enum class Action(val code:Int) {
         PLAY(1),
         PAUSE(2),
@@ -155,8 +157,17 @@ class AmvFullscreenActivity : AppCompatActivity() {
         super.onResume()
     }
 
+    /**
+     * PinP画面で、×ボタンを押したとき（閉じる）と、□ボタンを押したとき（全画面に戻る）で、
+     * onPictureInPictureModeChanged()のパラメータに区別がないのだが、
+     * ×を押したときは、onPictureInPictureModeChangedが呼ばれる前に onStop()が呼ばれ、□ボタンの場合は呼ばれないことが分かったので、
+     * これによって、×と□を区別する。
+     */
+    private var closing:Boolean = false
+
     override fun onStop() {
         UtLogger.debug("##AmvFullScreenActivity.onStop")
+        closing = true
         fsa_player.pause()
         super.onStop()
     }
@@ -181,7 +192,11 @@ class AmvFullscreenActivity : AppCompatActivity() {
             // PinPモードで×ボタンが押されたときに、ここに入ってくる
 //            fsa_player.showDefaultController = true
             unregisterReceiver(receiver)
-            finish()
+            if(closing) {
+                finish()
+            } else {
+                fsa_player.showDefaultController = true
+            }
         } else {
             fsa_player.showDefaultController = false
             receiver = object: BroadcastReceiver() {
