@@ -11,6 +11,7 @@ import android.content.res.Configuration
 import android.graphics.drawable.Icon
 import android.os.Build
 import android.os.Bundle
+import android.os.Handler
 import android.support.v7.app.AppCompatActivity
 import android.util.Rational
 import android.view.View
@@ -39,6 +40,11 @@ class AmvFullscreenActivity : AppCompatActivity() {
 
     private val handlerName="fsa"
 
+    private var closing:Boolean = false
+    private var requestPinP:Boolean = false
+    private var reloadingPinP:Boolean = false
+    private var isPinP:Boolean = false
+
     override fun onCreate(savedInstanceState: Bundle?) {
         UtLogger.debug("##AmvFullScreenActivity.onCreate -- enter")
         super.onCreate(savedInstanceState)
@@ -53,51 +59,27 @@ class AmvFullscreenActivity : AppCompatActivity() {
                 View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION or
                 View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
 
-
-        if(null!=intent) {
-            val source = intent.getSerializableExtra(KEY_SOURCE) as? File
-            if(null!=source) {
-                val playing = intent.getBooleanExtra(KEY_PLAYING, false)
-                val position = intent.getLongExtra(KEY_POSITION, 0)
-                val start = intent.getLongExtra(KEY_CLIP_START, -1)
-                val end = intent.getLongExtra(KEY_CLIP_END, -1)
-
-                if (intent.getBooleanExtra(KEY_PINP, false)) {
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                        fsa_player.playerStateChangedListener.add(handlerName) {_,state->
-                            val playing = when(state) {
-                                IAmvVideoPlayer.PlayerState.Playing -> true
-                                else -> false
-                            }
-                            playAction.isEnabled = !playing
-                            pauseAction.isEnabled = playing
-                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-                                playAction.setShouldShowIcon(!playing)
-                                pauseAction.setShouldShowIcon(playing)
-                            }
-                        }
-                        val w = intent.getIntExtra(KEY_VIDEO_WIDTH, 0)
-                        val h = intent.getIntExtra(KEY_VIDEO_HEIGHT, 0)
-                        val ro = Rational(w, h)
-                        val rational = when {
-                            ro.isNaN || ro.isInfinite || ro.isZero -> Rational(1, 1)
-                            ro.toFloat() > 2.39 -> Rational(239, 100)
-                            ro.toFloat() < 1 / 2.39 -> Rational(100, 239)
-                            else -> ro
-                        }
-                        val param = PictureInPictureParams.Builder()
-                                .setAspectRatio(rational)
-                                .setActions(listOf(playAction, pauseAction))
-                                .build()
-                        enterPictureInPictureMode(param)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            fsa_player.playerStateChangedListener.add(handlerName) { _, state ->
+                if(requestPinP) {
+                    val playing = when (state) {
+                        IAmvVideoPlayer.PlayerState.Playing -> true
+                        else -> false
+                    }
+                    playAction.isEnabled = !playing
+                    pauseAction.isEnabled = playing
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                        playAction.setShouldShowIcon(!playing)
+                        pauseAction.setShouldShowIcon(playing)
                     }
                 }
+            }
+        }
 
-
-                if(start>=0) {
-                    fsa_player.setClip(IAmvVideoPlayer.Clipping(start, end))
-                }
-                fsa_player.setSource(source, playing, position)
+        if(null!=intent) {
+            initWithIntent(intent)
+            if(requestPinP) {
+                enterPinP()
             }
         }
 
@@ -107,9 +89,69 @@ class AmvFullscreenActivity : AppCompatActivity() {
         findViewById<ImageButton>(R.id.amv_ctr_close_button)?.setOnClickListener {
             finish()
         }
+        /**
+         * PinPボタン
+         */
+        val pinpBtn = findViewById<ImageButton>(R.id.amv_ctr_pinp_button)
+        if(pinpBtn!=null) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                pinpBtn.setOnClickListener {
+                    requestPinP = true
+                    enterPinP()
+                }
+            } else {
+                pinpBtn.visibility=View.GONE
+            }
+        }
         UtLogger.debug("##AmvFullScreenActivity.onCreate -- exit")
     }
 
+    override fun onNewIntent(intent: Intent?) {
+        UtLogger.debug("##AmvFullScreenActivity.onNewIntent")
+        super.onNewIntent(intent)
+        if(intent!=null) {
+            initWithIntent(intent)
+            if(requestPinP && isPinP) {
+                reloadingPinP = true
+            }
+        }
+    }
+
+    private fun initWithIntent(intent:Intent) {
+        val source = intent.getSerializableExtra(KEY_SOURCE) as? File
+        requestPinP = intent.getBooleanExtra(KEY_PINP, false)
+        if (null != source) {
+            val playing = intent.getBooleanExtra(KEY_PLAYING, false)
+            val position = intent.getLongExtra(KEY_POSITION, 0)
+            val start = intent.getLongExtra(KEY_CLIP_START, -1)
+            val end = intent.getLongExtra(KEY_CLIP_END, -1)
+
+
+            if (start >= 0) {
+                fsa_player.setClip(IAmvVideoPlayer.Clipping(start, end))
+            }
+            fsa_player.setSource(source, playing, position)
+        }
+    }
+
+    private fun enterPinP() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val w = intent.getIntExtra(KEY_VIDEO_WIDTH, 0)
+            val h = intent.getIntExtra(KEY_VIDEO_HEIGHT, 0)
+            val ro = Rational(w, h)
+            val rational = when {
+                ro.isNaN || ro.isInfinite || ro.isZero -> Rational(1, 1)
+                ro.toFloat() > 2.39 -> Rational(239, 100)
+                ro.toFloat() < 1 / 2.39 -> Rational(100, 239)
+                else -> ro
+            }
+            val param = PictureInPictureParams.Builder()
+                    .setAspectRatio(rational)
+                    .setActions(listOf(playAction, pauseAction))
+                    .build()
+            enterPictureInPictureMode(param)
+        }
+    }
 
     enum class Action(val code:Int) {
         PLAY(1),
@@ -157,14 +199,14 @@ class AmvFullscreenActivity : AppCompatActivity() {
         super.onResume()
     }
 
+
+
     /**
      * PinP画面で、×ボタンを押したとき（閉じる）と、□ボタンを押したとき（全画面に戻る）で、
      * onPictureInPictureModeChanged()のパラメータに区別がないのだが、
      * ×を押したときは、onPictureInPictureModeChangedが呼ばれる前に onStop()が呼ばれ、□ボタンの場合は呼ばれないことが分かったので、
      * これによって、×と□を区別する。
      */
-    private var closing:Boolean = false
-
     override fun onStop() {
         UtLogger.debug("##AmvFullScreenActivity.onStop")
         closing = true
@@ -183,11 +225,12 @@ class AmvFullscreenActivity : AppCompatActivity() {
     private lateinit var receiver: BroadcastReceiver
 
     override fun onPictureInPictureModeChanged(isInPictureInPictureMode: Boolean, newConfig: Configuration?) {
-        UtLogger.debug("##AmvFullScreenActivity.onPictureInPictureModeChanged")
+        UtLogger.debug("##AmvFullScreenActivity.onPictureInPictureModeChanged($isInPictureInPictureMode)")
         UtLogger.info("-------")
         UtLogger.info(newConfig?.toString()?:"null")
         UtLogger.info("-------")
         super.onPictureInPictureModeChanged(isInPictureInPictureMode, newConfig)
+        isPinP = isInPictureInPictureMode
         if(!isInPictureInPictureMode) {
             // PinPモードで×ボタンが押されたときに、ここに入ってくる
 //            fsa_player.showDefaultController = true
@@ -195,7 +238,15 @@ class AmvFullscreenActivity : AppCompatActivity() {
             if(closing) {
                 finish()
             } else {
-                fsa_player.showDefaultController = true
+                if(reloadingPinP) {
+                    // PinP中に、onNewIntent()で、もう一度pinpでの実行が要求された
+                    Handler().postDelayed({
+                        enterPinP()
+                    }, 500)
+                } else {
+                    requestPinP = false
+                    fsa_player.showDefaultController = true
+                }
             }
         } else {
             fsa_player.showDefaultController = false
