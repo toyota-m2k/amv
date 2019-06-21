@@ -210,7 +210,7 @@ class Methody1<T1,R>  : Methody<R>, IFuncy1<T1,R> {
     companion object {
         @JvmStatic
         fun <T1,R> create(obj:Any, name:String) : Methody1<T1,R>? {
-            val m = Methody.methodOf(obj, name)
+            val m = methodOf(obj, name)
             if(null==m || m.parameterTypes.count() !=1) {
                 return null
             }
@@ -252,7 +252,7 @@ class Methody2<T1,T2,R> : Methody<R>, IFuncy2<T1,T2,R> {
     companion object {
         @JvmStatic
         fun <T1,T2,R> create(obj:Any, name:String) : Methody2<T1,T2,R>? {
-            val m = Methody.methodOf(obj, name)
+            val m = methodOf(obj, name)
             if(null==m || m.parameterTypes.count() !=2) {
                 return null
             }
@@ -291,7 +291,7 @@ class Methody3<T1,T2,T3,R> : Methody<R>, IFuncy3<T1,T2,T3,R> {
     }
 
     fun <T1,T2,T3,R> create(obj:Any, name:String) : Methody3<T1,T2,T3,R>? {
-        val m = Methody.methodOf(obj, name)
+        val m = methodOf(obj, name)
         if(null==m || m.parameterTypes.count() !=3) {
             return null
         }

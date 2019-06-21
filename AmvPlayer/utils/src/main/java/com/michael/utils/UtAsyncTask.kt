@@ -10,6 +10,8 @@ package com.michael.utils
 import android.os.AsyncTask
 import java.util.concurrent.*
 import java.util.concurrent.atomic.AtomicInteger
+import kotlin.math.max
+import kotlin.math.min
 
 @Suppress("unused", "MemberVisibilityCanBePrivate")
 abstract class UtAsyncTask(val executorType:ExecutorType = ExecutorType.LOCAL_PARALLEL, val autoDispose:Boolean=true) : AsyncTask<Unit,Any,Unit>() {
@@ -168,7 +170,7 @@ abstract class UtAsyncTask(val executorType:ExecutorType = ExecutorType.LOCAL_PA
     fun execute() {
         when(executorType) {
             ExecutorType.SEQUENTIAL->super.execute()
-            ExecutorType.GLOBAL_PARALLEL->super.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR)
+            ExecutorType.GLOBAL_PARALLEL->super.executeOnExecutor(THREAD_POOL_EXECUTOR)
             else-> super.executeOnExecutor(LocalParallelExecutor)
         }
 //        if(sequential) {
@@ -182,9 +184,9 @@ abstract class UtAsyncTask(val executorType:ExecutorType = ExecutorType.LOCAL_PA
         private val CPU_COUNT by lazy {
             Runtime.getRuntime().availableProcessors()
         }
-        private val CORE_POOL_SIZE = Math.max(2, Math.min(CPU_COUNT - 1, 4))
+        private val CORE_POOL_SIZE = max(2, min(CPU_COUNT - 1, 4))
         private val MAXIMUM_POOL_SIZE = CPU_COUNT * 2 + 1
-        private val KEEP_ALIVE_SECONDS = 30L
+        private const val KEEP_ALIVE_SECONDS = 30L
         private val sPoolWorkQueue by lazy {
             LinkedBlockingQueue<Runnable>(128)
         }

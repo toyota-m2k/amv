@@ -11,10 +11,9 @@ import java.util.concurrent.TimeUnit
  * @author M.TOYOTA 13/10/21 Created.
  */
 class UtResetableEvent(initialSignaled: Boolean, private val mAutoReset: Boolean) {
-    private val mSemaphore: Semaphore
+    private val mSemaphore: Semaphore = Semaphore(1, false)
 
     init {
-        mSemaphore = Semaphore(1, false)
         if (!initialSignaled) {
             mSemaphore.drainPermits()
         }
@@ -53,9 +52,9 @@ class UtResetableEvent(initialSignaled: Boolean, private val mAutoReset: Boolean
         return true
     }
 
+    @Suppress("unused")
     fun <T> withLock(action: () -> T): T {
         waitOne()
         return action()
     }
-
 }

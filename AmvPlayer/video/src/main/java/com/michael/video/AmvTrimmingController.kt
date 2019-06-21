@@ -6,24 +6,25 @@
  */
 package com.michael.video
 
-import androidx.lifecycle.Observer
 import android.content.Context
 import android.graphics.drawable.Drawable
 import android.os.Handler
 import android.os.Parcel
 import android.os.Parcelable
-import androidx.constraintlayout.widget.ConstraintLayout
 import android.util.AttributeSet
 import android.view.LayoutInflater
-import android.view.View
 import android.widget.FrameLayout
 import android.widget.ImageButton
 import android.widget.TextView
+import androidx.constraintlayout.widget.ConstraintLayout
+import androidx.lifecycle.Observer
 import com.michael.utils.UtLogger
 import com.michael.video.viewmodel.AmvFrameListViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import kotlin.math.min
 import kotlin.math.roundToInt
 
 class AmvTrimmingController @JvmOverloads constructor(context: Context, attrs: AttributeSet? = null, defStyleAttr: Int = 0)
@@ -65,7 +66,7 @@ class AmvTrimmingController @JvmOverloads constructor(context: Context, attrs: A
         private const val FRAME_HEIGHT_IN_DP = 80f   // フレームサムネイルの高さ(dp)
         private const val LISTENER_NAME = "trimmingController"
     }
-    private var FRAME_HEIGHT = 160f
+    private var mFrameHeight = 160f
 
     private val models = Models()
     private val controls = Controls()
@@ -88,7 +89,7 @@ class AmvTrimmingController @JvmOverloads constructor(context: Context, attrs: A
         LayoutInflater.from(context).inflate(R.layout.video_trimming_controller, this)
         drPlay = context.getDrawable(R.drawable.ic_play)!!
         drPause = context.getDrawable(R.drawable.ic_pause)!!
-        FRAME_HEIGHT = context.dp2px(FRAME_HEIGHT_IN_DP)
+        mFrameHeight = context.dp2px(FRAME_HEIGHT_IN_DP)
 
         val sa = context.theme.obtainStyledAttributes(attrs,R.styleable.AmvTrimmingtController,defStyleAttr,0)
         try {
@@ -251,7 +252,7 @@ class AmvTrimmingController @JvmOverloads constructor(context: Context, attrs: A
         val height : Int
             get() {
                 val sliderHeight = slider.getSliderHeight(false)
-                val frameListHeight = FRAME_HEIGHT.toInt()
+                val frameListHeight = mFrameHeight.toInt()
                 trimStartText.measure(MeasureSpec.UNSPECIFIED,MeasureSpec.UNSPECIFIED)
                 val textHeight = trimStartText.measuredHeight
                 val buttonHeight = playButton.getLayoutHeight()
@@ -341,42 +342,44 @@ class AmvTrimmingController @JvmOverloads constructor(context: Context, attrs: A
     }
 
     private fun extractFrameOnSourceChanged(source: IAmvSource) {
-        GlobalScope.launch(Dispatchers.Main) {
+        GlobalScope.launch {
             val file = source.getFileAsync()
             if(file!=null) {
-                models.naturalDuration = 0L  // ViewModelから読み込むとき、Durationがゼロかどうかで初回かどうか判断するので、ここでクリアする
-                if (null != mFrameListViewModel) {
-                    val info = mFrameListViewModel.frameListInfo.value!!
-                    if (!mFrameListViewModel.extractFrame(file, FRAME_COUNT, FitMode.Height, 0f, FRAME_HEIGHT)) {
-                        // 抽出条件が変更されていない場合はfalseを返してくるのでキャッシュから構築する
-                        updateFrameListByViewModel(info)
-                    }
-                } else {
-                    // フレームサムネイルを列挙する
-                    mFrameExtractor = AmvFrameExtractor().apply {
-                        setSizingHint(FitMode.Height, 0f, FRAME_HEIGHT)
-                        onVideoInfoRetrievedListener.add(null) {
-                            UtLogger.debug("AmvFrameExtractor:duration=${it.duration} / ${it.videoSize}")
-                            val thumbnailSize = it.thumbnailSize
-                            controls.frameList.prepare(FRAME_COUNT, thumbnailSize.width, thumbnailSize.height)
-                            models.naturalDuration = it.duration
-                            controls.resetWithDuration(it.duration)
-                            models.isVideoInfoPrepared = true
-                            restoringData?.tryRestoring()
-                            //contentWidthChanged.invoke(this@AmvTrimmingController, controls.frameList.contentWidth)
-                            adjustSliderPosition()
+                withContext(Dispatchers.Main) {
+                    models.naturalDuration = 0L  // ViewModelから読み込むとき、Durationがゼロかどうかで初回かどうか判断するので、ここでクリアする
+                    if (null != mFrameListViewModel) {
+                        val info = mFrameListViewModel.frameListInfo.value!!
+                        if (!mFrameListViewModel.extractFrame(file, FRAME_COUNT, FitMode.Height, 0f, mFrameHeight)) {
+                            // 抽出条件が変更されていない場合はfalseを返してくるのでキャッシュから構築する
+                            updateFrameListByViewModel(info)
                         }
-                        onThumbnailRetrievedListener.add(null) { _, index, bmp ->
-                            UtLogger.debug("AmvFrameExtractor:Bitmap(${index + 1}): width=${bmp.width}, height=${bmp.height}")
-                            controls.frameList.add(bmp)
-                        }
-                        onFinishedListener.add(null) { _, result ->
-                            mFrameExtractor = null
-                            if (!result) {
-                                restoringData?.onFatalError()
+                    } else {
+                        // フレームサムネイルを列挙する
+                        mFrameExtractor = AmvFrameExtractor().apply {
+                            setSizingHint(FitMode.Height, 0f, mFrameHeight)
+                            onVideoInfoRetrievedListener.add(null) {
+                                UtLogger.debug("AmvFrameExtractor:duration=${it.duration} / ${it.videoSize}")
+                                val thumbnailSize = it.thumbnailSize
+                                controls.frameList.prepare(FRAME_COUNT, thumbnailSize.width, thumbnailSize.height)
+                                models.naturalDuration = it.duration
+                                controls.resetWithDuration(it.duration)
+                                models.isVideoInfoPrepared = true
+                                restoringData?.tryRestoring()
+                                //contentWidthChanged.invoke(this@AmvTrimmingController, controls.frameList.contentWidth)
+                                adjustSliderPosition()
                             }
+                            onThumbnailRetrievedListener.add(null) { _, index, bmp ->
+                                UtLogger.debug("AmvFrameExtractor:Bitmap(${index + 1}): width=${bmp.width}, height=${bmp.height}")
+                                controls.frameList.add(bmp)
+                            }
+                            onFinishedListener.add(null) { _, result ->
+                                mFrameExtractor = null
+                                if (!result) {
+                                    restoringData?.onFatalError()
+                                }
+                            }
+                            extract(file, FRAME_COUNT)
                         }
-                        extract(file, FRAME_COUNT)
                     }
                 }
             }
@@ -408,7 +411,7 @@ class AmvTrimmingController @JvmOverloads constructor(context: Context, attrs: A
     private fun adjustSliderPosition() {
         val max = controls.frameList.contentWidth + controls.slider.extentWidth
         val width = controls.root.measuredWidth
-        controls.sliderGroup.setLayoutWidth(Math.min(max.roundToInt(),width))
+        controls.sliderGroup.setLayoutWidth(min(max.roundToInt(), width))
     }
 
     // endregion

@@ -1,19 +1,25 @@
 package com.michael.video
 
+import android.util.SparseArray
+
 /**
  * videoライブラリのUIで、app側で定義した文字列(R.string.xxx)を使用するための小さな仕掛け
  */
 object AmvStringPool {
-    private val map = HashMap<Int, String>()
+    private val map = SparseArray<String>()
 
     @JvmStatic
     fun getString(id:Int) : String? {
-        return map[id]
+        return map.get(id, null)
     }
 
     @JvmStatic
     fun setString(id:Int, str:String) {
-        map[id] = str
+        map.put(id, str)
+    }
+
+    operator fun get(id:Int):String? {
+        return map.get(id, null)
     }
 }
 

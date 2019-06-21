@@ -24,6 +24,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
 import java.io.File
+import kotlin.math.max
 import kotlin.math.roundToInt
 
 class AmvTrimmingPlayerView @JvmOverloads constructor(
@@ -67,7 +68,7 @@ class AmvTrimmingPlayerView @JvmOverloads constructor(
     init {
         LayoutInflater.from(context).inflate(R.layout.trimming_player, this)
 
-        AmvStringPool.getString(R.string.cancel)?.apply {
+        AmvStringPool[R.string.cancel]?.apply {
             trp_cancelButton.text = this
         }
 
@@ -98,7 +99,7 @@ class AmvTrimmingPlayerView @JvmOverloads constructor(
     override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
         super.onSizeChanged(w, h, oldw, oldh)
 
-        val sliderHeight = Math.max(h - controls.controller.controllerHeight, context.dp2px(50)).toFloat() // measuredHeight // + context.dp2px(16)
+        val sliderHeight = max(h - controls.controller.controllerHeight, context.dp2px(50)).toFloat() // measuredHeight // + context.dp2px(16)
         val sliderWidth = w - controls.controller.extentWidth
         controls.player.setLayoutHint(FitMode.Inside, sliderWidth, sliderHeight)
     }
@@ -137,7 +138,7 @@ class AmvTrimmingPlayerView @JvmOverloads constructor(
             }
         } else {
             // 失敗したら、エラーメッセージを表示
-            controls.message.text = /*error?.message ?: */ AmvStringPool.getString(R.string.error) ?: context.getString(R.string.error)
+            controls.message.text = /*error?.message ?: */ AmvStringPool[R.string.error] ?: context.getString(R.string.error)
         }
     }
 
@@ -170,9 +171,7 @@ class AmvTrimmingPlayerView @JvmOverloads constructor(
     var source:File? = null
         set(v) {
             field = v
-            GlobalScope.launch(Dispatchers.Main) {
-                controls.player.setSource(AmvFileSource(v), false, 0)
-            }
+            controls.player.setSource(AmvFileSource(v), false, 0)
         }
 
     /**

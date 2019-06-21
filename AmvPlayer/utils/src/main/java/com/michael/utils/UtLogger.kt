@@ -63,7 +63,7 @@ class UtLogger(private val tag:String) {
     var externalLogger:ILogger? = null
 
     private fun printToSystemOut(tag: String, s: String): Int {
-        System.out.println("$tag:$s")
+        println("$tag:$s")
         Log.DEBUG
         return 0
     }

@@ -10,7 +10,8 @@ package com.michael.video
 import android.util.Size
 import com.michael.utils.Funcies2
 import com.michael.utils.Funcies3
-import java.io.File
+import kotlin.math.max
+import kotlin.math.min
 
 interface IAmvVideoPlayer {
 
@@ -28,9 +29,9 @@ interface IAmvVideoPlayer {
 
         fun clipPos(pos:Long) : Long {
             return if(end>start) {
-                Math.min(Math.max(start, pos), end)
+                min(max(start, pos), end)
             } else {
-                Math.max(start, pos)
+                max(start, pos)
             }
         }
     }
@@ -54,9 +55,9 @@ interface IAmvVideoPlayer {
         fun remove(listener:IHandler) = this.remove(listener::videoPrepared)
     }
 
-    class PlayerStateChangedListener : Funcies2<IAmvVideoPlayer, IAmvVideoPlayer.PlayerState, Unit>() {
+    class PlayerStateChangedListener : Funcies2<IAmvVideoPlayer, PlayerState, Unit>() {
         interface IHandler {    // for Java
-            fun playerStateChanged(vp:IAmvVideoPlayer, state:IAmvVideoPlayer.PlayerState)
+            fun playerStateChanged(vp:IAmvVideoPlayer, state: PlayerState)
         }
         @JvmOverloads
         fun add(listener:IHandler, name:String?=null) = super.add(name, listener::playerStateChanged)
@@ -114,9 +115,10 @@ interface IAmvVideoPlayer {
     fun getLayoutHint() : IAmvLayoutHint
 
     val videoSize: Size
-    suspend fun reset()
 
-    suspend fun setSource(source: IAmvSource, autoPlay:Boolean=false, playFrom:Long=0)
+    fun reset()
+
+    fun setSource(source: IAmvSource, autoPlay:Boolean=false, playFrom:Long=0)
 
     val source:IAmvSource?
 

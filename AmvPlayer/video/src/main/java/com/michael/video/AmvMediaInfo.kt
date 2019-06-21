@@ -16,6 +16,7 @@ import org.m4m.android.AudioFormatAndroid
 import org.m4m.android.VideoFormatAndroid
 import java.io.File
 import java.lang.Exception
+import kotlin.math.min
 import kotlin.math.roundToInt
 
 @Suppress("MemberVisibilityCanBePrivate")
@@ -102,7 +103,7 @@ data class AmvMediaInfo(val mediaFileInfo: MediaFileInfo) {
 
         // オリジナルのビットレートより大きいビットレートにならないように。
         val orgBitrate = if (bitRate > 0) bitRate else cMaxBitRate   // avi (divx/xvid) のときに、prop.Bitrate==0になっていて、トランスコードに失敗することがあった。#5812:2
-        val maxBitrate = Math.min(orgBitrate, cMaxBitRate) // 最大4M bpsとする #5812
+        val maxBitrate = min(orgBitrate, cMaxBitRate) // 最大4M bpsとする #5812
         videoFormat.videoBitRateInKBytes = maxBitrate
 
         // フレームレートはソースに合わせる。
@@ -136,9 +137,9 @@ data class AmvMediaInfo(val mediaFileInfo: MediaFileInfo) {
         @JvmStatic
         fun calcHD720Size(width:Int, height:Int) : Size {
             var r = if (width > height) { // 横長
-                Math.min(1280f / width, 720f / height)
+                min(1280f / width, 720f / height)
             } else { // 縦長
-                Math.min(720f / width, 1280f / height)
+                min(720f / width, 1280f / height)
             }
             if (r > 1) { // 拡大はしない
                 r = 1f

@@ -24,8 +24,8 @@ interface IAmvSource : Parcelable {
     suspend fun getUriAsync() : Uri?
     suspend fun getFileAsync() : File?
 
-    suspend fun addRef()
-    suspend fun release()
+    fun addRef()
+    fun release()
 
     fun invalidate()    // キャッシュを無効化する
 }
@@ -56,11 +56,11 @@ class AmvFileSource(private val file:File?) : IAmvSource {
         return file
     }
 
-    override suspend fun addRef() {
+    override fun addRef() {
         // nothing to do
     }
 
-    override suspend fun release() {
+    override fun release() {
         // nothing to do
     }
 
@@ -69,8 +69,7 @@ class AmvFileSource(private val file:File?) : IAmvSource {
     }
 
     // region Parcelable
-    constructor(parcel: Parcel) : this(parcel.readSerializable() as? File) {
-    }
+    constructor(parcel: Parcel) : this(parcel.readSerializable() as? File)
 
     override fun writeToParcel(dest: Parcel?, flags: Int) {
         dest?.writeSerializable(file)

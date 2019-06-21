@@ -14,6 +14,7 @@ import android.view.View
 import android.widget.FrameLayout
 import android.widget.ImageView
 import android.widget.LinearLayout
+import kotlin.math.abs
 
 /**
  * タッチ操作を受け付けない横スクローラー
@@ -123,7 +124,7 @@ class AmvHorzScrollView @JvmOverloads constructor(
         get() = models.rightMask
         set(v) {
             models.rightMask = v
-            controls.rightTruncated.setLayoutWidth(Math.abs(models.totalRangePixel - models.rightMaskPixel))
+            controls.rightTruncated.setLayoutWidth(abs(models.totalRangePixel - models.rightMaskPixel))
             //updateRightMaskMargin()
             models.position = v
             updateScroll()
@@ -150,8 +151,8 @@ class AmvHorzScrollView @JvmOverloads constructor(
         return controls.container.getChildAt(index) as? ImageView
     }
 
-    val imageCount:Int
-        get() = controls.container.childCount
+//    val imageCount:Int
+//        get() = controls.container.childCount
 
     val contentWidth:Int
         get() = controls.container.getLayoutWidth()

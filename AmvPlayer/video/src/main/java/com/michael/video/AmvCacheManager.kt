@@ -23,9 +23,9 @@ import java.security.MessageDigest
 import java.util.*
 import kotlin.coroutines.resume
 import kotlin.coroutines.suspendCoroutine
+import kotlin.math.min
 
 object AmvCacheManager {
-    private val DEBUG = true
     private val MAX_CACHE_SIZE = if(BuildConfig.DEBUG) 20L * 1000 * 1000 else 1L * 1000*1000*1000   // 20MB(Debug) / 1GB(Release)
     private const val MAX_CACHE_COUNT = 200
 
@@ -172,13 +172,13 @@ object AmvCacheManager {
     data class DiskCapacity(val capacity:Long, val freeSpace:Long)
     private val diskCapacity :DiskCapacity
         @SuppressLint("UsableSpace")
-        get() = DiskCapacity(mCacheFolder.totalSpace, Math.min(mCacheFolder.freeSpace,mCacheFolder.usableSpace))
+        get() = DiskCapacity(mCacheFolder.totalSpace, min(mCacheFolder.freeSpace, mCacheFolder.usableSpace))
 
     private fun maxCacheSize(currentTotal:Long):Long {
         val capa = diskCapacity
         var maxCacheSize = MAX_CACHE_SIZE
-        maxCacheSize = Math.min(maxCacheSize, capa.capacity*5/100)
-        maxCacheSize = Math.min(maxCacheSize, (capa.freeSpace+currentTotal)/10)
+        maxCacheSize = min(maxCacheSize, capa.capacity*5/100)
+        maxCacheSize = min(maxCacheSize, (capa.freeSpace+currentTotal)/10)
         return maxCacheSize
     }
 

@@ -110,7 +110,7 @@ class AmvSlider @JvmOverloads constructor(
         }
 
     val trimmedRange : Long
-        get() = trimEndPosition - trimStartPosition;
+        get() = trimEndPosition - trimStartPosition
 
     /**
      * トリミングされているか？
@@ -125,7 +125,7 @@ class AmvSlider @JvmOverloads constructor(
     val isDragging : Boolean
         get() = mDraggingInfo.isDragging
 
-    var showThumbBg : Boolean = true
+    private var showThumbBg : Boolean = true
         set(v) {
             if(field != v) {
                 field = v
@@ -490,8 +490,8 @@ class AmvSlider @JvmOverloads constructor(
      * サイズ計算
      */
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
-        val widthMode = View.MeasureSpec.getMode(widthMeasureSpec)
-        val widthSize = View.MeasureSpec.getSize(widthMeasureSpec)
+        val widthMode = MeasureSpec.getMode(widthMeasureSpec)
+        val widthSize = MeasureSpec.getSize(widthMeasureSpec)
 
         val width = when(widthMode) {
             MeasureSpec.EXACTLY, MeasureSpec.AT_MOST -> widthSize
@@ -798,7 +798,7 @@ class AmvSlider @JvmOverloads constructor(
         }
     }
 
-    internal class SavedState : View.BaseSavedState {
+    internal class SavedState : BaseSavedState {
         var totalLength : Long = 0
         var currentPosition : Long = 0
         var trimStartPosition : Long = 0

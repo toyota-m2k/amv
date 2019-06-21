@@ -1,5 +1,6 @@
 package com.michael.utils
 
+@Suppress("unused")
 class UtSimpleAsyncTask<T>  : UtAsyncTask() {
     val onResult = FuncyListener1<T?, Unit>()
     val action = FuncyListener0<T?>()

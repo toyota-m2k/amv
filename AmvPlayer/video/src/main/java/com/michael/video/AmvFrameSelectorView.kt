@@ -20,7 +20,9 @@ import com.michael.video.viewmodel.AmvFrameListViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.io.File
+import kotlin.math.min
 
 
 class AmvFrameSelectorView @JvmOverloads constructor(
@@ -29,9 +31,7 @@ class AmvFrameSelectorView @JvmOverloads constructor(
 
     // region Public API's
     fun setSource(source: File?) {
-        GlobalScope.launch(Dispatchers.Main) {
-            controls.player?.setSource(AmvFileSource(source), false, 0)
-        }
+        controls.player?.setSource(AmvFileSource(source), false, 0)
     }
 
     fun dispose() {
@@ -70,7 +70,7 @@ class AmvFrameSelectorView @JvmOverloads constructor(
         const val LISTENER_NAME = "frameSelectorView"
     }
 
-    private var FRAME_HEIGHT = 160f
+    private var mFrameHeight = 160f
 
     // Control
     private inner class Controls {
@@ -113,7 +113,7 @@ class AmvFrameSelectorView @JvmOverloads constructor(
         LayoutInflater.from(context).inflate(R.layout.video_frame_selector, this)
         controls.slider.currentPositionChanged.set(this::onSliderChanged)
         controls.frameListView.touchFriendListener.set(controls.slider::onTouchAtFriend)
-        FRAME_HEIGHT = context.dp2px(FRAME_HEIGHT_IN_DP)
+        mFrameHeight = context.dp2px(FRAME_HEIGHT_IN_DP)
 
         controls.player?.apply {
 
@@ -160,14 +160,16 @@ class AmvFrameSelectorView @JvmOverloads constructor(
      * ソースが切り替わったタイミングで、フレームサムネイルリストを作成する
      */
     private fun extractFrameOnSourceChanged(source: IAmvSource) {
-        GlobalScope.launch(Dispatchers.Main) {
-            models.duration = 0L  // ViewModelから読み込むとき、Durationがゼロかどうかで初回かどうか判断するので、ここでクリアする
-            val info = mFrameListViewModel.frameListInfo.value!!
+        GlobalScope.launch {
             val file = source.getFileAsync()
-            if(null!=file) {
-                if (!mFrameListViewModel.extractFrame(file, FRAME_COUNT, FitMode.Height, 0f, FRAME_HEIGHT)) {
-                    // 抽出条件が変更されていない場合はfalseを返してくるのでキャッシュから構築する
-                    updateFrameListByViewModel(info)
+            withContext(Dispatchers.Main) {
+                models.duration = 0L  // ViewModelから読み込むとき、Durationがゼロかどうかで初回かどうか判断するので、ここでクリアする
+                val info = mFrameListViewModel.frameListInfo.value!!
+                if (null != file) {
+                    if (!mFrameListViewModel.extractFrame(file, FRAME_COUNT, FitMode.Height, 0f, mFrameHeight)) {
+                        // 抽出条件が変更されていない場合はfalseを返してくるのでキャッシュから構築する
+                        updateFrameListByViewModel(info)
+                    }
                 }
             }
         }
@@ -249,7 +251,7 @@ class AmvFrameSelectorView @JvmOverloads constructor(
     private fun adjustSliderPosition() {
         val width = measuredWidth
         val max = controls.frameListView.contentWidth +controls.frameListView.leftExtentWidth + controls.frameListView.rightExtentWidth
-        controls.sliderGroup.setLayoutWidth(Math.min(width, max))
+        controls.sliderGroup.setLayoutWidth(min(width, max))
     }
 
     // endregion
@@ -326,7 +328,7 @@ class AmvFrameSelectorView @JvmOverloads constructor(
     /**
      * onSaveInstanceState用
      */
-    internal class SavedState : View.BaseSavedState {
+    internal class SavedState : BaseSavedState {
         val data : SavedData?
 
         /**

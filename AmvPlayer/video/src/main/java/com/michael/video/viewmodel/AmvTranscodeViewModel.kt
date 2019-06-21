@@ -111,7 +111,7 @@ class AmvTranscodeViewModel : ViewModel() {
 
     companion object {
         @Suppress("MemberVisibilityCanBePrivate")
-        fun registerTo(activity: androidx.fragment.app.FragmentActivity, onProgress: (Float) -> Unit, onCompleted:(Boolean, AmvError?)->Unit): AmvTranscodeViewModel {
+        fun registerTo(activity:FragmentActivity, onProgress: (Float) -> Unit, onCompleted:(Boolean, AmvError?)->Unit): AmvTranscodeViewModel {
             return ViewModelProviders.of(activity).get(AmvTranscodeViewModel::class.java).apply {
                 progress.observe(activity, Observer<Float> { p->
                     if(null!=p) {
@@ -132,7 +132,7 @@ class AmvTranscodeViewModel : ViewModel() {
          * ビューをオブザーバーとして登録する
          */
         fun registerTo(view: View, onProgress: (Float) -> Unit, onCompleted:(Boolean,AmvError?)->Unit): AmvTranscodeViewModel? {
-            val activity = view.getActivity() as? androidx.fragment.app.FragmentActivity
+            val activity = view.getActivity() as? FragmentActivity
             return if(null!=activity) {
                 registerTo(activity, onProgress, onCompleted)
             } else {

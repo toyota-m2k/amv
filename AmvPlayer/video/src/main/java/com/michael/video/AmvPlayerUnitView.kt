@@ -104,13 +104,13 @@ class AmvPlayerUnitView @JvmOverloads constructor(
         get() = bindings.player.playerState
 
     @Suppress("unused")
-    private suspend fun setClipAndSource(clip:IAmvVideoPlayer.Clipping?, source: IAmvSource, autoPlay:Boolean, playFrom:Long) {
+    private fun setClipAndSource(clip:IAmvVideoPlayer.Clipping?, source: IAmvSource, autoPlay:Boolean, playFrom:Long) {
         preparing = false
         bindings.player.setClip(clip)
         bindings.player.setSource(source, autoPlay,playFrom)
     }
 
-    suspend fun setSource(source:IAmvSource, autoPlay:Boolean, playFrom:Long, showFrames:Boolean) {
+    fun setSource(source:IAmvSource, autoPlay:Boolean, playFrom:Long, showFrames:Boolean) {
         preparing = false
         bindings.controller.showingFrames = showFrames
         bindings.player.setClip(null)
@@ -122,6 +122,7 @@ class AmvPlayerUnitView @JvmOverloads constructor(
 //        bindings.player.setSource(source, autoPlay,playFrom)
 //    }
 
+    @Suppress("unused")
     fun setError(message:String) {
         preparing = true
         bindings.message.text = message

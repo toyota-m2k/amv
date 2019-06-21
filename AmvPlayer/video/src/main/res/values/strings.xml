@@ -3,14 +3,15 @@
 
     <string name="back">Back</string>
     <string name="play">Play</string>
-    <string name="stop">Stop</string>
     <string name="pause">Pause</string>
+    <string name="stop">Stop</string>
     <string name="next">Next</string>
     <string name="add_marker">add marker</string>
     <string name="pinp">Picture in picture</string>
     <string name="fullscreen">Full screen</string>
     <string name="cancel">Cancel</string>
     <string name="play_stop">play or stop</string>
+    <string name="seekTop">Start</string>
     <string name="error">error.</string>
 
     <string name="title_activity_amv_fullscreen">Amv Video</string>

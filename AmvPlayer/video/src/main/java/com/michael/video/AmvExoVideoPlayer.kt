@@ -83,7 +83,7 @@ class AmvExoVideoPlayer @JvmOverloads constructor(
                 UtLogger.stackTrace(error, "ExoPlayer: error")
             }
             mSource?.invalidate()
-            mBindings.errorMessage = /*error?.message ?:*/ AmvStringPool.getString(R.string.error) ?: context.getString(R.string.error)
+            mBindings.errorMessage = /*error?.message ?:*/ AmvStringPool[R.string.error] ?: context.getString(R.string.error)
             mBindings.playerState = IAmvVideoPlayer.PlayerState.Error
         }
 
@@ -190,10 +190,8 @@ class AmvExoVideoPlayer @JvmOverloads constructor(
         sizeChangedListener.clear()
         clipChangedListener.clear()
 
-        CoroutineScope(Dispatchers.Default).launch {
-            mSource?.release()
-            mSource = null
-        }
+        mSource?.release()
+        mSource = null
 
         super.onDetachedFromWindow()
     }
@@ -244,7 +242,7 @@ class AmvExoVideoPlayer @JvmOverloads constructor(
                     updateState()
                 }
             }
-        val videoSize:Size
+        val videoSize: Size
             get() = mVideoSize.asSize
 
         fun setVideoSize(width: Float, height: Float) {
@@ -434,7 +432,7 @@ class AmvExoVideoPlayer @JvmOverloads constructor(
         return mBindings
     }
 
-    override suspend fun reset() {
+    override fun reset() {
         mMediaSource = null
         mSource?.release()
         mSource = null
@@ -442,7 +440,6 @@ class AmvExoVideoPlayer @JvmOverloads constructor(
         mBindings.reset()
         mPlayer.stop()
     }
-
 
     override fun setClip(clipping:IAmvVideoPlayer.Clipping?) {
         if(mClipping == clipping) {
@@ -475,28 +472,31 @@ class AmvExoVideoPlayer @JvmOverloads constructor(
 //    }
 
 
-    override suspend fun setSource(source: IAmvSource, autoPlay: Boolean, playFrom: Long) {
+    override fun setSource(source: IAmvSource, autoPlay: Boolean, playFrom: Long) {
         reset()
         mBindings.progressRing.visibility = View.VISIBLE
+
 
         source.addRef()
         mSource = source
 
-        val uri = source.getUriAsync()
-        withContext(Dispatchers.Main) {
-            if (uri == null) {
-                mBindings.errorMessage = source.error.toString()
-            } else {
-                sourceChangedListener.invoke(this@AmvExoVideoPlayer, source)
-                val mediaSource = ExtractorMediaSource.Factory(        // ExtractorMediaSource ... non-adaptiveなほとんどのファイルに対応
-                        DefaultDataSourceFactory(context, "amv")    //
-                ).createMediaSource(uri)
-                mMediaSource = mediaSource
-                mPlayer.prepare(createClippingSource(mediaSource), true, true)
-                if (null != mClipping || playFrom > 0) {
-                    playerSeek(playFrom)
+        CoroutineScope(Dispatchers.Default).launch {
+            val uri = source.getUriAsync()
+            withContext(Dispatchers.Main) {
+                if (uri == null) {
+                    mBindings.errorMessage = source.error.toString()
+                } else {
+                    sourceChangedListener.invoke(this@AmvExoVideoPlayer, source)
+                    val mediaSource = ExtractorMediaSource.Factory(        // ExtractorMediaSource ... non-adaptiveなほとんどのファイルに対応
+                            DefaultDataSourceFactory(context, "amv")    //
+                    ).createMediaSource(uri)
+                    mMediaSource = mediaSource
+                    mPlayer.prepare(createClippingSource(mediaSource), true, true)
+                    if (null != mClipping || playFrom > 0) {
+                        playerSeek(playFrom)
+                    }
+                    mPlayer.playWhenReady = autoPlay
                 }
-                mPlayer.playWhenReady = autoPlay
             }
         }
     }

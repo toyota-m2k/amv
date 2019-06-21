@@ -19,6 +19,7 @@ import kotlinx.coroutines.launch
 import java.io.File
 import java.lang.IllegalArgumentException
 import java.util.*
+import kotlin.math.min
 
 /**
  * Usage
@@ -89,7 +90,7 @@ class AmvFrameExtractor : UtAsyncTask() {
     val thumbnailSize : Size
         get() = mThumbnailSize.asSize
     private val targetFramePosition : Long
-        get() = if(mTargetFramePosition<0) Math.min(2000, duration / 100) else mTargetFramePosition
+        get() = if(mTargetFramePosition<0) min(2000, duration / 100) else mTargetFramePosition
     private val pausing = UtResetableEvent(initialSignaled = true, mAutoReset = false)
 
     // endregion
@@ -262,7 +263,7 @@ class AmvFrameExtractor : UtAsyncTask() {
      * @param path  動画ファイルのパス
      * @return MediaMetadataRetrieverのインスタンス (extractOneの引数として使う）
      */
-    fun prepareAnalyzer(path:String) : MediaMetadataRetriever? {
+    private fun prepareAnalyzer(path:String) : MediaMetadataRetriever? {
         val analyzer = MediaMetadataRetriever()
         return try {
             // ソースをセット
@@ -302,17 +303,17 @@ class AmvFrameExtractor : UtAsyncTask() {
      * 単純にサムネイルを１つ取得する
      * Coroutineブロックなどから呼び出されることを想定。
      *
-     * @param analizer 必ずprepareAnalyzer()メソッドで取得したMediaMetadataRetrieverインスタンスを渡す。
+     * @param analyzer 必ずprepareAnalyzer()メソッドで取得したMediaMetadataRetrieverインスタンスを渡す。
      * @param position サムネイルを取得するシーク位置(-1なら自動的に先頭付近のサムネイルをいい感じに取得）
      * @return 生成したビットマップ （null:失敗）
      */
-    fun extractOne (analyzer:MediaMetadataRetriever, position:Long=-1) : Bitmap? {
-        try {
+    private fun extractOne (analyzer:MediaMetadataRetriever, position:Long=-1) : Bitmap? {
+        return try {
             // 主サムネイルを取得するモード
-            return analyzer.getBitmapAt(if(position<0) Math.min(2000, duration / 100) else position)
+            analyzer.getBitmapAt(if(position<0) min(2000, duration / 100) else position)
         } catch (e:Throwable) {
             UtLogger.stackTrace(e, "AmvFrameExtractor: error.")
-            return null
+            null
         } finally {
             UtLogger.debug("AmvFrameExtractor: analyzer releasing.")
             analyzer.release()

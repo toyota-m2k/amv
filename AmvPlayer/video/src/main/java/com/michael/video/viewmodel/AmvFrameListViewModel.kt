@@ -246,7 +246,7 @@ class AmvFrameListViewModel : ViewModel() {
                 fn(it)
             }
         }
-        val activity = view.getActivity() as androidx.fragment.app.FragmentActivity
+        val activity = view.getActivity() as FragmentActivity
         frameListInfo.observe(activity, observer)
         return observer
     }
@@ -262,7 +262,7 @@ class AmvFrameListViewModel : ViewModel() {
          * ビューをオブザーバーとして登録する
          */
         fun getInstance(view:View) : AmvFrameListViewModel {
-            val activity = view.getActivity() as androidx.fragment.app.FragmentActivity
+            val activity = view.getActivity() as FragmentActivity
             return ViewModelProviders.of(activity).get(AmvFrameListViewModel::class.java)
         }
 

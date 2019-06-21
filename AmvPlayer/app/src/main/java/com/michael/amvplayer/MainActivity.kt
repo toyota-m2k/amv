@@ -3,7 +3,6 @@ package com.michael.amvplayer
 import android.Manifest
 import androidx.lifecycle.Observer
 import androidx.lifecycle.ViewModelProviders
-import android.content.DialogInterface
 import android.content.Intent
 import androidx.databinding.DataBindingUtil
 import android.net.Uri
@@ -22,15 +21,7 @@ import com.michael.amvplayer.dialog.UxDialogViewModel
 import com.michael.amvplayer.dialog.UxDlgState
 import com.michael.amvplayer.dialog.UxFileDialog
 import com.michael.utils.UtLogger
-import com.michael.video.AmvCacheManager
-import com.michael.video.AmvFileSource
-import com.michael.video.AmvSettings
-import com.michael.video.IAmvCache
-import com.michael.video.IAmvLayoutHint
-import com.michael.video.IAmvVideoPlayer
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
+import com.michael.video.*
 
 import java.io.File
 
@@ -48,15 +39,23 @@ import permissions.dispatcher.RuntimePermissions
 @RuntimePermissions
 class MainActivity : AppCompatActivity() {
 
-    internal var mBinding: MainActivityBinding? = null
+    private var mBinding: MainActivityBinding? = null
+    private var mHandler = Handler()
 
-    internal var mSourceUris = arrayOf(Uri.parse("https://video.twimg.com/ext_tw_video/1004721016608878592/pu/vid/640x360/WBhjCNo0V9kb2uR6.mp4"), Uri.parse("https://video.twimg.com/ext_tw_video/1003088826422603776/pu/vid/1280x720/u7R7uUhgWjPalQ0F.mp4"), Uri.parse("https://video.twimg.com/ext_tw_video/1020152626912956416/pu/vid/480x360/NjLXg8H4EHFeJ3fg.mp4"), Uri.parse("https://video.twimg.com/ext_tw_video/1020468235710283776/pu/vid/1280x720/hyxYIb70iGZCCo5F.mp4"), Uri.parse("https://video.twimg.com/ext_tw_video/1018568592378531840/pu/vid/512x640/hdHOlx2t9bBVi6GM.mp4"),
+    private val mSourceUris = arrayOf(
+            Uri.parse("https://video.twimg.com/ext_tw_video/1004721016608878592/pu/vid/640x360/WBhjCNo0V9kb2uR6.mp4"),
+            Uri.parse("https://video.twimg.com/ext_tw_video/1003088826422603776/pu/vid/1280x720/u7R7uUhgWjPalQ0F.mp4"),
+            Uri.parse("https://video.twimg.com/ext_tw_video/1020152626912956416/pu/vid/480x360/NjLXg8H4EHFeJ3fg.mp4"),
+            Uri.parse("https://video.twimg.com/ext_tw_video/1020468235710283776/pu/vid/1280x720/hyxYIb70iGZCCo5F.mp4"),
+            Uri.parse("https://video.twimg.com/ext_tw_video/1018568592378531840/pu/vid/512x640/hdHOlx2t9bBVi6GM.mp4"),
+            Uri.parse("https://video.twimg.com/ext_tw_video/1018568592378531840/pu/vid/512x640/hdHOlx2t9bBVi6GM.mp4"),
+            Uri.parse("https://video.twimg.com/ext_tw_video/1019794132678524928/pu/vid/480x480/1LF9gNupANoBL607.mp4"),
+            Uri.parse("https://video.twimg.com/ext_tw_video/1019167439815208960/pu/vid/1268x720/Lvom3aNMLPqc3qxr.mp4"),
+            Uri.parse("https://video.twimg.com/ext_tw_video/1018861232269324288/pu/vid/326x180/uCrA6o30QXO3vnMJ.mp4"),
+            Uri.parse("https://video.twimg.com/ext_tw_video/1017036555649626112/pu/vid/720x720/2j7OkY23AF-nO7Ig.mp4"))
 
-            Uri.parse("https://video.twimg.com/ext_tw_video/1018568592378531840/pu/vid/512x640/hdHOlx2t9bBVi6GM.mp4"), Uri.parse("https://video.twimg.com/ext_tw_video/1019794132678524928/pu/vid/480x480/1LF9gNupANoBL607.mp4"), Uri.parse("https://video.twimg.com/ext_tw_video/1019167439815208960/pu/vid/1268x720/Lvom3aNMLPqc3qxr.mp4"), Uri.parse("https://video.twimg.com/ext_tw_video/1018861232269324288/pu/vid/326x180/uCrA6o30QXO3vnMJ.mp4"), Uri.parse("https://video.twimg.com/ext_tw_video/1017036555649626112/pu/vid/720x720/2j7OkY23AF-nO7Ig.mp4"))
+//    private var mHandler = Handler()
 
-    internal var mHandler = Handler()
-
-    private val keyCurrentFile = "currentFile"
 
     //    public void onClickPlay(View view) {
     //        mBinding.videoPlayer.play();
@@ -80,7 +79,7 @@ class MainActivity : AppCompatActivity() {
         val viewModel = ViewModelProviders.of(this).get(UxDialogViewModel::class.java)
 
         // Cache Manager
-        AmvSettings.initialize(cacheDir, 705)
+        AmvSettings.initialize(cacheDir, 705, true)
 
         //        AmvCacheManager.initialize(new File("/storage/emulated/0/Movies", ".video"), 5);
 
@@ -111,14 +110,20 @@ class MainActivity : AppCompatActivity() {
 
     override fun onRestoreInstanceState(savedInstanceState: Bundle) {
         UtLogger.debug("LC-Activity: onRestoreInstanceState ... legacy style")
-        mCurrentFile = savedInstanceState.getSerializable(keyCurrentFile) as File
+        val file = savedInstanceState.getSerializable(KEY_CURRENT_FILE) as? File
+        if(file!=null) {
+            mCurrentFile = file
+            val pos = savedInstanceState.getLong(KEY_SEEK_POSITION)
+            val play = savedInstanceState.getBoolean(KEY_IS_PLAYING)
+            mBinding!!.playerUnitView.setSource(AmvFileSource(file), play, pos, true)
+        }
         super.onRestoreInstanceState(savedInstanceState)
     }
 
-    override fun onRestoreInstanceState(savedInstanceState: Bundle, persistentState: PersistableBundle) {
-        UtLogger.debug("LC-Activity: onRestoreInstanceState with PersistableBundle")
-        super.onRestoreInstanceState(savedInstanceState, persistentState)
-    }
+//    override fun onRestoreInstanceState(savedInstanceState: Bundle, persistentState: PersistableBundle) {
+//        UtLogger.debug("LC-Activity: onRestoreInstanceState with PersistableBundle")
+//        super.onRestoreInstanceState(savedInstanceState, persistentState)
+//    }
 
 
     override fun onResume() {
@@ -136,7 +141,7 @@ class MainActivity : AppCompatActivity() {
 
     override fun onStop() {
         UtLogger.debug("LC-Activity: onStop")
-        mBinding!!.playerUnitView.videoPlayer.pause()
+//        mBinding!!.playerUnitView.videoPlayer.pause()
         super.onStop()
     }
 
@@ -148,14 +153,16 @@ class MainActivity : AppCompatActivity() {
 
     override fun onSaveInstanceState(outState: Bundle) {
         UtLogger.debug("LC-Activity: onSaveInstanceState ... legacy style")
-        outState.putSerializable(keyCurrentFile, mCurrentFile)
+        outState.putSerializable(KEY_CURRENT_FILE, mCurrentFile)
+        outState.putBoolean(KEY_IS_PLAYING, mBinding?.playerUnitView?.playerState==IAmvVideoPlayer.PlayerState.Playing)
+        outState.putLong(KEY_SEEK_POSITION, mBinding?.playerUnitView?.videoPlayer?.seekPosition?:0)
         super.onSaveInstanceState(outState)
     }
 
-    override fun onSaveInstanceState(outState: Bundle, outPersistentState: PersistableBundle) {
-        UtLogger.debug("LC-Activity: onSaveInstanceState ... with PersistableBundle")
-        super.onSaveInstanceState(outState, outPersistentState)
-    }
+//    override fun onSaveInstanceState(outState: Bundle, outPersistentState: PersistableBundle) {
+//        UtLogger.debug("LC-Activity: onSaveInstanceState ... with PersistableBundle")
+//        super.onSaveInstanceState(outState, outPersistentState)
+//    }
 
     // ----
 
@@ -200,7 +207,7 @@ class MainActivity : AppCompatActivity() {
                 if (null != file) {
                     UtLogger.debug("file retrieved")
                     mCurrentFile = file
-                    CoroutineScope(Dispatchers.Main).launch {
+                    mHandler.post {
                         mBinding!!.playerUnitView.setSource(AmvFileSource(file), false, 0, true)
                     }
                 } else {
@@ -241,9 +248,7 @@ class MainActivity : AppCompatActivity() {
                     val file = result.file
                     if (null != file) {
                         mCurrentFile = file
-                        CoroutineScope(Dispatchers.Main).launch {
-                            mBinding!!.playerUnitView.setSource(AmvFileSource(file), false, 0, true)
-                        }
+                        mBinding!!.playerUnitView.setSource(AmvFileSource(file), false, 0, true)
                     }
                     //                    mBinding.videoPlayer.play();
                 }
@@ -315,5 +320,9 @@ class MainActivity : AppCompatActivity() {
                 }
                 return file
             }
+
+        private const val KEY_CURRENT_FILE = "currentFile"
+        private const val KEY_IS_PLAYING = "isPlaying"
+        private const val KEY_SEEK_POSITION = "seekPosition"
     }
 }

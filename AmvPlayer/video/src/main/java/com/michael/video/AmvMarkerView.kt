@@ -21,9 +21,7 @@ import com.michael.utils.FuncyListener2
 import com.michael.utils.FuncyListener3
 import com.michael.utils.SortedList
 import com.michael.utils.UtLogger
-import kotlin.math.absoluteValue
-import kotlin.math.roundToInt
-import kotlin.math.roundToLong
+import kotlin.math.*
 
 class AmvMarkerView @JvmOverloads constructor(
         context: Context, attrs: AttributeSet? = null, defStyleAttr: Int = 0
@@ -92,8 +90,8 @@ class AmvMarkerView @JvmOverloads constructor(
      * サイズ計算
      */
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
-        val widthMode = View.MeasureSpec.getMode(widthMeasureSpec)
-        val widthSize = View.MeasureSpec.getSize(widthMeasureSpec)
+        val widthMode = MeasureSpec.getMode(widthMeasureSpec)
+        val widthSize = MeasureSpec.getSize(widthMeasureSpec)
 
         val width = when(widthMode) {
             MeasureSpec.EXACTLY, MeasureSpec.AT_MOST -> widthSize
@@ -101,12 +99,12 @@ class AmvMarkerView @JvmOverloads constructor(
             else -> 200
         }
 
-        val heightMode = View.MeasureSpec.getMode(heightMeasureSpec)
-        val heightSize = View.MeasureSpec.getSize(heightMeasureSpec)
+        val heightMode = MeasureSpec.getMode(heightMeasureSpec)
+        val heightSize = MeasureSpec.getSize(heightMeasureSpec)
 
         val height = when(heightMode) {
             MeasureSpec.EXACTLY -> heightSize
-            MeasureSpec.AT_MOST-> Math.min(mNaturalHeight, heightSize)
+            MeasureSpec.AT_MOST-> min(mNaturalHeight, heightSize)
             MeasureSpec.UNSPECIFIED->mNaturalHeight
             else -> mNaturalHeight
         }
@@ -128,7 +126,7 @@ class AmvMarkerView @JvmOverloads constructor(
         val r = l + mMarkerWidth + mMarkerHitLuckyZone*2
 //        UtLogger.debug("AmvMarkerView:hitTest: x=${xPos} (${l.roundToInt()} ... ${r.roundToInt()}) : marker=${marker}")
         if(xPos in l..r) {
-            return Math.max(xPos-l, r-xPos)
+            return max(xPos-l, r-xPos)
         }
         return -1f
     }
@@ -285,7 +283,7 @@ class AmvMarkerView @JvmOverloads constructor(
     }
 
 
-    inner class TouchManager : View.OnTouchListener, View.OnLongClickListener, View.OnClickListener {
+    inner class TouchManager : OnTouchListener, OnLongClickListener, OnClickListener {
         private var xOrg = -1f
         private var yOrg = -1f
         private var x = -1f
@@ -359,7 +357,7 @@ class AmvMarkerView @JvmOverloads constructor(
         }
     }
 
-    internal class SavedState : View.BaseSavedState {
+    internal class SavedState : BaseSavedState {
         val markersList : ArrayList<Long>
 
         /**

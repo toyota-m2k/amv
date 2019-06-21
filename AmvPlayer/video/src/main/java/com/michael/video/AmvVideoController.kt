@@ -24,6 +24,8 @@ import com.michael.video.viewmodel.AmvFrameListViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import kotlin.math.max
 import kotlin.math.roundToLong
 
 
@@ -138,14 +140,36 @@ class AmvVideoController @JvmOverloads constructor(context: Context, attrs: Attr
         }
 
         /**
+         * PinP/FullScreen Player の表示状態に応じて、PinP/Fullボタンの有効/無効を切り替える
+         */
+        fun updatePinPButton(state:AmvFullscreenActivity.State = AmvFullscreenActivity.currentActivityState) {
+            val ready = models.isPlayerPrepared
+            when(state) {
+                AmvFullscreenActivity.State.FULL-> {
+                    pinpButton.enable(false)
+                    fullButton.enable(false)
+                }
+                AmvFullscreenActivity.State.PINP-> {
+                    pinpButton.enable(false)
+                    fullButton.enable(ready)
+                }
+                else -> {
+                    pinpButton.enable(ready)
+                    fullButton.enable(ready)
+                }
+            }
+        }
+
+        /**
          * isPlayerPrepared 属性が変化したときの更新処理
          */
         fun updatePlayerPrepared() {
             val ready = models.isPlayerPrepared
-            val buttons = arrayOf(actualPlayButton, backButton, forwardButton, pinpButton, fullButton)
+            val buttons = arrayOf(actualPlayButton, backButton, forwardButton)
             buttons.forEach {
                 it.enable(ready)
             }
+            updatePinPButton()
             // markButtonは別管理
             updateReadOnly()
         }
@@ -191,6 +215,10 @@ class AmvVideoController @JvmOverloads constructor(context: Context, attrs: Attr
             slider.isSaveFromParentEnabled = false         // スライダーの状態は、AmvVideoController側で復元する
             slider.currentPositionChanged.set(this@AmvVideoController::onCurrentPositionChanged)
 
+            if(!AmvSettings.allowPictureInPicture) {
+                pinpButton.visibility = View.GONE
+            }
+
             // buttons
             if(mMinimalMode) {
                 arrayOf(markerView, buttonsGroup, counterBar, showFramesButton).forEach {
@@ -234,7 +262,6 @@ class AmvVideoController @JvmOverloads constructor(context: Context, attrs: Attr
             root.setOnClickListener {
                 // コントローラーの隙間をタップしたときにプレーヤーが非アクティブになるのを回避するため、タップイベントを消費しておく。
             }
-
         }
     }
     private val controls = Controls()
@@ -270,8 +297,11 @@ class AmvVideoController @JvmOverloads constructor(context: Context, attrs: Attr
                 }
             }
 
+        private val buttonCount
+            get() = 6 + if(AmvSettings.allowPictureInPicture) 1 else 0
+
         val minControllerWidth: Int by lazy {
-            context.dp2px(40*6) // ボタンの幅ｘボタンの数
+            context.dp2px(40*buttonCount) // ボタンの幅ｘボタンの数
         }
 
         var isVideoInfoPrepared: Boolean = false
@@ -384,12 +414,16 @@ class AmvVideoController @JvmOverloads constructor(context: Context, attrs: Attr
         set(v) { models.showingFrames = v }
     val frameVisibilityChanged =  FuncyListener1<Boolean, Unit>()
 
+    private fun onFullScreenActivityStateChanged(state:AmvFullscreenActivity.State, @Suppress("UNUSED_PARAMETER") source:IAmvSource?) {
+        controls.updatePinPButton(state)
+    }
 
     private var mFrameListObserver: Observer<AmvFrameListViewModel.IFrameListInfo>? = null
     override fun onAttachedToWindow() {
         super.onAttachedToWindow()
         mFrameListObserver = mFrameListViewModel?.setObserver(this, ::updateFrameListByViewModel)
         AmvFullscreenActivity.onResultListener.add(null, this::onBackFromFullscreen)
+        AmvFullscreenActivity.stateListener.add(null, this::onFullScreenActivityStateChanged)
     }
 
     override fun onDetachedFromWindow() {
@@ -400,6 +434,7 @@ class AmvVideoController @JvmOverloads constructor(context: Context, attrs: Attr
         mFrameListObserver = null
         setSource(null)
         AmvFullscreenActivity.onResultListener.remove(this::onBackFromFullscreen)
+        AmvFullscreenActivity.stateListener.remove(this::onFullScreenActivityStateChanged)
     }
 
     /**
@@ -412,7 +447,9 @@ class AmvVideoController @JvmOverloads constructor(context: Context, attrs: Attr
         if(src == mPlayer.source) {
             val pos = intent.getLongExtra(AmvFullscreenActivity.KEY_POSITION, 0L)
             val playing = intent.getBooleanExtra(AmvFullscreenActivity.KEY_PLAYING, false)
-            mPlayer.seekTo(pos)
+            if(pos<models.duration) {
+                mPlayer.seekTo(pos)
+            }
             if(playing) {
                 mPlayer.play()
             }
@@ -425,15 +462,17 @@ class AmvVideoController @JvmOverloads constructor(context: Context, attrs: Attr
      */
     private fun extractFrameOnSourceChanged(source: IAmvSource) {
         setSource(source)
-        GlobalScope.launch(Dispatchers.Main) {
+        GlobalScope.launch {
             val file = source.getFileAsync()
-            if(null!=file) {
-                models.isVideoInfoPrepared = false
-                mFrameListViewModel?.let {viewModel ->
-                    viewModel.frameListInfo.value?.let {info->
-                        if(!mFrameListViewModel.extractFrame(file, FRAME_COUNT, FitMode.Height, 0f, mFrameHeight)) {
-                            // 抽出条件が変更されていない場合はfalseを返してくるのでキャッシュから構築する
-                            updateFrameListByViewModel(info)
+            withContext(Dispatchers.Main) {
+                if (null != file) {
+                    models.isVideoInfoPrepared = false
+                    mFrameListViewModel?.let { viewModel ->
+                        viewModel.frameListInfo.value?.let { info ->
+                            if (!mFrameListViewModel.extractFrame(file, FRAME_COUNT, FitMode.Height, 0f, mFrameHeight)) {
+                                // 抽出条件が変更されていない場合はfalseを返してくるのでキャッシュから構築する
+                                updateFrameListByViewModel(info)
+                            }
                         }
                     }
                 }
@@ -501,7 +540,7 @@ class AmvVideoController @JvmOverloads constructor(context: Context, attrs: Attr
             // 動画の画面サイズが変わったときのイベント
             sizeChangedListener.add(LISTENER_NAME) { _, width, _ ->
                 // layout_widthをBindingすると、どうしてもエラーになるので、直接変更
-                controls.root.setLayoutWidth(Math.max(width, models.minControllerWidth))
+                controls.root.setLayoutWidth(max(width, models.minControllerWidth))
             }
 
             // プレーヤー上のビデオの読み込みが完了したときのイベント
@@ -527,15 +566,13 @@ class AmvVideoController @JvmOverloads constructor(context: Context, attrs: Attr
     }
 
     private fun setSource(newSource:IAmvSource?) {
-        val source = synchronized(this) {
+        newSource?.addRef()
+        val oldSource = synchronized(this) {
             val old = mSource
             mSource = newSource
             old
         }
-        GlobalScope.launch {
-            source?.release()
-            newSource?.addRef()
-        }
+        oldSource?.release()
     }
 
     override fun dispose() {
@@ -652,7 +689,8 @@ class AmvVideoController @JvmOverloads constructor(context: Context, attrs: Attr
         val activity = getActivity()
         val source = mPlayer.source
         if(null!=activity && null!=source) {
-            val position = mPlayer.seekPosition
+            val seekPos = mPlayer.seekPosition
+            val position = if(seekPos<models.duration) seekPos else 0L
             val clipping = mPlayer.clip
             val intent = Intent(activity, AmvFullscreenActivity::class.java)
             intent.putExtra(AmvFullscreenActivity.KEY_SOURCE, source)

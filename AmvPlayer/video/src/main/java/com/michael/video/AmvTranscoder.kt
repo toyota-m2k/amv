@@ -17,10 +17,8 @@ import org.m4m.MediaComposer
 import org.m4m.android.AndroidMediaObjectFactory
 import org.m4m.domain.Pair
 import java.io.File
-import java.lang.Exception
 import java.lang.ref.WeakReference
 import java.nio.ByteBuffer
-import kotlin.math.roundToInt
 
 private const val FRAME_REFRESH_PERCENT = 5     // 5%毎にフレーム表示を更新
 
@@ -200,7 +198,7 @@ class AmvTranscoder(val source:File, context:Context) : SurfaceHolder.Callback{
         UtLogger.debug(mediaInfo.summary)
     }
 
-    private val mContext = WeakReference<Context>(context)              // MediaComposerやInternalSurfaceViewを生成するために必要（Weakで持っておこう）
+    private val mContext = WeakReference(context)              // MediaComposerやInternalSurfaceViewを生成するために必要（Weakで持っておこう）
     private var mMediaComposer: MediaComposer? = null                   // コンポーザー
 //    private var mInternalSurfaceView: AmvWorkingSurfaceView? = null     // surfaceViewが与えられなかったときに、自力で代用品を用意できるようにしておく。
     private var mTrimmingRange :TrimmingRange? = null                   // トリミング用の範囲を保持する（フレーム描画のため）
@@ -258,10 +256,11 @@ class AmvTranscoder(val source:File, context:Context) : SurfaceHolder.Callback{
         override fun onError(exception: Exception?) {
             if(exception!=null) {
                 error.setError(exception)
+                UtLogger.stackTrace(exception, "AmvTranscoder: error\n")
             } else {
                 error.setError("transcode/trimming error.")
+                UtLogger.error("AmvTranscoder: error\n${error.message}")
             }
-            UtLogger.debug("AmvTranscoder: error\n${error.message}")
             completionListener.invoke(this@AmvTranscoder, false)
             dispose()
         }

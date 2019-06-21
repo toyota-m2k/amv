@@ -11,7 +11,7 @@ class UtAsyncProc<T>(val handler: Handler? = null, val executor: Executor? = nul
     private var action: (() -> T)? = null
     private var completed: ((T) -> Unit)? = null
     private var failed: ((Throwable) -> Unit)? = null
-    private var lock =  java.lang.Object()
+    private var lock =  Object()
     private var thread: Thread? = null
     private var cancelling: Boolean = false
 
