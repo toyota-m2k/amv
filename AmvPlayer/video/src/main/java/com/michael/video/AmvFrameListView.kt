@@ -17,6 +17,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.FrameLayout
 import android.widget.ImageView
+import androidx.core.content.ContextCompat
 import com.michael.utils.FuncyListener1
 import com.michael.utils.FuncyListener2
 import kotlin.math.roundToInt
@@ -34,10 +35,10 @@ class AmvFrameListView @JvmOverloads constructor(
 
     private inner class Controls {
         val scroller: AmvHorzScrollView by lazy {
-            findViewById<AmvHorzScrollView>(R.id.flv_scroller)
+            findViewById(R.id.flv_scroller)
         }
         val knob: View by lazy {
-            findViewById<View>(R.id.flv_knob)
+            findViewById(R.id.flv_knob)
         }
     }
 
@@ -56,14 +57,14 @@ class AmvFrameListView @JvmOverloads constructor(
         }
 
         if(controls.scroller.trimmingEnabled) {
-            controls.knob.background = context.getDrawable(R.drawable.ic_slider_trim_guide)
+            controls.knob.background = ContextCompat.getDrawable(context, R.drawable.ic_slider_trim_guide)
             controls.knob.visibility = View.GONE
         }
     }
 
     // endregion
 
-    // region Public API's
+    // region Public APIs
 
     /**
      * お友達（AmvSlider）にタッチイベントを伝えるためのリスナー

@@ -50,6 +50,9 @@ import kotlin.math.min
  * extractor.getThumbnail(source, framePosition)     // framePosition: フレーム位置(ms)
  */
 class AmvFrameExtractor : UtAsyncTask() {
+    companion object {
+        val logger = AmvSettings.logger
+    }
 
     // region Public APIs
 
@@ -191,7 +194,7 @@ class AmvFrameExtractor : UtAsyncTask() {
             mFitter.fit(videoSize, mThumbnailSize)  // onVideoInfoRetrievedListenerで fitterの設定が変更される可能性があるので、もう一度実行。
 
             // キャンセルチェック
-            if (isCancelled) {
+            if (cancelled) {
                 return
             }
 
@@ -204,9 +207,9 @@ class AmvFrameExtractor : UtAsyncTask() {
                 val step = duration / mThumbnailCount
                 var tm = step / 2
                 for (idx in 0.until(mThumbnailCount)) {
-                    UtLogger.debug("AmvFrameExtractor: processing ${idx + 1} - frame.")
-                    assert(tm < duration)
-                    if (isCancelled) {
+                    logger.debug("processing ${idx + 1} - frame.")
+                    logger.assert(tm < duration)
+                    if (cancelled) {
                         return
                     }
                     val bmp = analyzer.getBitmapAt(tm)
@@ -216,11 +219,11 @@ class AmvFrameExtractor : UtAsyncTask() {
                 }
             }
         } catch (e:Throwable) {
-            UtLogger.stackTrace(e, "AmvFrameExtractor: error.")
+            logger.stackTrace(e, "thumbnail error.")
             // エラーをスローしておけば親クラスで適切にに処理する
             throw e
         } finally {
-            UtLogger.debug("AmvFrameExtractor: analyzer releasing.")
+            logger.debug("analyzer releasing.")
             analyzer.release()
         }
     }
@@ -279,6 +282,7 @@ class AmvFrameExtractor : UtAsyncTask() {
                 videoSize.rotate()
             }
             mFitter.fit(videoSize, mThumbnailSize)
+            logger.info("duration=${duration}, size=${videoSize}, thumbnailSize=${mThumbnailSize}")
             analyzer
         } catch(e:Throwable) {
             analyzer.release()
@@ -312,10 +316,10 @@ class AmvFrameExtractor : UtAsyncTask() {
             // 主サムネイルを取得するモード
             analyzer.getBitmapAt(if(position<0) min(2000, duration / 100) else position)
         } catch (e:Throwable) {
-            UtLogger.stackTrace(e, "AmvFrameExtractor: error.")
+            logger.stackTrace(e, "getBitmapAt(): error.")
             null
         } finally {
-            UtLogger.debug("AmvFrameExtractor: analyzer releasing.")
+            logger.debug("analyzer releasing.")
             analyzer.release()
         }
     }

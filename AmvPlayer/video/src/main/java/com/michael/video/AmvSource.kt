@@ -91,6 +91,68 @@ class AmvFileSource(private val file:File?) : IAmvSource {
     // endregion
 }
 
+
+class AmvPickedUriSource(val uri:Uri) : IAmvSource {
+
+    override val error = AmvError()
+
+    override fun equals(other: Any?): Boolean {
+        if(super.equals(other)) {
+            return true
+        }
+        if(other is AmvPickedUriSource && other.uri==uri) {
+            return true
+        }
+        return false
+    }
+
+    override fun hashCode(): Int {
+        return uri.hashCode()
+    }
+
+    override suspend fun getUriAsync(): Uri? {
+        return uri
+    }
+
+    override suspend fun getFileAsync(): File? {
+        error("not implemented")
+        //return file
+    }
+
+    override fun addRef() {
+        // nothing to do
+    }
+
+    override fun release() {
+        // nothing to do
+    }
+
+    override fun invalidate() {
+        // nothing to do
+    }
+
+    // region Parcelable
+    constructor(parcel: Parcel) : this(parcel.readParcelable<Uri>(Uri::class.java.classLoader)!!)
+
+    override fun writeToParcel(dest: Parcel?, flags: Int) {
+        dest?.writeParcelable(uri,0)
+    }
+
+    override fun describeContents(): Int {
+        return 0
+    }
+
+    companion object CREATOR : Parcelable.Creator<AmvPickedUriSource> {
+        override fun createFromParcel(parcel: Parcel): AmvPickedUriSource {
+            return AmvPickedUriSource(parcel)
+        }
+
+        override fun newArray(size: Int): Array<AmvPickedUriSource?> {
+            return arrayOfNulls(size)
+        }
+    }
+}
+
 //@Suppress("unused")
 //class AmvSource {
 //    val key: String?

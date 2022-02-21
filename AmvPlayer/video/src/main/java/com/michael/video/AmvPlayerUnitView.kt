@@ -26,19 +26,19 @@ class AmvPlayerUnitView @JvmOverloads constructor(
 
     inner class Bindings {
         val player: AmvExoVideoPlayer by lazy {
-            findViewById<AmvExoVideoPlayer>(R.id.evp_videoPlayer)
+            findViewById(R.id.evp_videoPlayer)
         }
         val controller: AmvVideoController by lazy {
-            findViewById<AmvVideoController>(R.id.evp_videoController)
+            findViewById(R.id.evp_videoController)
         }
         val altLayer: LinearLayout by lazy {
-            findViewById<LinearLayout>(R.id.evp_altLayer)
+            findViewById(R.id.evp_altLayer)
         }
         val message: TextView by lazy {
-            findViewById<TextView>(R.id.evp_message)
+            findViewById(R.id.evp_message)
         }
         val progress: ProgressBar by lazy {
-            findViewById<ProgressBar>(R.id.evp_progress)
+            findViewById(R.id.evp_progress)
         }
         fun init() {
             controller.setVideoPlayer(player)

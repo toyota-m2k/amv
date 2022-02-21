@@ -1,6 +1,5 @@
 package com.michael.video
 
-import com.michael.utils.UtLogger
 import okhttp3.*
 import java.io.File
 import java.io.FileOutputStream
@@ -39,6 +38,7 @@ class AmvDLTempFile(val uri:String, val onPrepared:(AmvDLTempFile, File?)->Unit)
         get() = Status(mDownloading, mFile)
 
     private companion object {
+        val logger = AmvSettings.logger
         private const val READ_TIMEOUT = 60L
         private const val WRITE_TIMEOUT = 60L
         private const val CONNECTION_TIMEOUT = 30L
@@ -65,22 +65,22 @@ class AmvDLTempFile(val uri:String, val onPrepared:(AmvDLTempFile, File?)->Unit)
                     .build()
 
             httpClient.newCall(request).enqueue(object : Callback {
-                override fun onResponse(call: Call?, response: Response?) {
+                override fun onResponse(call: Call, response: Response) {
                     var file: File? = null
                     try {
                         error.reset()
 
-                        file = response?.use {
-                            it.body()?.use { body->
+                        file = response.use {
+                            it.body?.use { body->
                                 body.byteStream().use { inStream->
                                     if (mDisposed) {
                                         null
                                     } else {
-                                        File.createTempFile("a_dl_", ".tmp", AmvSettings.workDirectory)?.apply {
+                                        File.createTempFile("a_dl_", ".tmp", AmvSettings.workDirectory).apply {
                                             FileOutputStream(this, false).use { outStream ->
                                                 inStream.copyTo(outStream, 128 * 1024) // buffer size 128KB
                                             }
-                                            UtLogger.debug("AmvDLTempFile: ${this.name}: file created")
+                                            logger.debug("${this.name}: file created")
                                         }
                                     }
                                 }
@@ -109,7 +109,7 @@ class AmvDLTempFile(val uri:String, val onPrepared:(AmvDLTempFile, File?)->Unit)
                     onPrepared(this@AmvDLTempFile, file)
                 }
 
-                override fun onFailure(call: Call?, e: IOException?) {
+                override fun onFailure(call: Call, e: IOException) {
                     this@AmvDLTempFile.onFailure(e)
                 }
             })
@@ -121,10 +121,10 @@ class AmvDLTempFile(val uri:String, val onPrepared:(AmvDLTempFile, File?)->Unit)
 
     private fun onFailure(e:Throwable?) {
         if(e!=null) {
-            UtLogger.stackTrace(e, "AmvDLTempFile: error")
+            logger.stackTrace(e)
             error.setError(e)
         } else {
-            UtLogger.error("AmvDLTemp: something wrong.")
+            logger.error("something wrong.")
             error.setError("generic error")
         }
 

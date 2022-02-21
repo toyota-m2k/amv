@@ -1,17 +1,16 @@
 package com.michael.video.viewmodel
 
-import androidx.lifecycle.MutableLiveData
-import androidx.lifecycle.Observer
-import androidx.lifecycle.ViewModel
-import androidx.lifecycle.ViewModelProviders
 import android.content.Context
 import android.os.Handler
+import android.os.Looper
 import androidx.fragment.app.FragmentActivity
 import android.view.View
-import com.michael.utils.UtLogger
+import androidx.lifecycle.*
 import com.michael.video.AmvError
-import com.michael.video.AmvTranscoder
+import com.michael.video.AmvSettings
 import com.michael.video.getActivity
+import com.mihcael.video.transcoder.AmvCascadeTranscoder
+import com.mihcael.video.transcoder.IAmvTranscoder
 import java.io.File
 
 class AmvTranscodeViewModel : ViewModel() {
@@ -22,7 +21,7 @@ class AmvTranscodeViewModel : ViewModel() {
     
     val status = MutableLiveData<Status>()
 
-    val handler = Handler()
+    val handler = Handler(Looper.getMainLooper())
 
     // endregion
 
@@ -41,7 +40,7 @@ class AmvTranscodeViewModel : ViewModel() {
     }
 
     private val mStatus = Status()
-    private var mTranscoder : AmvTranscoder? = null
+    private var mTranscoder : IAmvTranscoder? = null
 
     init {
         progress.value = 0f
@@ -49,20 +48,23 @@ class AmvTranscodeViewModel : ViewModel() {
     }
 
 
-    // region Publics
+    // region public's
 
 
-    val isBusy
-        get() = mTranscoder != null
+    val isBusy = MutableLiveData<Boolean>(false)
 
     fun cancel() {
+        if(mTranscoder==null) return
         mTranscoder?.cancel()
         mTranscoder?.dispose()
         mTranscoder = null
+        progress.value = 0f
+        mStatus.reset()
+        isBusy.value = false
     }
 
     fun transcode(input: File, output:File, context: Context):Boolean {
-        if(isBusy) {
+        if(mTranscoder!=null) {
             return false
         }
         createTranscoder(input,context)?.transcode(output) ?: return false
@@ -70,17 +72,18 @@ class AmvTranscodeViewModel : ViewModel() {
     }
 
     fun truncate(input: File, output:File, start:Long, end:Long, context:Context):Boolean {
-        if(isBusy) {
+        if(mTranscoder!=null) {
             return false
         }
         createTranscoder(input,context)?.truncate(output, start, end) ?: return false
         return true
     }
 
-    private fun createTranscoder(input:File, context:Context) : AmvTranscoder? {
+    private fun createTranscoder(input:File, context:Context) : IAmvTranscoder? {
         mStatus.reset()
         try {
-            mTranscoder = AmvTranscoder(input, context).apply {
+            isBusy.value = true
+            mTranscoder = AmvCascadeTranscoder(input, context).apply {
                 progressListener.set { _, p ->
                     handler.post {
                         progress.value = p
@@ -94,6 +97,7 @@ class AmvTranscodeViewModel : ViewModel() {
                         status.value = mStatus
 
                         mTranscoder = null
+                        isBusy.value = false
                         mStatus.reset()
 
                         t.completionListener.reset()
@@ -102,41 +106,48 @@ class AmvTranscodeViewModel : ViewModel() {
                 }
             }
         } catch(e:Throwable) {
-            UtLogger.stackTrace(e,"Cannot create transcoder.")
+            logger.stackTrace(e,"Cannot create transcoder.")
             mTranscoder = null
+            isBusy.value = false
         }
         return mTranscoder
     }
 
 
     companion object {
+        val logger = AmvSettings.logger
+
+        fun instanceFor(activity:FragmentActivity):AmvTranscodeViewModel {
+            return ViewModelProvider(activity,ViewModelProvider.NewInstanceFactory())[AmvTranscodeViewModel::class.java]
+        }
+
         @Suppress("MemberVisibilityCanBePrivate")
-        fun registerTo(activity:FragmentActivity, onProgress: (Float) -> Unit, onCompleted:(Boolean, AmvError?)->Unit): AmvTranscodeViewModel {
-            return ViewModelProviders.of(activity).get(AmvTranscodeViewModel::class.java).apply {
-                progress.observe(activity, Observer<Float> { p->
-                    if(null!=p) {
+        fun registerTo(activity: FragmentActivity, onProgress: (Float) -> Unit, onCompleted:(Boolean, AmvError?)->Unit): AmvTranscodeViewModel {
+            return ViewModelProvider(activity,ViewModelProvider.NewInstanceFactory())[AmvTranscodeViewModel::class.java].apply {
+                progress.observe(activity) { p ->
+                    if (null != p) {
                         onProgress(p)
                     }
-                })
-                status.observe(activity, Observer<Status> { s->
-                    if(s!=null) {
-                        if(s.completed) {
+                }
+                status.observe(activity) { s ->
+                    if (s != null) {
+                        if (s.completed) {
                             onCompleted(s.result, s.error)
                         }
                     }
-                })
+                }
             }
         }
 
         /**
          * ビューをオブザーバーとして登録する
          */
-        fun registerTo(view: View, onProgress: (Float) -> Unit, onCompleted:(Boolean,AmvError?)->Unit): AmvTranscodeViewModel? {
-            val activity = view.getActivity() as? FragmentActivity
+        fun registerTo(view: View, onProgress: (Float) -> Unit, onCompleted:(Boolean,AmvError?)->Unit): AmvTranscodeViewModel {
+            val activity = view.getActivity()
             return if(null!=activity) {
                 registerTo(activity, onProgress, onCompleted)
             } else {
-                null
+                error("no activity")
             }
         }
     }

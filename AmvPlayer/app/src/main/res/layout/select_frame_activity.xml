@@ -27,7 +27,7 @@
         app:layout_constraintStart_toEndOf="@+id/cancelButton"
         app:layout_constraintTop_toTopOf="parent" />
 
-    <com.michael.video.AmvFrameSelectorView
+    <com.michael.video.v2.AmvFrameSelectorView
         android:id="@+id/frameSelector"
         android:layout_width="0dp"
         android:layout_height="0dp"
@@ -39,5 +39,5 @@
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/okButton" >
-    </com.michael.video.AmvFrameSelectorView>
+    </com.michael.video.v2.AmvFrameSelectorView>
 </androidx.constraintlayout.widget.ConstraintLayout>

@@ -24,8 +24,9 @@ interface IAmvVideoPlayer {
     }
 
     data class Clipping (val start:Long, val end:Long=-1) {
-        val isValid
-            get() = end>start
+        val isValidEnd  get() = end>start
+        val isValidStart get() = start>0
+        val isValid get() = start>0 || end>start
 
         fun clipPos(pos:Long) : Long {
             return if(end>start) {
@@ -33,6 +34,9 @@ interface IAmvVideoPlayer {
             } else {
                 max(start, pos)
             }
+        }
+        companion object {
+            val empty:Clipping = Clipping(0,-1)
         }
     }
 

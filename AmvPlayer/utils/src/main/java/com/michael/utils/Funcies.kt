@@ -9,6 +9,7 @@
 
 package com.michael.utils
 
+import io.github.toyota32k.utils.UtLogger
 import java.lang.reflect.Method
 import java.util.*
 
@@ -138,9 +139,17 @@ abstract class Methody<R> : IFuncy<R> {
     }
 
     companion object {
-        @JvmStatic
+        fun classOf(obj:Any) : Class<*> {
+            return if(obj is Class<*>) {
+                obj
+            } else {
+                obj.javaClass
+            }
+        }
+
         fun methodOf(obj:Any, name:String) : Method? {
-            for(m in obj.javaClass.methods ) {
+            for(m in classOf(obj).methods ) {
+                UtLogger.debug(m.name)
                 if(m.name == name) {
                     return m
                 }
@@ -165,7 +174,7 @@ class Methody0<R> : Methody<R>, IFuncy0<R> {
     constructor(obj:Any, methodName:String) {
         this.obj = obj
         try {
-            this.method = obj.javaClass.getMethod(methodName)
+            this.method = classOf(obj).getMethod(methodName)
         } catch (e:Exception) {
             UtLogger.error("Methody0:$methodName\n$e")
             throw e
@@ -195,7 +204,7 @@ class Methody1<T1,R>  : Methody<R>, IFuncy1<T1,R> {
             if(null==t1) {
                 this.method = methodOf(obj, methodName)!!
             } else {
-                this.method = obj.javaClass.getMethod(methodName, t1)
+                this.method = classOf(obj).getMethod(methodName, t1)
             }
         } catch (e:Exception) {
             UtLogger.error("Methody1:$methodName, $t1\n$e")
@@ -231,13 +240,14 @@ class Methody2<T1,T2,R> : Methody<R>, IFuncy2<T1,T2,R> {
         this.obj = obj
         this.method = method
     }
+    @JvmOverloads
     constructor(obj:Any, methodName:String, t1:Class<T1>?=null, t2:Class<T2>?=null) {
         this.obj = obj
         try {
             if(null==t1||null==t2) {
                 this.method = methodOf(obj, methodName)!!
             } else {
-                this.method = obj.javaClass.getMethod(methodName, t1, t2)
+                this.method = classOf(obj).getMethod(methodName, t1, t2)
             }
         } catch (e:Exception) {
             UtLogger.error("Methody2:$methodName, $t1, $t2\n$e")
@@ -279,7 +289,7 @@ class Methody3<T1,T2,T3,R> : Methody<R>, IFuncy3<T1,T2,T3,R> {
             if(null==t1||null==t2||null==t3) {
                 this.method = methodOf(obj, methodName)!!
             } else {
-                this.method = obj.javaClass.getMethod(methodName, t1, t2, t3)
+                this.method = classOf(obj).getMethod(methodName, t1, t2, t3)
             }
         } catch (e:Exception) {
             UtLogger.error("Methody3:$methodName, $t1, $t2, $t3\n$e")

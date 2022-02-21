@@ -11,18 +11,18 @@ import android.content.Context
 import android.content.Intent
 import android.graphics.drawable.Drawable
 import android.os.Handler
+import android.os.Looper
 import androidx.core.content.ContextCompat
 import android.util.AttributeSet
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.*
+import androidx.lifecycle.viewModelScope
 import com.michael.utils.FuncyListener1
-import com.michael.utils.UtLogger
 import com.michael.utils.VectorDrawableTinter
 import com.michael.video.viewmodel.AmvFrameListViewModel
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlin.math.max
@@ -35,6 +35,7 @@ class AmvVideoController @JvmOverloads constructor(context: Context, attrs: Attr
     // region Constants
 
     companion object {
+        val logger = AmvSettings.logger
         private const val FRAME_COUNT = 15            // フレームサムネイルの数
         private const val FRAME_HEIGHT_IN_DP = 50f         // フレームサムネイルの高さ(dp)
         private const val LISTENER_NAME = "VCT"
@@ -89,16 +90,16 @@ class AmvVideoController @JvmOverloads constructor(context: Context, attrs: Attr
         val counterBar: TextView by lazy {
             findViewById<TextView>(R.id.vct_counterBar)
         }
-        val drPlay: Drawable by lazy {
+        val drPlay: Drawable? by lazy {
             context.getDrawable(R.drawable.ic_play)
         }
-        val drPause: Drawable by lazy {
+        val drPause: Drawable? by lazy {
             context.getDrawable(R.drawable.ic_pause)
         }
-        val drShowFrameOff: Drawable by lazy {
+        val drShowFrameOff: Drawable? by lazy {
             context.getDrawable(R.drawable.ic_frames)
         }
-        val drShowFrameOn: Drawable by lazy {
+        val drShowFrameOn: Drawable? by lazy {
             VectorDrawableTinter.tintDrawable(context.getDrawable(R.drawable.ic_frames)!!, ContextCompat.getColor(context, R.color.trimming_sel))
         }
 
@@ -151,7 +152,7 @@ class AmvVideoController @JvmOverloads constructor(context: Context, attrs: Attr
                 }
                 AmvFullscreenActivity.State.PINP-> {
                     pinpButton.enable(false)
-                    fullButton.enable(ready)
+                    fullButton.enable(false)
                 }
                 else -> {
                     pinpButton.enable(ready)
@@ -320,7 +321,7 @@ class AmvVideoController @JvmOverloads constructor(context: Context, attrs: Attr
             set(state) {
                 if (field != state) {
                     field = state
-                    UtLogger.debug("PlayState: $state")
+                    logger.debug("PlayState: $state")
 
                     when (state) {
                         IAmvVideoPlayer.PlayerState.Playing -> {
@@ -389,7 +390,7 @@ class AmvVideoController @JvmOverloads constructor(context: Context, attrs: Attr
     }
 
     private lateinit var mPlayer:IAmvVideoPlayer
-    private val mHandler = Handler()
+    private val mHandler = Handler(Looper.getMainLooper())
     private val mFrameListViewModel : AmvFrameListViewModel?
     private var mPausingOnTracking = false       // スライダー操作中は再生を止めておいて、操作が終わったときに必要に応じて再生を再開する
     private var mMinimalMode = false
@@ -462,12 +463,12 @@ class AmvVideoController @JvmOverloads constructor(context: Context, attrs: Attr
      */
     private fun extractFrameOnSourceChanged(source: IAmvSource) {
         setSource(source)
-        GlobalScope.launch {
+        mFrameListViewModel?.viewModelScope?.launch {
             val file = source.getFileAsync()
             withContext(Dispatchers.Main) {
                 if (null != file) {
                     models.isVideoInfoPrepared = false
-                    mFrameListViewModel?.let { viewModel ->
+                    mFrameListViewModel.let { viewModel ->
                         viewModel.frameListInfo.value?.let { info ->
                             if (!mFrameListViewModel.extractFrame(file, FRAME_COUNT, FitMode.Height, 0f, mFrameHeight)) {
                                 // 抽出条件が変更されていない場合はfalseを返してくるのでキャッシュから構築する

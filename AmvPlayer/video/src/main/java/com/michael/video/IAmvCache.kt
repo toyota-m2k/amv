@@ -55,6 +55,14 @@ interface IAmvCache
     fun invalidate()
 
     /**
+     * ダウンロードをキャンセル
+     * ダウンロード中でなければ何もしない。副作用なし。
+     */
+    fun cancel()
+
+    var progressCallback:((recvInBytes:Long, totalInBytes:Long)->Unit)?
+
+    /**
      * 呼び出し時点で取得しているキャッシュファイルを取得
      * ダウンロード中、または、Invalidateされているときは、nullを返す。
      */

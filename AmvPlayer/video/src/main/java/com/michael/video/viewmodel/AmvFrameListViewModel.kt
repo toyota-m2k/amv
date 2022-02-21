@@ -1,18 +1,11 @@
 package com.michael.video.viewmodel
 
-import androidx.lifecycle.MutableLiveData
-import androidx.lifecycle.Observer
-import androidx.lifecycle.ViewModel
-import androidx.lifecycle.ViewModelProviders
 import android.graphics.Bitmap
-import android.os.Handler
-import androidx.fragment.app.FragmentActivity
 import android.util.Size
 import android.view.View
-import com.michael.utils.UtLogger
-import com.michael.video.AmvFrameExtractor
-import com.michael.video.FitMode
-import com.michael.video.getActivity
+import androidx.fragment.app.FragmentActivity
+import androidx.lifecycle.*
+import com.michael.video.*
 import java.io.File
 
 class AmvFrameListViewModel : ViewModel() {
@@ -75,8 +68,10 @@ class AmvFrameListViewModel : ViewModel() {
 
         override var status: IFrameListInfo.Status = IFrameListInfo.Status.INIT
             set(v) {
-                field = v
-                frameListInfo.value = this // 通知
+                if(v!=field) {
+                    field = v
+                    frameListInfo.value = this // 通知
+                }
             }
 
         private var mFrameExtractor: AmvFrameExtractor? = null
@@ -88,7 +83,9 @@ class AmvFrameListViewModel : ViewModel() {
          * 次のフレーム抽出に備えてパラメータをリセットし、新しいFrameExtractorを返す
          */
         fun reset(file: File, count:Int, mode:FitMode, width:Float, height:Float): AmvFrameExtractor {
-            assert(!isBusy)
+            if (BuildConfig.DEBUG && isBusy) {
+                error("Assertion failed")
+            }
             clear()
             source = file
             maxCount = count
@@ -214,13 +211,13 @@ class AmvFrameListViewModel : ViewModel() {
         mFrameListInfo.reset(file, count, fitMode, width, height).apply {
             setSizingHint(fitMode, width, height)
             onVideoInfoRetrievedListener.add(null) {
-                UtLogger.debug("AmvFrameExtractor:duration=${it.duration} / ${it.videoSize}")
+                logger.info("onVideoInfoRetrieved: duration=${it.duration} / ${it.videoSize}")
                 mFrameListInfo.size = it.thumbnailSize
                 mFrameListInfo.duration = it.duration
                 mFrameListInfo.status = IFrameListInfo.Status.LOADED
             }
             onThumbnailRetrievedListener.add(null) { _, index, bmp ->
-                UtLogger.debug("AmvFrameExtractor:Bitmap($index): width=${bmp.width}, height=${bmp.height}")
+                logger.debug("onThumbnailRetrieved :Bitmap($index): width=${bmp.width}, height=${bmp.height}")
                 mFrameListInfo.frameList.add(bmp)
                 mFrameListInfo.status = IFrameListInfo.Status.FRAME
             }
@@ -263,9 +260,9 @@ class AmvFrameListViewModel : ViewModel() {
          */
         fun getInstance(view:View) : AmvFrameListViewModel {
             val activity = view.getActivity() as FragmentActivity
-            return ViewModelProviders.of(activity).get(AmvFrameListViewModel::class.java)
+            return ViewModelProvider(activity, ViewModelProvider.NewInstanceFactory()).get(AmvFrameListViewModel::class.java)
         }
 
-
+        val logger = AmvSettings.logger
     }
 }

@@ -6,19 +6,17 @@
  */
 package com.michael.video
 
-import androidx.lifecycle.Observer
 import android.content.Context
 import android.os.Parcel
 import android.os.Parcelable
 import android.util.AttributeSet
 import android.view.LayoutInflater
-import android.view.View
 import android.widget.FrameLayout
 import android.widget.LinearLayout
-import com.michael.utils.UtLogger
+import androidx.lifecycle.Observer
+import androidx.lifecycle.viewModelScope
 import com.michael.video.viewmodel.AmvFrameListViewModel
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
@@ -29,7 +27,7 @@ class AmvFrameSelectorView @JvmOverloads constructor(
         context: Context, attrs: AttributeSet? = null, defStyleAttr: Int = 0
 ) : LinearLayout(context, attrs, defStyleAttr) {
 
-    // region Public API's
+    // region Public APIs
     fun setSource(source: File?) {
         controls.player?.setSource(AmvFileSource(source), false, 0)
     }
@@ -68,6 +66,7 @@ class AmvFrameSelectorView @JvmOverloads constructor(
         const val FRAME_COUNT = 10            // フレームサムネイルの数
         const val FRAME_HEIGHT_IN_DP = 80f         // フレームサムネイルの高さ(dp)
         const val LISTENER_NAME = "frameSelectorView"
+        val logger = AmvSettings.logger
     }
 
     private var mFrameHeight = 160f
@@ -75,19 +74,19 @@ class AmvFrameSelectorView @JvmOverloads constructor(
     // Control
     private inner class Controls {
         val player : AmvExoVideoPlayer? by lazy {
-            findViewById<AmvExoVideoPlayer>(R.id.vfs_player)
+            findViewById(R.id.vfs_player)
         }
 
         val slider: AmvSlider by lazy {
-            findViewById<AmvSlider>(R.id.vfs_slider)
+            findViewById(R.id.vfs_slider)
         }
 
         val sliderGroup: FrameLayout by lazy {
-            findViewById<FrameLayout>(R.id.vfs_sliderGroup)
+            findViewById(R.id.vfs_sliderGroup)
         }
 
         val frameListView: AmvFrameListView by lazy {
-            findViewById<AmvFrameListView>(R.id.vfs_frameList)
+            findViewById(R.id.vfs_frameList)
         }
     }
     private val controls = Controls()
@@ -160,11 +159,13 @@ class AmvFrameSelectorView @JvmOverloads constructor(
      * ソースが切り替わったタイミングで、フレームサムネイルリストを作成する
      */
     private fun extractFrameOnSourceChanged(source: IAmvSource) {
-        GlobalScope.launch {
+        mFrameListViewModel.viewModelScope.launch {
             val file = source.getFileAsync()
             withContext(Dispatchers.Main) {
-                models.duration = 0L  // ViewModelから読み込むとき、Durationがゼロかどうかで初回かどうか判断するので、ここでクリアする
                 val info = mFrameListViewModel.frameListInfo.value!!
+                if(info.status==AmvFrameListViewModel.IFrameListInfo.Status.INIT) {
+                    models.duration = 0L  // ViewModelから読み込むとき、Durationがゼロかどうかで初回かどうか判断するので、ここでクリアする
+                }
                 if (null != file) {
                     if (!mFrameListViewModel.extractFrame(file, FRAME_COUNT, FitMode.Height, 0f, mFrameHeight)) {
                         // 抽出条件が変更されていない場合はfalseを返してくるのでキャッシュから構築する
@@ -181,7 +182,7 @@ class AmvFrameSelectorView @JvmOverloads constructor(
     private fun updateFrameListByViewModel(info: AmvFrameListViewModel.IFrameListInfo) {
         if(null!=info.error) {
             restoringData?.onFatalError()
-        } else if(info.status != AmvFrameListViewModel.IFrameListInfo.Status.INIT && info.duration>0L) {
+        } else if(info.status != AmvFrameListViewModel.IFrameListInfo.Status.LOADED && info.duration>0L) {
             if(models.duration==0L) {
                 models.duration = info.duration
                 val thumbnailSize = info.size
@@ -204,7 +205,7 @@ class AmvFrameSelectorView @JvmOverloads constructor(
     // region Slider manipulation
 
     private fun onSliderChanged(@Suppress("UNUSED_PARAMETER") slider:AmvSlider, position:Long, dragState:AmvSlider.SliderDragState) {
-        UtLogger.debug("CurrentPosition: $position ($dragState)")
+        logger.debug("current position: $position ($dragState)")
         when(dragState) {
             AmvSlider.SliderDragState.BEGIN-> {
                 controls.player?.setFastSeekMode(true)
@@ -273,7 +274,7 @@ class AmvFrameSelectorView @JvmOverloads constructor(
         private var isSliderRestored = false
 
         fun onFatalError() {
-            UtLogger.error("AmvTrimmingController: abort restoring.")
+            logger.error("abort restoring.")
             this@AmvFrameSelectorView.restoringData = null
         }
 
@@ -307,13 +308,13 @@ class AmvFrameSelectorView @JvmOverloads constructor(
     }
 
     override fun onSaveInstanceState(): Parcelable {
-        UtLogger.debug("LC-AmvFrameSelectorView: onSaveInstanceState")
+        logger.debug()
         val parent =  super.onSaveInstanceState()
         return SavedState(parent, restoringData?.data ?: SavedData(controls.slider.currentPosition))
     }
 
     override fun onRestoreInstanceState(state: Parcelable?) {
-        UtLogger.debug("LC-AmvFrameSelectorView: onRestoreInstanceState")
+        logger.debug()
         if(state is SavedState) {
             super.onRestoreInstanceState(state.superState)
             state.data?.apply {

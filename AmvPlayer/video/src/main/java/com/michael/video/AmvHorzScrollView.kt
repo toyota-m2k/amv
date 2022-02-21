@@ -8,9 +8,11 @@ package com.michael.video
 
 import android.annotation.SuppressLint
 import android.content.Context
+import android.graphics.Bitmap
 import android.util.AttributeSet
 import android.view.MotionEvent
 import android.view.View
+import android.view.ViewGroup
 import android.widget.FrameLayout
 import android.widget.ImageView
 import android.widget.LinearLayout
@@ -28,11 +30,11 @@ class AmvHorzScrollView @JvmOverloads constructor(
     // region Internals
 
     private inner class Controls {
-        val container : LinearLayout by lazy { findViewById<LinearLayout>(R.id.flv_imageList) }
-        val leftTruncated: View by lazy { findViewById<View>(R.id.flv_leftTruncated) }
-        val rightTruncated: View by lazy { findViewById<View>(R.id.flv_rightTruncated) }
-        val leftTruncatedBar: View by lazy { findViewById<View>(R.id.flv_leftTruncatedBar)}
-        val rightTruncatedBar: View by lazy { findViewById<View>(R.id.flv_rightTruncatedBar) }
+        val container : LinearLayout by lazy { findViewById(R.id.flv_imageList) }
+        val leftTruncated: View by lazy { findViewById(R.id.flv_leftTruncated) }
+        val rightTruncated: View by lazy { findViewById(R.id.flv_rightTruncated) }
+        val leftTruncatedBar: View by lazy { findViewById(R.id.flv_leftTruncatedBar)}
+        val rightTruncatedBar: View by lazy { findViewById(R.id.flv_rightTruncatedBar) }
 
     }
 
@@ -130,6 +132,9 @@ class AmvHorzScrollView @JvmOverloads constructor(
             updateScroll()
         }
 
+    fun clear() {
+        controls.container.removeAllViews()
+    }
 
     /**
      * フレーム数、サイズを指定する
@@ -150,6 +155,11 @@ class AmvHorzScrollView @JvmOverloads constructor(
     fun getImageViewAt(index:Int):ImageView? {
         return controls.container.getChildAt(index) as? ImageView
     }
+
+//    fun setBitmapAt(bmp: Bitmap, index:Int) {
+//        val imageView = getImageViewAt(index) ?: return
+//        imageView.setImageBitmap(bmp)
+//    }
 
 //    val imageCount:Int
 //        get() = controls.container.childCount

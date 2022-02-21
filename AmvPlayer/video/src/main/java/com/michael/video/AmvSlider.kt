@@ -16,6 +16,7 @@ import androidx.annotation.ColorInt
 import android.util.AttributeSet
 import android.view.MotionEvent
 import android.view.View
+import androidx.core.content.ContextCompat
 import com.michael.utils.Funcy3
 import com.michael.utils.FuncyListener3
 import kotlin.math.max
@@ -27,6 +28,9 @@ import kotlin.math.roundToLong
 class AmvSlider @JvmOverloads constructor(
         context: Context, attrs: AttributeSet? = null, defStyleAttr: Int = 0
 ) : View(context, attrs, defStyleAttr) {
+    companion object {
+        val logger = AmvSettings.logger
+    }
 
     /**
      * スライダーのmax値
@@ -41,6 +45,7 @@ class AmvSlider @JvmOverloads constructor(
         trimEndPosition = v
         trimStartPosition = 0
         currentPosition = 0
+        logger.info("valueRange=$v")
         applyPosition(redraw)
     }
 
@@ -247,11 +252,11 @@ class AmvSlider @JvmOverloads constructor(
             resetWithValueRange(sa.getInteger(R.styleable.AmvSlider_valueRange, 1000).toLong(), false)
 
             // drawables
-            drThumb = sa.getDrawable(R.styleable.AmvSlider_thumb) ?: context.getDrawable(R.drawable.ic_slider_knob)!!
-            drLeft = sa.getDrawable(R.styleable.AmvSlider_startThumb) ?: context.getDrawable(R.drawable.ic_trim_left)!!
-            drRight = sa.getDrawable(R.styleable.AmvSlider_endThumb) ?: context.getDrawable(R.drawable.ic_trim_right)!!
+            drThumb = sa.getDrawable(R.styleable.AmvSlider_thumb) ?: ContextCompat.getDrawable(context, R.drawable.ic_slider_knob)!!
+            drLeft = sa.getDrawable(R.styleable.AmvSlider_startThumb) ?: ContextCompat.getDrawable(context, R.drawable.ic_trim_left)!!
+            drRight = sa.getDrawable(R.styleable.AmvSlider_endThumb) ?: ContextCompat.getDrawable(context, R.drawable.ic_trim_right)!!
 
-            drThumbBg = sa.getDrawable(R.styleable.AmvSlider_thumbBg) ?: context.getDrawable(R.drawable.ic_slider_knob_bg)!!
+            drThumbBg = sa.getDrawable(R.styleable.AmvSlider_thumbBg) ?: ContextCompat.getDrawable(context, R.drawable.ic_slider_knob_bg)!!
             showThumbBg = sa.getBoolean(R.styleable.AmvSlider_showThumbBg, false)
 
             // colors
@@ -352,7 +357,12 @@ class AmvSlider @JvmOverloads constructor(
      * 座標値から、スライダー値を求める
      */
     fun position2value(position:Float) : Long {
-        return (valueRange * (position - mSliderRange.min) / mSliderRange.range).roundToLong()
+        return try {
+            (valueRange * (position - mSliderRange.min) / mSliderRange.range).roundToLong()
+        } catch (e:Throwable) {
+            logger.error("sliderRange: ${mSliderRange.min} - ${mSliderRange.max}")
+            0L
+        }
     }
 
     /**
@@ -410,9 +420,9 @@ class AmvSlider @JvmOverloads constructor(
      * スライダー値((Current|TrimStart|TrimEnd)Position )に依存するプロパティは、applyPosition()で変更する
      */
     private fun updateLayout(width:Int) {
-        if(viewWidth == width) {
-            // no changed ... return
-        }
+//        if(viewWidth == width) {
+//            // no changed ... return
+//        }
         viewWidth = width
 
         if(trimmingEnabled) {
@@ -420,6 +430,7 @@ class AmvSlider @JvmOverloads constructor(
         } else {
             mSliderRange.set(mThumbRect.width()/2,width.toFloat()-mThumbRect.width()/2)
         }
+        logger.info("viewWidth=$width, sliderRange=${mSliderRange}")
         applyPosition(false)    // そのうち再描画されるはず
     }
 

@@ -17,12 +17,8 @@ import android.widget.Button
 import android.widget.FrameLayout
 import android.widget.ProgressBar
 import android.widget.TextView
-import com.michael.utils.FuncyListener1
+import androidx.lifecycle.LiveData
 import com.michael.video.viewmodel.AmvTranscodeViewModel
-import kotlinx.android.synthetic.main.trimming_player.view.*
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.GlobalScope
-import kotlinx.coroutines.launch
 import java.io.File
 import kotlin.math.max
 import kotlin.math.roundToInt
@@ -35,22 +31,22 @@ class AmvTrimmingPlayerView @JvmOverloads constructor(
 
     private inner class Controls {
         val player: AmvExoVideoPlayer by lazy {
-            findViewById<AmvExoVideoPlayer>(R.id.trp_videoPlayer)
+            findViewById(R.id.trp_videoPlayer)
         }
         val controller: AmvTrimmingController by lazy {
-            findViewById<AmvTrimmingController>(R.id.trp_trimmingController)
+            findViewById(R.id.trp_trimmingController)
         }
         val progressLayer: ConstraintLayout by lazy {
-            findViewById<ConstraintLayout>(R.id.trp_progressLayer)
+            findViewById(R.id.trp_progressLayer)
         }
         val progressBar: ProgressBar by lazy {
-            findViewById<ProgressBar>(R.id.trp_progressBar)
+            findViewById(R.id.trp_progressBar)
         }
         val message: TextView by lazy {
-            findViewById<TextView>(R.id.trp_message)
+            findViewById(R.id.trp_message)
         }
         val cancelButton: Button by lazy {
-            findViewById<Button>(R.id.trp_cancelButton)
+            findViewById(R.id.trp_cancelButton)
         }
 
     }
@@ -62,14 +58,18 @@ class AmvTrimmingPlayerView @JvmOverloads constructor(
     private val videoController : IAmvVideoController
         get() = controls.controller
 
-    private val mViewModel: AmvTranscodeViewModel?
+    private val mViewModel: AmvTranscodeViewModel
+
+    val status: LiveData<AmvTranscodeViewModel.Status> get() = mViewModel.status
+
 //    private var mNotified = false   // onCompletedが複数回呼ばれるので、onTrimmingCompletedListenerの通知を1回に限定するためのフラグ
+
 
     init {
         LayoutInflater.from(context).inflate(R.layout.trimming_player, this)
 
         AmvStringPool[R.string.cancel]?.apply {
-            trp_cancelButton.text = this
+            controls.cancelButton.text = this
         }
 
         val sa = context.theme.obtainStyledAttributes(attrs,R.styleable.AmvExoVideoPlayer,defStyleAttr,0)
@@ -89,10 +89,9 @@ class AmvTrimmingPlayerView @JvmOverloads constructor(
             cancel()
         }
 
-        val vm = mViewModel
-        if(null!=vm && vm.isBusy) {
+        if(mViewModel.isBusy.value == true) {
             controls.progressLayer.visibility = View.VISIBLE
-            onProgress(vm.progress.value?:0f)
+            onProgress(mViewModel.progress.value?:0f)
         }
     }
 
@@ -132,10 +131,6 @@ class AmvTrimmingPlayerView @JvmOverloads constructor(
         if (result) {
             // 成功したら、進捗表示を消す
             controls.progressLayer.visibility = View.GONE
-            onTrimmingCompletedListener.apply {
-                invoke(this@AmvTrimmingPlayerView)
-                reset()
-            }
         } else {
             // 失敗したら、エラーメッセージを表示
             controls.message.text = /*error?.message ?: */ AmvStringPool[R.string.error] ?: context.getString(R.string.error)
@@ -146,27 +141,26 @@ class AmvTrimmingPlayerView @JvmOverloads constructor(
 
     // region Event Listener
 
-    val onTrimmingCompletedListener = FuncyListener1<AmvTrimmingPlayerView, Unit>()
-
-    // api for java
-    interface ITrimmingCompletedHandler {
-        fun onTrimmingCompleted(sender: AmvTrimmingPlayerView)
-    }
-
-    @Suppress("unused")
-    fun setOnTrimmingCompletedListener(listener: ITrimmingCompletedHandler) {
-        onTrimmingCompletedListener.set(listener::onTrimmingCompleted)
-    }
+//    val onTrimmingCompletedListener = FuncyListener1<AmvTrimmingPlayerView, Unit>()
+//
+//    // api for java
+//    interface ITrimmingCompletedHandler {
+//        fun onTrimmingCompleted(sender: AmvTrimmingPlayerView)
+//    }
+//
+//    @Suppress("unused")
+//    fun setOnTrimmingCompletedListener(listener: ITrimmingCompletedHandler) {
+//        onTrimmingCompletedListener.set(listener::onTrimmingCompleted)
+//    }
 
     // endregion
 
-    // region Public API's
+    // region Public APIs
 
-    val isBusy:Boolean
-        get() = mViewModel?.isBusy ?: false
+    val isBusy:LiveData<Boolean> get() = mViewModel.isBusy
 
     val error: AmvError
-        get() = mViewModel?.status?.value?.error ?: AmvError()
+        get() = mViewModel.status.value?.error ?: AmvError()
 
     var source:File? = null
         set(v) {
@@ -180,6 +174,7 @@ class AmvTrimmingPlayerView @JvmOverloads constructor(
      */
     fun dispose() {
         controls.controller.dispose()
+        mViewModel.progress.value = 0f
     }
 
     @Suppress("MemberVisibilityCanBePrivate")
@@ -195,26 +190,23 @@ class AmvTrimmingPlayerView @JvmOverloads constructor(
      * トランスコード or トリミングを開始
      */
     fun startTrimming(output:File) : Boolean {
-        val vm = mViewModel
         val input = source
-        if (null == vm || null == input || !trimmingRange.isValid && !vm.isBusy) {
+        if (null == input || !trimmingRange.isValid && mViewModel.isBusy.value==true) {
             return false
         }
 
         controls.controller.pauseFrameExtraction()
         controls.progressLayer.visibility = View.VISIBLE
-        if (!isTrimmed) {
-            vm.transcode(input, output, context)
+        return if (!isTrimmed) {
+            mViewModel.transcode(input, output, context)
         } else {
-            vm.truncate(input, output, trimmingRange.start, trimmingRange.end, context)
+            mViewModel.truncate(input, output, trimmingRange.start, trimmingRange.end, context)
         }
-        return true
     }
 
     fun cancel() : Boolean {
-        val vm = mViewModel
-        if(null!=vm && vm.isBusy) {
-            vm.cancel()
+        if(mViewModel.isBusy.value==true) {
+            mViewModel.cancel()
             controls.progressLayer.visibility = View.GONE
             controls.controller.resumeFrameExtraction()
             return true

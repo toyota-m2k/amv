@@ -7,8 +7,6 @@
 
 package com.michael.video
 
-import com.michael.utils.UtLogger
-
 /**
  * 矩形領域のリサイズ方法
  */
@@ -43,7 +41,7 @@ fun fitSizeTo(original:MuSize, layout:MuSize, mode:FitMode, result:MuSize) {
             }
         }
     } catch(e:Exception) {
-        UtLogger.error(e.toString())
+        AmvSettings.logger.stackTrace(e)
         result.set(0f,0f)
     }
 }

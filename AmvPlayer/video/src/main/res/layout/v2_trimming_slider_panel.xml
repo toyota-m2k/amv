@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    >
+
+    <Space
+        android:layout_width="1dp"
+        android:layout_height="14dp"
+        android:visibility="invisible"
+        />
+    <com.michael.video.v2.elements.AmvFrameListView
+        android:id="@+id/tsp_frameList"
+        android:layout_width="match_parent"
+        android:layout_height="80dp"
+        android:layout_marginTop="24dp"
+        app:extentLeft="26dp"
+        app:extentRight="26dp"
+        app:trimmingMode="true"
+        tools:visibility="visible"
+        />
+    <com.michael.video.v2.elements.AmvSliderView
+        android:id="@+id/tsp_slider"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        app:endToEndRail="false"
+        app:trimmingMode="true"
+        android:background="@color/transparent"
+        />
+
+</FrameLayout>

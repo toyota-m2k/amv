@@ -1,5 +1,7 @@
 package com.michael.utils
 
+import io.github.toyota32k.utils.UtLogger
+
 @Suppress("unused")
 class UtSimpleAsyncTask<T>  : UtAsyncTask() {
     val onResult = FuncyListener1<T?, Unit>()
@@ -12,7 +14,7 @@ class UtSimpleAsyncTask<T>  : UtAsyncTask() {
             UtLogger.stackTrace(e, "UtSimpleAsyncTask:error")
         }
         val funcy = onResult.funcy
-        if(null!=funcy && !isCancelled) {
+        if(null!=funcy && !cancelled) {
             runOnUiThread(funcy, r)
         }
     }

@@ -1,6 +1,7 @@
 package com.michael.video
 
 //import android.support.v7.app.AppCompatActivity
+import android.annotation.TargetApi
 import android.app.PendingIntent
 import android.app.PictureInPictureParams
 import android.app.RemoteAction
@@ -13,14 +14,16 @@ import android.graphics.drawable.Icon
 import android.os.Build
 import android.os.Bundle
 import android.os.Handler
+import android.os.Looper
 import android.util.Rational
 import android.view.View
+import android.view.WindowInsets
+import android.view.WindowInsetsController
 import android.widget.ImageButton
 import androidx.appcompat.app.AppCompatActivity
+import androidx.constraintlayout.widget.ConstraintLayout
 import com.michael.utils.Funcies1
 import com.michael.utils.Funcies2
-import com.michael.utils.UtLogger
-import kotlinx.android.synthetic.main.activity_amv_fullscreen.*
 import java.lang.ref.WeakReference
 
 /**
@@ -38,6 +41,7 @@ class AmvFullscreenActivity : AppCompatActivity() {
     }
 
     companion object {
+        val logger = AmvSettings.logger
         const val KEY_SOURCE:String = "source"
         const val KEY_POSITION:String = "position"
         const val KEY_PLAYING:String = "playing"
@@ -80,12 +84,17 @@ class AmvFullscreenActivity : AppCompatActivity() {
         val currentActivityState:State
             get() = activityState.state
 
+        // 外部からPinPを閉じるためのメソッド
+        fun close() {
+            activityState.close()
+        }
+
         /**
          * AmvFullscreenActivity の状態を保持するクラス
          */
         private class ActivityState {
             var state:State = State.NONE
-                private set(v) { field = v }
+                private set
             private var activity : WeakReference<AmvFullscreenActivity>? = null
             private val source:IAmvSource?
                 get() = activity?.get()?.mSource
@@ -103,7 +112,18 @@ class AmvFullscreenActivity : AppCompatActivity() {
                 }
             }
             fun changeState(state:State) {
+                this.state = state
                 stateListener.invoke(state, source)
+            }
+
+            /**
+             * PinP表示中の場合にのみ、アクティビティを閉じる
+             * (EditorActivity.onDestroy から呼ばれるので、全画面表示のときに閉じるとまずい。
+             */
+            fun close() {
+                if(state==State.PINP) {
+                    activity?.get()?.finishAndRemoveTask()
+                }
             }
         }
         private val activityState = ActivityState()
@@ -128,12 +148,20 @@ class AmvFullscreenActivity : AppCompatActivity() {
     private lateinit var receiver: BroadcastReceiver        // PinP中のコマンド（ブロードキャスト）を受け取るレシーバー
 
     // endregion
+    @Suppress("PrivatePropertyName")
+    private val fsa_player: AmvExoVideoPlayer  by lazy {
+        findViewById(R.id.fsa_player)
+    }
+    @Suppress("PrivatePropertyName")
+    private val fsa_root: ConstraintLayout by lazy {
+        findViewById(R.id.fsa_root)
+    }
 
     /**
      * 構築
      */
     override fun onCreate(savedInstanceState: Bundle?) {
-        UtLogger.debug("##AmvFullScreenActivity.onCreate -- enter")
+        logger.debug()
         super.onCreate(savedInstanceState)
 
         activityState.onCreated(this)
@@ -146,8 +174,10 @@ class AmvFullscreenActivity : AppCompatActivity() {
                         IAmvVideoPlayer.PlayerState.Playing -> true
                         else -> false
                     }
-                    playAction.isEnabled = !playing
-                    pauseAction.isEnabled = playing
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                        playAction.isEnabled = !playing
+                        pauseAction.isEnabled = playing
+                    }
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
                         playAction.setShouldShowIcon(!playing)
                         pauseAction.setShouldShowIcon(playing)
@@ -167,14 +197,19 @@ class AmvFullscreenActivity : AppCompatActivity() {
          * 閉じるボタン
          */
         findViewById<ImageButton>(R.id.amv_ctr_close_button)?.setOnClickListener {
-            finish()
+            // finish()
+            // ここは、本来、finish()でもよい（onStop が呼ばれて、その中で finishAndRemoveTask()を呼んでいるから）はずだし、Android 10 (Pixel) では、そのように動作したが、
+            // Android 9 （HUAWEI）では、アクティビティが残ってしまったので、ここでも、finishAndRemoveTask()を呼ぶようにする。
+            // finishAndRemoveTaskを２回呼んで、本当に大丈夫なのか。
+            finishAndRemoveTask()
         }
 
         /**
          * PinPボタン
          */
         findViewById<ImageButton>(R.id.amv_ctr_pinp_button)?.let {
-            if (AmvSettings.allowPictureInPicture) {
+            if (requestPinP && AmvSettings.allowPictureInPicture) {     // PinPで起動後、全画面表示になるケースだけ、PinPボタンを表示する
+                it.visibility = View.VISIBLE
                 it.setOnClickListener {
                     requestPinP = true
                     enterPinP()
@@ -183,7 +218,7 @@ class AmvFullscreenActivity : AppCompatActivity() {
                 it.visibility = View.GONE
             }
         }
-        UtLogger.debug("##AmvFullScreenActivity.onCreate -- exit")
+        logger.debug("-- exit")
     }
 
     /**
@@ -195,7 +230,7 @@ class AmvFullscreenActivity : AppCompatActivity() {
         mSource?.release()
         mSource = null
         fsa_player.playerStateChangedListener.remove(handlerName)
-        UtLogger.debug("##AmvFullScreenActivity.onDestroy")
+        logger.debug()
     }
 
     /**
@@ -204,7 +239,7 @@ class AmvFullscreenActivity : AppCompatActivity() {
      * 渡されたインテントに基づいて、適切に状態を再構成する
      */
     override fun onNewIntent(intent: Intent?) {
-        UtLogger.debug("##AmvFullScreenActivity.onNewIntent")
+        logger.debug()
         super.onNewIntent(intent)
         if(intent!=null) {
             this.intent = intent
@@ -227,8 +262,6 @@ class AmvFullscreenActivity : AppCompatActivity() {
             val position = intent.getLongExtra(KEY_POSITION, 0)
             val start = intent.getLongExtra(KEY_CLIP_START, -1)
             val end = intent.getLongExtra(KEY_CLIP_END, -1)
-
-
             if (start >= 0) {
                 fsa_player.setClip(IAmvVideoPlayer.Clipping(start, end))
             }
@@ -242,6 +275,7 @@ class AmvFullscreenActivity : AppCompatActivity() {
      * PinPに遷移する
      * （PinPから通常モードへの遷移はシステムに任せる。というより、そのようなAPIは存在しない。）
      */
+    @TargetApi(Build.VERSION_CODES.O)
     private fun enterPinP() {
         if (AmvSettings.allowPictureInPicture) {
             val w = intent.getIntExtra(KEY_VIDEO_WIDTH, 0)
@@ -307,31 +341,37 @@ class AmvFullscreenActivity : AppCompatActivity() {
     }
 
     override fun onRestart() {
-        UtLogger.debug("##AmvFullScreenActivity.onRestart")
+        logger.debug()
         super.onRestart()
     }
 
     override fun onStart() {
-        UtLogger.debug("##AmvFullScreenActivity.onStart")
+        logger.debug()
         super.onStart()
     }
 
+    @Suppress("DEPRECATION")
     override fun onResume() {
-        UtLogger.debug("##AmvFullScreenActivity.onResume")
+        logger.debug()
         super.onResume()
         // もともと、次のフラグは、onCreate()で設定していたが、
         // Full<->PinPを行き来していると、いつの間にか、一部フラグが落ちて NavBarが表示されてしまうので、resume時にセットすることにした。
-        fsa_root.systemUiVisibility =
-                View.SYSTEM_UI_FLAG_LOW_PROFILE or
-                View.SYSTEM_UI_FLAG_FULLSCREEN or
-                View.SYSTEM_UI_FLAG_LAYOUT_STABLE or
-                View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY or
-                View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION or
-                View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            window.insetsController?.hide(WindowInsets.Type.statusBars() or WindowInsets.Type.navigationBars())
+            window.insetsController?.systemBarsBehavior = WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+        } else {
+            fsa_root.systemUiVisibility =
+                    View.SYSTEM_UI_FLAG_LOW_PROFILE or
+                    View.SYSTEM_UI_FLAG_FULLSCREEN or
+                    View.SYSTEM_UI_FLAG_LAYOUT_STABLE or
+                    View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY or
+                    View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION or
+                    View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
+        }
     }
 
     override fun onPause() {
-        UtLogger.debug("##AmvFullScreenActivity.onPause")
+        logger.debug()
         super.onPause()
     }
 
@@ -340,15 +380,32 @@ class AmvFullscreenActivity : AppCompatActivity() {
      * onPictureInPictureModeChanged()のパラメータに区別がないのだが、
      * ×を押したときは、onPictureInPictureModeChangedが呼ばれる前に onStop()が呼ばれ、□ボタンの場合は呼ばれないことが分かったので、
      * これによって、×と□を区別する。
+     *
+     * Android8/9 では上記の通りだったが、Android10 では、onStop より先に、onPictureInPictureModeChanged が呼ばれるようになった。
+     * つまり、onStop()が呼ばれるタイミングで、Android8/9 なら、PinP中の場合と、FullScreenの場合が混在するのに対して、
+     * android10 では、必ず（PinPは解除されて）FullScreenの状態になっている。このことから、PinPモードでなければ(FullScreenなら）、
+     * onStop()でアクティビティを終了すれば、PinP解除＋終了というフローが維持できる。副作用として、最初からFullScreenとして起動している場合に、
+     * タスクマネージャなどを表示して、アクティビティを切り替えようとしただけで、このアクティビティが終了してしまうが、
+     * それ自体が、望ましい動作（FullscreenActivityを残したまま、MainActivityに戻るのを禁止したい）なので、たぶん問題はないと思われる。
      */
     override fun onStop() {
-        UtLogger.debug("##AmvFullScreenActivity.onStop")
+        logger.debug()
         closing = true
         intent.putExtra(KEY_PLAYING, fsa_player.isPlayingOrReservedToPlay)
         intent.putExtra(KEY_POSITION, fsa_player.seekPosition)
         fsa_player.pause()
         super.onStop()
         onResultListener.invoke(intent)
+        if(!isPinP) {
+            // ここに入ってくるのは、
+            // - 全画面表示中に、閉じるボタンがタップされた場合(Android 9,10共通)
+            // - PinP中に、×ボタンがタップされたとき(Android 10のみ）
+            //
+            // PinPの×ボタンを押すと、
+            //  Android 10 の場合は、onPictureInPictureModeChanged で、isPinP=false にされたあと、onStopが呼ばれる。
+            //  Android 9- の場合は、onStop()が呼ばれてから onPictureInPictureModeChanged が呼ばれるので、isPinPはまだtrue。
+            finishAndRemoveTask()
+        }
     }
 
 //    override fun onPostResume() {
@@ -386,9 +443,10 @@ class AmvFullscreenActivity : AppCompatActivity() {
         activityState.changeState(State.FULL)
         unregisterReceiver(receiver)
         if(closing) {
+            // Android 9- の場合に、
             // ×ボタンがタップされた(＝ここに来る前にonStopが呼ばれている）
             // --> Activityを閉じる
-            finish()
+            finishAndRemoveTask()
         } else {
             fsa_player.showDefaultController = true
             if(reloadingPinP) {
@@ -397,7 +455,7 @@ class AmvFullscreenActivity : AppCompatActivity() {
                 // このときは（他にうまい方法があればよいのだが）少し時間をあけて、PinPへの移行を要求する。
                 // ちなみに、手持ちの Huawei の場合、100ms ではダメで、500ms ならokだった。
                 reloadingPinP = false
-                Handler().postDelayed({
+                Handler(Looper.getMainLooper()).postDelayed({
                     enterPinP()
                 }, 500)
             } else {
@@ -411,7 +469,7 @@ class AmvFullscreenActivity : AppCompatActivity() {
      * PinPモードが変更されるときの通知
      */
     override fun onPictureInPictureModeChanged(isInPictureInPictureMode: Boolean, newConfig: Configuration?) {
-        UtLogger.debug("##AmvFullScreenActivity.onPictureInPictureModeChanged($isInPictureInPictureMode)")
+        logger.debug("pinp=$isInPictureInPictureMode")
         super.onPictureInPictureModeChanged(isInPictureInPictureMode, newConfig)
         isPinP = isInPictureInPictureMode
         if(!isInPictureInPictureMode) {

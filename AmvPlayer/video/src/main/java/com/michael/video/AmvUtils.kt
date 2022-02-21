@@ -11,10 +11,9 @@ import android.util.Size
 import android.util.SizeF
 import android.view.View
 import android.view.ViewGroup
-import com.michael.utils.UtLogger
 import kotlin.math.roundToInt
 import android.content.ContextWrapper
-import android.app.Activity
+import androidx.fragment.app.FragmentActivity
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -132,10 +131,10 @@ fun View.setMargin(left:Int, top:Int, right:Int, bottom:Int) {
 
 }
 
-fun View.getActivity(): Activity? {
+fun View.getActivity(): FragmentActivity? {
     var ctx = this.context
     while (ctx is ContextWrapper) {
-        if (ctx is Activity) {
+        if (ctx is FragmentActivity) {
             return ctx
         }
         ctx = ctx.baseContext
@@ -143,10 +142,10 @@ fun View.getActivity(): Activity? {
     return null
 }
 
-fun Context.getActivity():Activity? {
+fun Context.getActivity():FragmentActivity? {
     var ctx = this
     while (ctx is ContextWrapper) {
-        if (ctx is Activity) {
+        if (ctx is FragmentActivity) {
             return ctx
         }
         ctx = ctx.baseContext
@@ -199,7 +198,7 @@ fun <T> ignoreErrorCall(def:T, f:()->T): T {
     return try {
         f()
     } catch(e:Exception) {
-        UtLogger.debug("SafeCall: ${e.message}")
+        AmvSettings.logger.debug("SafeCall: ${e.message}")
         def
     }
 }
@@ -220,3 +219,14 @@ fun parseIso8601DateString(dateString:String) : Date? {
     @Suppress("SpellCheckingInspection")
     return parseDateString("yyyyMMdd'T'HHmmssZ", dateString) ?: parseDateString("yyyy-MM-dd'T'HH:mm:ssZ", dateString)
 }
+
+fun formatTime(time:Long, duration:Long) : String {
+    val v = AmvTimeSpan(time)
+    val t = AmvTimeSpan(duration)
+    return when {
+        t.hours>0 -> v.formatH()
+        t.minutes>0 -> v.formatM()
+        else -> v.formatS()
+    }
+}
+

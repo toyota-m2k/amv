@@ -5,6 +5,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:background="#FF0000"
     >
 
     <Button
@@ -25,7 +26,7 @@
         app:layout_constraintStart_toEndOf="@+id/trimming_button"
         app:layout_constraintTop_toTopOf="parent" />
 
-    <com.michael.video.AmvTrimmingPlayerView
+    <com.michael.video.v2.AmvTrimmingPlayerView
         android:id="@+id/trimmingPlayer"
         android:layout_width="0dp"
         android:layout_height="0dp"

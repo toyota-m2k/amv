@@ -31,7 +31,7 @@ class UtAsyncProc<T>(val handler: Handler? = null, val executor: Executor? = nul
     }
 
     fun execute() : UtAsyncProc<T> {
-        val executor = this.executor ?: AsyncTask.THREAD_POOL_EXECUTOR
+        val executor = this.executor ?: BCAsyncTask.THREAD_POOL_EXECUTOR
 
         executor.execute {
             val action = this.action

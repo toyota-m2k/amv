@@ -12,6 +12,7 @@
         <attr name="endThumb" format="integer" />        <!-- トリミング（右） -->
 
         <attr name="thumbBg" format="integer" />           <!-- 再生位置ノブの後ろに描画する背景 -->
+        <attr name="thumbLine" format="integer" />         <!-- Trimming時に表示する線 -->
         <attr name="showThumbBg" format="boolean" />       <!-- ↑を表示するか (default:false) -->
 
         <!-- レールの色 -->
