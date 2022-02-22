@@ -31,6 +31,8 @@ class TrimmingControllerViewModel(playerViewModel: PlayerViewModel, thumbnailCou
 
     override val presentingPosition: Flow<Long> = merge(trimmingStart,trimmingEnd,sliderPosition)
 
+    override val showKnobBeltOnFrameList: Flow<Boolean> = flow { emit(false) }
+
     val trimmingStartText = combine(trimmingStart,playerViewModel.naturalDuration) { start,duration->
         if(duration>0) {
             formatTime(start, duration)

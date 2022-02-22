@@ -20,6 +20,9 @@ import java.lang.Runnable
 import kotlin.math.absoluteValue
 
 /**
+ * 動画プレーヤーと、それに関するプロパティを保持するビューモデル
+ * ExoPlayerは（何と！）Viewではなく、ActivityやViewのライフサイクルから独立しているので、ビューモデルに持たせておくのが一番しっくりくるのだ。
+ * しかも、ダイアログのような一時的な画面で使うのでなく、PinPや全画面表示などを有効にするなら、このビューモデルはApplicationスコープのようなライフサイクルオブジェクトに持たせるのがよい。
  * @param context   Application Context
  */
 class PlayerViewModel(
@@ -28,11 +31,15 @@ class PlayerViewModel(
     val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)          // dispose()まで有効なコルーチンスコープ
     val context = context.applicationContext
     private val listener =  PlayerListener()
+    // ExoPlayer
     val player: ExoPlayer = ExoPlayer.Builder(context).build().apply {
         addListener(listener)
     }
-    var source = MutableStateFlow<IAmvSource?>(null)
-        private set
+
+    /**
+     * 動画のソース
+     */
+    val source = MutableStateFlow<IAmvSource?>(null)
     var sourceClipping: IAmvVideoPlayer.Clipping? = null
     var pseudoClipping: IAmvVideoPlayer.Clipping? = null
 
@@ -41,6 +48,9 @@ class PlayerViewModel(
     val state = MutableStateFlow<IAmvVideoPlayer.PlayerState>(IAmvVideoPlayer.PlayerState.None)
     val errorMessage = MutableStateFlow<String?>(null)
     val naturalDuration = MutableStateFlow<Long>(0L)
+
+
+    var stretchVideoToView = false
 
     private val mVideoSize = MuSize()
     private val mPlayerSize = MuSize()
@@ -119,14 +129,14 @@ class PlayerViewModel(
         naturalDuration.value = 0L
     }
 
-    fun setVideoSource(source: IAmvSource?, clipping: IAmvVideoPlayer.Clipping? = null) {
+    fun setVideoSource(source: IAmvSource?, sourceClipping: IAmvVideoPlayer.Clipping? = null) {
         reset()
         if(source==null) {
             return
         }
 
         this.source.value = source
-        this.sourceClipping = clipping
+        this.sourceClipping = sourceClipping
 
         CoroutineScope(Dispatchers.IO).launch {
             val uri = source.getUriAsync()
@@ -136,8 +146,8 @@ class PlayerViewModel(
                 withContext(Dispatchers.Main) {
                     if(isDisposed) return@withContext
                     val mediaSource: MediaSource = ProgressiveMediaSource.Factory(DefaultDataSource.Factory(context)).createMediaSource(MediaItem.fromUri(uri)).run {
-                        if (clipping != null && clipping.isValid) {
-                            ClippingMediaSource(this, clipping.start*1000, clipping.end * 1000)
+                        if (sourceClipping != null && sourceClipping.isValid) {
+                            ClippingMediaSource(this, sourceClipping.start*1000, sourceClipping.end * 1000)
                         } else {
                             this
                         }
@@ -221,8 +231,12 @@ class PlayerViewModel(
         override fun onPlayerError(error: PlaybackException) {
             AmvExoVideoPlayer.logger.stackTrace(error)
             source.value?.invalidate()
-            state.value = IAmvVideoPlayer.PlayerState.Error
-            errorMessage.value = AmvStringPool[R.string.error] ?: context.getString(R.string.error)
+            if(!isReady) {
+                state.value = IAmvVideoPlayer.PlayerState.Error
+                errorMessage.value = AmvStringPool[R.string.error] ?: context.getString(R.string.error)
+            } else {
+                AmvExoVideoPlayer.logger.warn("ignoring exo error.")
+            }
         }
 
         override fun onLoadingChanged(isLoading: Boolean) {

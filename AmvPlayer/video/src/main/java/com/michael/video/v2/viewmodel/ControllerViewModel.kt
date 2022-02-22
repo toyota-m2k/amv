@@ -108,10 +108,12 @@ open class ControllerViewModel(
 
     val frameList = FrameList(thumbnailCount, thumbnailHeight, context, scope)
     val showFrameList = MutableStateFlow(true)
-    val commandPlay = Command().apply { bindForever { playerViewModel::play }}
-    val commandPause = Command().apply { bindForever { playerViewModel.pause() }}
-    val commandTogglePlay = Command().apply { bindForever { playerViewModel.togglePlay() }}
-    val commandShowFrameList = Command().apply { bindForever { showFrameList.value = !showFrameList.value }}
+    val controllerMinWidth = MutableStateFlow(0)
+    open val showKnobBeltOnFrameList:Flow<Boolean> = flow { emit(true) }
+    val commandPlay = Command { playerViewModel::play }
+    val commandPause = Command { playerViewModel.pause() }
+    val commandTogglePlay = Command { playerViewModel.togglePlay() }
+    val commandShowFrameList = Command { showFrameList.value = !showFrameList.value }
 
 //
 //    data class LongPressInfo(val marker:Long, val pressX:Float)

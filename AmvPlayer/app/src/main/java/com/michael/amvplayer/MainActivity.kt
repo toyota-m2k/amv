@@ -13,8 +13,14 @@ import android.view.View
 import android.widget.Button
 import android.widget.Toast
 import androidx.core.content.ContextCompat
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
-import com.michael.video.*
+import com.michael.video.AmvPickedUriSource
+import com.michael.video.AmvSettings
+import com.michael.video.v2.AmvPlayerUnitView
+import com.michael.video.v2.viewmodel.FullControllerViewModel
+import com.michael.video.v2.viewmodel.PlayerViewModel
 import io.github.toyota32k.bindit.Binder
 import io.github.toyota32k.bindit.Command
 import io.github.toyota32k.dialog.broker.pickers.UtFilePickerStore
@@ -29,7 +35,20 @@ import java.io.File
  * ActivityまたはFragmentのクラス宣言に付けます。
  */
 class MainActivity : UtMortalActivity() {
+    class MainViewModel : ViewModel() {
+        lateinit var playerViewModel :PlayerViewModel
+        lateinit var controllerViewModel :FullControllerViewModel
+        companion object {
+            fun instanceFor(owner:MainActivity):MainViewModel {
+                return ViewModelProvider(owner)[MainActivity.MainViewModel::class.java]
+            }
+        }
 
+        override fun onCleared() {
+            super.onCleared()
+            controllerViewModel.close()
+        }
+    }
     private var mHandler = Handler(Looper.getMainLooper())
 
     private val mSourceUris = arrayOf(
@@ -57,13 +76,27 @@ class MainActivity : UtMortalActivity() {
     private var mCurrentFile: File? = null
 
     val binder = Binder()
+    val commandOpenVideo = Command()
     val commandTrimming = Command()
     val commandSelectFrame = Command()
+    val commandExpand = Command(this::onExpand)
+    val commandReduce = Command(this::onReduce)
+    lateinit var viewModel:MainViewModel
+    lateinit var playerUnitView: AmvPlayerUnitView
 
     override fun onCreate(savedInstanceState: Bundle?) {
         UtLogger.debug("LC-Activity: onCreate")
         super.onCreate(savedInstanceState)
         setContentView(R.layout.main_activity);
+
+        viewModel = MainViewModel.instanceFor(this)
+        if(savedInstanceState==null) {
+            viewModel.playerViewModel = PlayerViewModel(this)
+            viewModel.controllerViewModel = FullControllerViewModel(viewModel.playerViewModel, 16, 50)
+        }
+
+        playerUnitView = findViewById<AmvPlayerUnitView>(R.id.playerUnitView)
+        playerUnitView.bindViewModel(viewModel.controllerViewModel, binder)
         //        mBinding.videoPlayer.setLayoutHint(FitMode.Inside, 1000, 1000);
         //        mBinding.videoController.setVideoPlayer(mBinding.videoPlayer);
 
@@ -72,6 +105,9 @@ class MainActivity : UtMortalActivity() {
         binder.register(
             commandTrimming.connectAndBind(this, findViewById<Button>(R.id.trimming_button), this::onTrimming),
             commandSelectFrame.connectAndBind(this, findViewById<Button>(R.id.selectFrame), this::onSelectFrame),
+            commandOpenVideo.connectAndBind(this, findViewById<Button>(R.id.file_button), this::onOpenVideo),
+            commandExpand.connectViewEx(findViewById(R.id.expandButton)),
+            commandReduce.connectViewEx(findViewById(R.id.reduceButton)),
         )
 
         // Cache Manager
@@ -194,24 +230,30 @@ class MainActivity : UtMortalActivity() {
             }
         }
     }
-
-    fun onShuffle(view: View?) {
-        val rand = (Math.random() * mSourceUris.size.toDouble()).toInt()
-        UtLogger.debug("Shuffle : %d", rand)
-
-        val randomUri = mSourceUris[rand]
-        val cache = AmvCacheManager.getCache(randomUri, null)
-        cache.getFile(object : IAmvCache.IGotFileCallback {
-            override fun onGotFile(cache: IAmvCache, file: File?) {
-                if (null != file) {
-                    UtLogger.debug("file retrieved")
-                    mCurrentFile = file
-                } else {
-                    UtLogger.error("file not retrieved.\n" + cache.error.message)
-                }
-            }
-        })
+    fun onExpand(view: View?) {
+        playerUnitView.playerWidth = (playerUnitView.playerWidth * 1.1f).toInt()
     }
+    fun onReduce(view:View?) {
+        playerUnitView.playerWidth = (playerUnitView.playerWidth / 1.1f).toInt()
+    }
+
+//    fun onShuffle(view: View?) {
+//        val rand = (Math.random() * mSourceUris.size.toDouble()).toInt()
+//        UtLogger.debug("Shuffle : %d", rand)
+//
+//        val randomUri = mSourceUris[rand]
+//        val cache = AmvCacheManager.getCache(randomUri, null)
+//        cache.getFile(object : IAmvCache.IGotFileCallback {
+//            override fun onGotFile(cache: IAmvCache, file: File?) {
+//                if (null != file) {
+//                    UtLogger.debug("file retrieved")
+//                    mCurrentFile = file
+//                } else {
+//                    UtLogger.error("file not retrieved.\n" + cache.error.message)
+//                }
+//            }
+//        })
+//    }
 
     fun onSelectFrame(view: View?) {
         lifecycleScope.launch {
@@ -224,18 +266,27 @@ class MainActivity : UtMortalActivity() {
         }
     }
 
-    fun onExpand(view: View) {
-//        val player = mBinding!!.playerUnitView.videoPlayer
-//        val hint = player.getLayoutHint()
-//        player.setLayoutHint(hint.fitMode, hint.layoutWidth * 1.2f, hint.layoutHeight * 1.2f)
-
+    fun onOpenVideo(view:View?) {
+        lifecycleScope.launch {
+            val uri = filePickers.openFilePicker.selectFile(arrayOf("video/mp4", "video/*"))
+            if(uri!=null) {
+                viewModel.playerViewModel.setVideoSource(AmvPickedUriSource(uri))
+            }
+        }
     }
 
-    fun onReduce(view: View) {
-//        val player = mBinding!!.playerUnitView.videoPlayer
-//        val hint = player.getLayoutHint()
-//        player.setLayoutHint(hint.fitMode, hint.layoutWidth / 1.2f, hint.layoutHeight / 1.2f)
-    }
+//    fun onExpand(view: View) {
+////        val player = mBinding!!.playerUnitView.videoPlayer
+////        val hint = player.getLayoutHint()
+////        player.setLayoutHint(hint.fitMode, hint.layoutWidth * 1.2f, hint.layoutHeight * 1.2f)
+//
+//    }
+//
+//    fun onReduce(view: View) {
+////        val player = mBinding!!.playerUnitView.videoPlayer
+////        val hint = player.getLayoutHint()
+////        player.setLayoutHint(hint.fitMode, hint.layoutWidth / 1.2f, hint.layoutHeight / 1.2f)
+//    }
 
 //    fun onDialogResult(state: UxDialogViewModel.State) {
 //        when (state.tag) {

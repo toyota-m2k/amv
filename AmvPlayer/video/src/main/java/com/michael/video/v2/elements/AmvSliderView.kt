@@ -89,6 +89,9 @@ class AmvSliderView @JvmOverloads constructor(
             applyPosition(true)
         }.launchIn(viewScope)
 
+        viewModel.showKnobBeltOnFrameList.onEach {
+            showThumbBg = it
+        }.launchIn(viewScope)
 
 
 //        viewModel.sliderPosition.onEach { pos->
@@ -336,7 +339,7 @@ class AmvSliderView @JvmOverloads constructor(
 
             drThumbBg = sa.getDrawable(R.styleable.AmvSlider_thumbBg) ?: ContextCompat.getDrawable(context, R.drawable.ic_slider_knob_bg)!!
             drThumbLine = sa.getDrawable(R.styleable.AmvSlider_thumbLine) ?: ContextCompat.getDrawable(context, R.drawable.ic_slider_trim_guide)!!
-            showThumbBg = sa.getBoolean(R.styleable.AmvSlider_showThumbBg, false)
+//            showThumbBg = sa.getBoolean(R.styleable.AmvSlider_showThumbBg, false)
 
             // colors
             val railColor = sa.getColor(R.styleable.AmvSlider_railColor, Color.WHITE)

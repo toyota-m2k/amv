@@ -12,7 +12,7 @@ interface IAmvHttpClientSource {
 }
 
 object AmvSettings {
-    val logger = UtLog("AMV", null, "com.michael.video.")
+    val logger = UtLog("a-m-v", null, "com.michael.video.")
 
     private var initialized: Boolean = false
 //    private var allowPictureInPictureByCaller = false

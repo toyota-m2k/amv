@@ -1,92 +1,90 @@
 <?xml version="1.0" encoding="utf-8"?>
-<layout
+<androidx.constraintlayout.widget.ConstraintLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
-    >
-    <androidx.constraintlayout.widget.ConstraintLayout
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        tools:context=".MainActivity">
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context=".MainActivity">
 
-        <!--<TextView-->
-            <!--android:id="@+id/textView"-->
+    <!--<TextView-->
+        <!--android:id="@+id/textView"-->
+        <!--android:layout_width="wrap_content"-->
+        <!--android:layout_height="wrap_content"-->
+        <!--android:text="@{mainActivity.Message}"-->
+        <!--app:layout_constraintBottom_toBottomOf="parent"-->
+        <!--app:layout_constraintLeft_toLeftOf="parent"-->
+        <!--app:layout_constraintRight_toRightOf="parent"-->
+        <!--app:layout_constraintTop_toTopOf="parent" />-->
+
+    <LinearLayout
+        android:id="@+id/buttonGroup"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        app:layout_constraintLeft_toLeftOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        >
+
+        <!--<Button-->
+            <!--android:id="@+id/camera_button"-->
             <!--android:layout_width="wrap_content"-->
             <!--android:layout_height="wrap_content"-->
-            <!--android:text="@{mainActivity.Message}"-->
-            <!--app:layout_constraintBottom_toBottomOf="parent"-->
-            <!--app:layout_constraintLeft_toLeftOf="parent"-->
-            <!--app:layout_constraintRight_toRightOf="parent"-->
-            <!--app:layout_constraintTop_toTopOf="parent" />-->
-
-        <LinearLayout
-            android:id="@+id/buttonGroup"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            app:layout_constraintLeft_toLeftOf="parent"
-            app:layout_constraintTop_toTopOf="parent"
-            >
-
-            <!--<Button-->
-                <!--android:id="@+id/camera_button"-->
-                <!--android:layout_width="wrap_content"-->
-                <!--android:layout_height="wrap_content"-->
-                <!--android:onClick="@{mainActivity::onClickCamera}"-->
-                <!--android:text="@string/camera"-->
-                <!--android:textAllCaps="false"-->
-                <!--app:layout_constraintLeft_toLeftOf="parent"-->
-                <!--/>-->
-
-            <Button
-                android:id="@+id/file_button"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginEnd="8dp"
-                android:textAllCaps="false"
-                android:text="@string/open_file"
-                tools:ignore="ButtonStyle" />
-
-            <Button
-                android:id="@+id/shuffleButton"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginEnd="8dp"
-                android:textAllCaps="false"
-                android:text="@string/shuffle"
-                tools:ignore="ButtonStyle" />
-
-            <!--<Button-->
-            <!--android:id="@+id/transcode_button"-->
-            <!--android:layout_width="wrap_content"-->
-            <!--android:layout_height="wrap_content"-->
-            <!--android:layout_marginStart="8dp"-->
+            <!--android:onClick="@{mainActivity::onClickCamera}"-->
+            <!--android:text="@string/camera"-->
             <!--android:textAllCaps="false"-->
-            <!--android:onClick="@{mainActivity::onTranscode}"-->
-            <!--android:text="@string/transcode"-->
-            <!--app:layout_constraintStart_toEndOf="@+id/file_button"-->
+            <!--app:layout_constraintLeft_toLeftOf="parent"-->
             <!--/>-->
 
-            <Button
-                android:id="@+id/trimming_button"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginEnd="8dp"
-                android:textAllCaps="false"
-                android:text="@string/trimming"
-                tools:ignore="ButtonStyle" />
+        <Button
+            android:id="@+id/file_button"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginEnd="8dp"
+            android:textAllCaps="false"
+            android:text="@string/open_file"
+            tools:ignore="ButtonStyle" />
 
-            <Button
-                android:id="@+id/selectFrame"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginEnd="8dp"
-                android:textAllCaps="false"
-                android:text="@string/select_frame"
-                tools:ignore="ButtonStyle" />
+        <Button
+            android:id="@+id/shuffleButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginEnd="8dp"
+            android:textAllCaps="false"
+            android:text="@string/shuffle"
+            tools:ignore="ButtonStyle" />
+
+        <!--<Button-->
+        <!--android:id="@+id/transcode_button"-->
+        <!--android:layout_width="wrap_content"-->
+        <!--android:layout_height="wrap_content"-->
+        <!--android:layout_marginStart="8dp"-->
+        <!--android:textAllCaps="false"-->
+        <!--android:onClick="@{mainActivity::onTranscode}"-->
+        <!--android:text="@string/transcode"-->
+        <!--app:layout_constraintStart_toEndOf="@+id/file_button"-->
+        <!--/>-->
+
+        <Button
+            android:id="@+id/trimming_button"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginEnd="8dp"
+            android:textAllCaps="false"
+            android:text="@string/trimming"
+            tools:ignore="ButtonStyle" />
+
+        <Button
+            android:id="@+id/selectFrame"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginEnd="8dp"
+            android:textAllCaps="false"
+            android:text="@string/select_frame"
+            tools:ignore="ButtonStyle" />
 
 
-        </LinearLayout>
+    </LinearLayout>
 
 <!--        <com.michael.video.AmvPlayerUnitView-->
 <!--            android:id="@+id/playerUnitView"-->
@@ -99,52 +97,61 @@
 <!--            tools:layout_width="300dp"-->
 <!--            tools:layout_height="300dp"-->
 <!--            />-->
-        <!--<com.michael.video.AmvExoVideoPlayer-->
-            <!--tools:layout_width="wrap_content"-->
-            <!--tools:layout_height="wrap_content"-->
-            <!--android:layout_height="wrap_content"-->
-            <!--android:layout_width="wrap_content"-->
-            <!--android:id="@+id/video_player"-->
-            <!--app:layout_constraintTop_toBottomOf="@id/file_button"-->
-            <!--app:layout_constraintLeft_toLeftOf="parent"-->
-            <!--app:layout_constraintRight_toRightOf="parent"-->
-            <!--/>-->
-        <!--<com.michael.video.AmvVideoController-->
-            <!--android:id="@+id/video_controller"-->
-            <!--android:layout_width="wrap_content"-->
-            <!--android:layout_height="wrap_content"-->
-            <!--app:layout_constraintTop_toBottomOf="@id/video_player"-->
-            <!--app:layout_constraintLeft_toLeftOf="parent"-->
-            <!--app:layout_constraintRight_toRightOf="parent"-->
-            <!--/>-->
+    <!--<com.michael.video.AmvExoVideoPlayer-->
+        <!--tools:layout_width="wrap_content"-->
+        <!--tools:layout_height="wrap_content"-->
+        <!--android:layout_height="wrap_content"-->
+        <!--android:layout_width="wrap_content"-->
+        <!--android:id="@+id/video_player"-->
+        <!--app:layout_constraintTop_toBottomOf="@id/file_button"-->
+        <!--app:layout_constraintLeft_toLeftOf="parent"-->
+        <!--app:layout_constraintRight_toRightOf="parent"-->
+        <!--/>-->
+    <!--<com.michael.video.AmvVideoController-->
+        <!--android:id="@+id/video_controller"-->
+        <!--android:layout_width="wrap_content"-->
+        <!--android:layout_height="wrap_content"-->
+        <!--app:layout_constraintTop_toBottomOf="@id/video_player"-->
+        <!--app:layout_constraintLeft_toLeftOf="parent"-->
+        <!--app:layout_constraintRight_toRightOf="parent"-->
+        <!--/>-->
 
-        <LinearLayout
+    <com.michael.video.v2.AmvPlayerUnitView
+        android:id="@+id/playerUnitView"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        app:layout_constraintTop_toBottomOf="@+id/buttonGroup"
+        app:layout_constraintStart_toStartOf="parent"
+        />
+
+
+    <LinearLayout
+        android:id="@+id/underButtonGroup"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:layout_marginBottom="16dp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintLeft_toLeftOf="parent"
+        app:layout_constraintRight_toRightOf="parent"
+        >
+        <Button android:id="@+id/reduceButton"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:layout_marginBottom="16dp"
-            app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintLeft_toLeftOf="parent"
-            app:layout_constraintRight_toRightOf="parent"
-            >
-            <Button android:id="@+id/reduceButton"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginEnd="8dp"
-                android:paddingLeft="8dp"
-                android:paddingRight="8dp"
-                android:text="@string/reduceMark"
-                tools:ignore="ButtonStyle" />
+            android:layout_marginEnd="8dp"
+            android:paddingLeft="8dp"
+            android:paddingRight="8dp"
+            android:text="@string/reduceMark"
+            tools:ignore="ButtonStyle" />
 
-            <Button android:id="@+id/expandButton"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginEnd="8dp"
-                android:paddingLeft="8dp"
-                android:paddingRight="8dp"
-                android:text="@string/expandMark"
-                tools:ignore="ButtonStyle" />
-        </LinearLayout>
+        <Button android:id="@+id/expandButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginEnd="8dp"
+            android:paddingLeft="8dp"
+            android:paddingRight="8dp"
+            android:text="@string/expandMark"
+            tools:ignore="ButtonStyle" />
+    </LinearLayout>
 
-    </androidx.constraintlayout.widget.ConstraintLayout>
-</layout>
+</androidx.constraintlayout.widget.ConstraintLayout>

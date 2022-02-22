@@ -16,8 +16,10 @@ import android.widget.FrameLayout
 import androidx.lifecycle.lifecycleScope
 import com.michael.video.AmvSettings
 import com.michael.video.R
+import com.michael.video.setLayoutHeight
 import com.michael.video.v2.viewmodel.ControllerViewModel
 import io.github.toyota32k.bindit.Binder
+import io.github.toyota32k.utils.dp2px
 import io.github.toyota32k.utils.lifecycleOwner
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
@@ -40,7 +42,13 @@ class AmvSliderPanel @JvmOverloads constructor(context: Context, attrs: Attribut
     fun bindViewModel(viewModel:ControllerViewModel, binder:Binder) {
         this.viewModel = viewModel
         viewModel.showFrameList.onEach {
-            frameListView.visibility = if(it) View.VISIBLE else View.GONE
+            if(it) {
+                frameListView.visibility = View.VISIBLE
+                sliderView.setLayoutHeight(context.dp2px(64))
+            } else {
+                frameListView.visibility = View.GONE
+                sliderView.setLayoutHeight(context.dp2px(20))
+            }
         }.launchIn(lifecycleOwner()!!.lifecycleScope)
         frameListView.bindViewModel(viewModel, binder)
         sliderView.bindViewModel(viewModel, binder)

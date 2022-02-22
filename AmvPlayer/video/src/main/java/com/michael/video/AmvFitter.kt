@@ -7,6 +7,9 @@
 
 package com.michael.video
 
+import android.util.Size
+import android.util.SizeF
+
 /**
  * 矩形領域のリサイズ方法
  */
@@ -20,23 +23,23 @@ enum class FitMode {
 /**
  * ビデオや画像のサイズ(original)を、指定されたmode:FitModeに従って、配置先のサイズ(layout)に合わせるように変換して resultに返す。
  *
+ * @param original  元のサイズ（ビデオ/画像のサイズ）
  * @param layout    レイアウト先の指定サイズ
  * @param result    結果を返すバッファ
- * @param original  元のサイズ（ビデオ/画像のサイズ）
  */
-fun fitSizeTo(original:MuSize, layout:MuSize, mode:FitMode, result:MuSize) {
+fun fitSizeTo(originalWidth:Float, originalHeight:Float, layoutWidth:Float, layoutHeight:Float, mode:FitMode, result:MuSize) {
     try {
         when (mode) {
-            FitMode.Fit -> result.copyFrom(layout)
-            FitMode.Width -> result.set(layout.width, original.height * layout.width / original.width)
-            FitMode.Height -> result.set(original.width * layout.height / original.height, layout.height)
+            FitMode.Fit -> result.set(layoutWidth, layoutHeight)
+            FitMode.Width -> result.set(layoutWidth, originalHeight * layoutWidth / originalWidth)
+            FitMode.Height -> result.set(originalWidth * layoutHeight / originalHeight, layoutHeight)
             FitMode.Inside -> {
-                val rw = layout.width / original.width
-                val rh = layout.height / original.height
+                val rw = layoutWidth / originalWidth
+                val rh = layoutHeight / originalHeight
                 if (rw < rh) {
-                    result.set(layout.width, original.height * rw)
+                    result.set(layoutWidth, originalHeight * rw)
                 } else {
-                    result.set(original.width * rh, layout.height)
+                    result.set(originalWidth * rh, layoutHeight)
                 }
             }
         }
@@ -45,6 +48,7 @@ fun fitSizeTo(original:MuSize, layout:MuSize, mode:FitMode, result:MuSize) {
         result.set(0f,0f)
     }
 }
+fun fitSizeTo(original:MuSize, layout:MuSize, mode:FitMode, result:MuSize) = fitSizeTo(original.width, original.height, layout.width, layout.height, mode, result)
 
 interface IAmvLayoutHint {
     val fitMode: FitMode
@@ -52,7 +56,7 @@ interface IAmvLayoutHint {
     val layoutHeight: Float
 }
 
-open class AmvFitter(override var fitMode: FitMode = FitMode.Inside, private var layoutSize: MuSize = MuSize(1000f, 1000f)) : IAmvLayoutHint {
+open class AmvFitter(override var fitMode: FitMode = FitMode.Inside, protected var layoutSize: MuSize = MuSize(1000f, 1000f)) : IAmvLayoutHint {
     override val layoutWidth: Float
         get() = layoutSize.width
     override val layoutHeight: Float
@@ -74,4 +78,58 @@ open class AmvFitter(override var fitMode: FitMode = FitMode.Inside, private var
         fit(MuSize(w,h), result)
         return result
     }
+}
+
+class AmvFitterEx(override var fitMode:FitMode, override var layoutWidth:Float, override var layoutHeight:Float) : IAmvLayoutHint {
+    constructor():this(FitMode.Inside, 1f, 1f)
+    constructor(fitMode:FitMode):this(fitMode, 1f,1f)
+    constructor(fitMode:FitMode, layoutWidth:Int, layoutHeight:Int):this(fitMode,layoutWidth.toFloat(), layoutHeight.toFloat())
+
+    val result = MuSize()
+    val resultSize:Size
+        get() = result.asSize
+    val resultSizeF:SizeF
+        get() = result.asSizeF
+    val resultWidth = result.width
+    val resultHeight = result.height
+
+    fun setMode(fitMode:FitMode) {
+        this.fitMode = fitMode
+    }
+
+    fun setLayoutWidth(width:Float):AmvFitterEx {
+        this.layoutWidth = width
+        return this
+    }
+    fun setLayoutWidth(width:Int):AmvFitterEx {
+        this.layoutWidth = width.toFloat()
+        return this
+    }
+
+    fun setLayoutHeight(height:Float):AmvFitterEx {
+        this.layoutHeight = height
+        return this
+    }
+    fun setLayoutHeight(height:Int):AmvFitterEx {
+        this.layoutHeight = height.toFloat()
+        return this
+    }
+
+    fun fit(src: Size):AmvFitterEx {
+        fitSizeTo(src.width.toFloat(), src.height.toFloat(), layoutWidth, layoutHeight, fitMode, result)
+        return this
+    }
+    fun fit(src: SizeF):AmvFitterEx {
+        fitSizeTo(src.width, src.height, layoutWidth, layoutHeight, fitMode, result)
+        return this
+    }
+    fun fit(srcWidth:Int, srcHeight:Int):AmvFitterEx {
+        fitSizeTo(srcWidth.toFloat(), srcHeight.toFloat(), layoutWidth, layoutHeight, fitMode, result)
+        return this
+    }
+    fun fit(srcWidth:Float, srcHeight:Float):AmvFitterEx {
+        fitSizeTo(srcWidth, srcHeight, layoutWidth, layoutHeight, fitMode, result)
+        return this
+    }
+
 }

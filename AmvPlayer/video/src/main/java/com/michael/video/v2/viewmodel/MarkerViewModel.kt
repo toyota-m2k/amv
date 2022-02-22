@@ -7,6 +7,8 @@ import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
 import java.io.Closeable
 import kotlin.math.absoluteValue
@@ -32,6 +34,17 @@ class MarkerViewModel(val scope:CoroutineScope) : Closeable {
 
     val markerCommand = MutableSharedFlow<MarkerOperation>(replay = 0, extraBufferCapacity = 0, onBufferOverflow = BufferOverflow.SUSPEND)
     val markerEvent = MutableSharedFlow<MarkerOperation>(replay = 0, extraBufferCapacity = 0, onBufferOverflow = BufferOverflow.SUSPEND)
+
+    init {
+        markerCommand.onEach {
+            when(it.action) {
+                MarkerOperation.Action.ADD->addMarker(it)
+                MarkerOperation.Action.REMOVE->removeMarker(it)
+                MarkerOperation.Action.SET->setMarkers(it)
+                MarkerOperation.Action.CLEAR->clearMarkers(it)
+            }
+        }.launchIn(scope)
+    }
 
 //    val highlightMarker = MutableStateFlow<Long>(-1L)
 //    fun flashMarker(marker:Long, duration:Long = 300L /*ms*/) {
@@ -62,7 +75,7 @@ class MarkerViewModel(val scope:CoroutineScope) : Closeable {
     suspend fun removeMarker(marker:Long, clientData: Any?=null) {
         markerCommand.emit(MarkerOperation(MarkerOperation.Action.REMOVE, marker, null, clientData))
     }
-    suspend fun clearMarker(marker:Long, clientData: Any?=null) {
+    suspend fun clearMarkers(clientData: Any?=null) {
         markerCommand.emit(MarkerOperation(MarkerOperation.Action.CLEAR, -1, null, clientData))
     }
 
@@ -75,6 +88,12 @@ class MarkerViewModel(val scope:CoroutineScope) : Closeable {
         for(e in v) {
             markers.addCore(e, pos)
         }
+        markerEvent.emit(cmd)
+    }
+
+    private suspend fun clearMarkers(cmd:MarkerOperation) {
+        assert(cmd.action == MarkerOperation.Action.CLEAR)
+        markers.clear()
         markerEvent.emit(cmd)
     }
 

@@ -23,7 +23,7 @@
     <com.michael.video.v2.elements.AmvSliderView
         android:id="@+id/sp_slider"
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
+        android:layout_height="64dp"
         app:trimmingMode="false"
         app:saveFromParent="false"
         app:showThumbBg="true"

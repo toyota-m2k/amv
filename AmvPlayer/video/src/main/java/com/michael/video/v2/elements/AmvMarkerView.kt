@@ -21,6 +21,7 @@ import com.michael.utils.SortedList
 import com.michael.video.AmvSettings
 import com.michael.video.R
 import com.michael.video.v2.viewmodel.ControllerViewModel
+import com.michael.video.v2.viewmodel.FullControllerViewModel
 import io.github.toyota32k.bindit.Binder
 import io.github.toyota32k.utils.dp2px
 import io.github.toyota32k.utils.lifecycleOwner
@@ -36,11 +37,6 @@ class AmvMarkerView @JvmOverloads constructor(
     companion object {
         val logger = AmvSettings.logger
     }
-//    var markerAddedListener = FuncyListener2<Double,Any?,Unit>()
-//    var markerRemovedListener = FuncyListener2<Double,Any?,Unit>()
-//    var markerSelectedListener = FuncyListener2<Double,Any?,Unit>()
-//    var markerContextQueryListener = FuncyListener3<Double,Float,Any?,Unit>()
-
 
     // dimensions
     private val mDrMarker: Drawable
@@ -53,12 +49,7 @@ class AmvMarkerView @JvmOverloads constructor(
     private val mLeftInert: Int
     private val mRightInert: Int
 
-    // マーカー情報
-//    private val mMinMarkerSpan : Long = 100L     // マーカー設定間隔の最小値（100ms）
-//    private var mTotalRange : Long = 1000L       // naturalDuration
-//    private var mHighLightMarker: Long? = null
-
-    lateinit var viewModel:ControllerViewModel
+    lateinit var viewModel:FullControllerViewModel
     private var mTotalRange = 0L //viewModel.playerViewModel.naturalDuration.value
 
     init {
@@ -72,7 +63,6 @@ class AmvMarkerView @JvmOverloads constructor(
             mMarkerWidth = mDrMarker.intrinsicWidth
             mMarkerHitLuckyZone = (context.dp2px(24) - mMarkerWidth ) / 2
             mNaturalHeight = mDrMarker.intrinsicHeight
-//            isSaveFromParentEnabled = sa.getBoolean(R.styleable.AmvMarkerView_saveFromParent, true)
         } finally {
             sa.recycle()
         }
@@ -83,7 +73,7 @@ class AmvMarkerView @JvmOverloads constructor(
         setOnLongClickListener(touchManager)
     }
 
-    fun bindViewModel(viewModel:ControllerViewModel, binder: Binder) {
+    fun bindViewModel(viewModel:FullControllerViewModel, binder: Binder) {
         this.viewModel = viewModel
         val lifecycleOwner = lifecycleOwner()!!
         val scope = lifecycleOwner.lifecycleScope
@@ -91,8 +81,11 @@ class AmvMarkerView @JvmOverloads constructor(
             mTotalRange = it
             invalidate()
         }.launchIn(scope)
-    }
 
+        this.viewModel.markerViewModel.markerEvent.onEach {
+            invalidate()
+        }.launchIn(scope)
+    }
 
     /**
      * サイズ計算

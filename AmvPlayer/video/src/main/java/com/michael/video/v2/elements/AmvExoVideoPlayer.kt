@@ -10,6 +10,8 @@ import android.widget.FrameLayout
 import android.widget.TextView
 import androidx.lifecycle.asLiveData
 import androidx.lifecycle.lifecycleScope
+import com.google.android.exoplayer2.SimpleExoPlayer
+import com.google.android.exoplayer2.ui.AspectRatioFrameLayout
 import com.google.android.exoplayer2.ui.PlayerView
 import com.michael.video.*
 import com.michael.video.v2.viewmodel.PlayerViewModel
@@ -89,10 +91,18 @@ class AmvExoVideoPlayer @JvmOverloads constructor(context: Context, attrs: Attri
             TextBinding.create(owner,errorMessageView, viewModel.errorMessage.filterNotNull().asLiveData()),
         )
 
-        viewModel.playerSizeFlow.onEach(this::updateLayout).launchIn(scope)
+        if(viewModel.stretchVideoToView) {
+            playerView.setLayoutSize(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT)
+            logger.debug("${playerView.resizeMode}")
+            playerView.resizeMode = AspectRatioFrameLayout.RESIZE_MODE_FILL
+        } else {
+            viewModel.playerSizeFlow.onEach(this::updateLayout).launchIn(scope)
+            playerView.resizeMode = AspectRatioFrameLayout.RESIZE_MODE_FIT
+        }
     }
 
     private fun updateLayout(videoSize:Size) {
+        logger.debug("AmvExoVideoPlayer:Size=(${videoSize.width}w, ${videoSize.height}h)")
         playerView.setLayoutSize(videoSize.width, videoSize.height)
     }
 
@@ -102,7 +112,7 @@ class AmvExoVideoPlayer @JvmOverloads constructor(context: Context, attrs: Attri
             viewModel.rootViewSize.value = Size(w, h)
         }
     }
-    
+
 //    fun togglePlay() {
 //        viewModel.togglePlay()
 //    }
