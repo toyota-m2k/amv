@@ -29,59 +29,108 @@ class PlayerViewModel(
     context: Context,                   // application context が必要
 ) : Closeable {
     val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)          // dispose()まで有効なコルーチンスコープ
-    val context = context.applicationContext
-    private val listener =  PlayerListener()
-    // ExoPlayer
+    val context:Context = context.applicationContext                                        // ApplicationContextならViewModelが持っていても大丈夫だと思う。
+    private val listener =  PlayerListener()                                        // ExoPlayerのリスナー
+
     val player: ExoPlayer = ExoPlayer.Builder(context).build().apply {
         addListener(listener)
     }
 
     /**
      * 動画のソース
+     * collectできるようにpublicにしているけど、直接valueを弄らず、setVideoSource()メソッドで設定すること。
      */
-    val source = MutableStateFlow<IAmvSource?>(null)
-    var sourceClipping: IAmvVideoPlayer.Clipping? = null
+    val source:StateFlow<IAmvSource?> = MutableStateFlow<IAmvSource?>(null)
+
+    /**
+     * ソースのクリッピング指定
+     * setVideoSource()の第２引数で指定すると、内部で、ExoPlayerのClippingMediaSourceを生成する。
+     */
+    private var sourceClipping: IAmvVideoPlayer.Clipping? = null
+
+    /**
+     * 動画再生範囲を無理やりクリッピングする指定
+     * Trimmingで、全体の再生範囲を有効にした状態で、再生範囲を限定するときに使用。
+     */
     var pseudoClipping: IAmvVideoPlayer.Clipping? = null
 
-    val videoSize = MutableStateFlow<VideoSize?>(null)
-    val rootViewSize = MutableStateFlow<Size?>(null)
-    val state = MutableStateFlow<IAmvVideoPlayer.PlayerState>(IAmvVideoPlayer.PlayerState.None)
-    val errorMessage = MutableStateFlow<String?>(null)
-    val naturalDuration = MutableStateFlow<Long>(0L)
+    /**
+     * 動画の画面サイズ情報
+     * ExoPlayerの動画読み込みが成功したとき onVideoSizeChanged()イベントから設定される。
+     */
+    val videoSize:StateFlow<VideoSize?> = MutableStateFlow<VideoSize?>(null)
 
+    /**
+     * 動画プレーヤーを配置するルートビューのサイズ
+     * AmvExoVideoPlayerビュークラスのonSizeChanged()からonRootViewSizeChanged()経由で設定される。
+     * このルートビューの中に収まるよう、動画プレーヤーのサイズが調整される。
+     */
+    private val rootViewSize:StateFlow<Size?> = MutableStateFlow<Size?>(null)
 
-    var stretchVideoToView = false
-
-    private val mVideoSize = MuSize()
-    private val mPlayerSize = MuSize()
-    private val mFitter = AmvFitter()
-    val playerSizeFlow = combine(videoSize.filterNotNull(),rootViewSize.filterNotNull()) { videoSize, rootViewSize->
-        mVideoSize.set(videoSize.width.toFloat(), videoSize.height.toFloat())
-        mFitter.setHint(FitMode.Inside, rootViewSize.width.toFloat(), rootViewSize.height.toFloat())
-        mFitter.fit(mVideoSize, mPlayerSize)
-        mPlayerSize.asSize
+    /**
+     * ルートビューサイズ変更のお知らせ
+     */
+    fun onRootViewSizeChanged(size:Size) {
+        rootViewSize.mutable.value = size
     }
 
-    val isLoadingFlow = state.map { it== IAmvVideoPlayer.PlayerState.Loading }
-    val isReadyFlow = state.map { it== IAmvVideoPlayer.PlayerState.Playing || it== IAmvVideoPlayer.PlayerState.Paused }
-    val isErrorFlow = errorMessage.map { !it.isNullOrBlank() }
-    val isPlayingFlow = state.map { it==IAmvVideoPlayer.PlayerState.Playing }
+    /**
+     * プレーヤーの状態
+     */
+    val state: StateFlow<IAmvVideoPlayer.PlayerState> = MutableStateFlow(IAmvVideoPlayer.PlayerState.None)
 
-    val isLoading get() = state.value == IAmvVideoPlayer.PlayerState.Loading
-    val isReady:Boolean get() = state.value.let { it== IAmvVideoPlayer.PlayerState.Playing || it== IAmvVideoPlayer.PlayerState.Paused }
-    val isPlaying get() = state.value == IAmvVideoPlayer.PlayerState.Playing
-    val isError get() = !errorMessage.value.isNullOrBlank()
+    /**
+     * エラーメッセージ
+     */
+    val errorMessage:StateFlow<String?> = MutableStateFlow<String?>(null)
 
-    private val playerSeekPositionInternalFlow = MutableStateFlow(0L)
-    val playerSeekPosition: Flow<Long> =  playerSeekPositionInternalFlow
+    /**
+     * （外部から）エラーメッセージを設定する
+     */
+    fun setErrorMessage(msg:String?) {
+        errorMessage.mutable.value = msg
+    }
 
-    var ended = false
-        private set
-    var isDisposed:Boolean = false
-    val watchPositionEvent = SuspendableEvent(signal = false, autoReset = false)
+    /**
+     * 動画の全再生時間
+     */
+    val naturalDuration:StateFlow<Long> = MutableStateFlow(0L)
+
+
+    /**
+     * ルートビューに動画プレーヤーを配置する方法を指定
+     *  true: ルートビューにぴったりフィット（Aspectは無視）
+     *  false: ルートビューの中に収まるサイズ（Aspect維持）
+     */
+    var stretchVideoToView = false
+
+    private val mFitter = AmvFitterEx(FitMode.Inside)
+    val playerSizeFlow = combine(videoSize.filterNotNull(),rootViewSize.filterNotNull()) { videoSize, rootViewSize->
+        mFitter
+            .setLayoutWidth(rootViewSize.width)
+            .setLayoutHeight(rootViewSize.height)
+            .fit(videoSize.width, videoSize.height)
+            .resultSize
+    }
+
+    val isLoading = state.map { it== IAmvVideoPlayer.PlayerState.Loading }.stateIn(scope, SharingStarted.Eagerly, false)
+    val isReady = state.map { it== IAmvVideoPlayer.PlayerState.Playing || it== IAmvVideoPlayer.PlayerState.Paused }.stateIn(scope, SharingStarted.Eagerly, false)
+    val isPlaying = state.map { it==IAmvVideoPlayer.PlayerState.Playing }.stateIn(scope, SharingStarted.Eagerly, false)
+    val isError = errorMessage.map { !it.isNullOrBlank() }.stateIn(scope, SharingStarted.Lazily, false)
+
+    /**
+     * プレーヤー内の再生位置
+     * 動画再生中は、タイマーで再生位置(player.currentPosition)を監視して、このFlowにセットする。
+     * スライダーは、これをcollectして、シーク位置を同期する。
+     */
+    val playerSeekPosition: StateFlow<Long> =  MutableStateFlow(0L)
+
+    private val watchPositionEvent = SuspendableEvent(signal = false, autoReset = false)    // スライダー位置監視を止めたり、再開したりするためのイベント
+    private var ended = false                   // 次回再生開始時に先頭に戻すため、最後まで再生したことを覚えておくフラグ
+    private var isDisposed:Boolean = false      // close済みフラグ
 
     init {
-        isPlayingFlow.onEach {
+        isPlaying.onEach {
             if(it) {
                 watchPositionEvent.set()
             }
@@ -92,9 +141,9 @@ class PlayerViewModel(
                 watchPositionEvent.waitOne()
                 val pos = player.currentPosition
                 if(!seekManager.isSeeking) {
-                    playerSeekPositionInternalFlow.value = pos
+                    playerSeekPosition.mutable.value = pos
                 }
-                if(!isPlaying) {
+                if(!isPlaying.value) {
                     watchPositionEvent.reset()
                 }
                 else if(pseudoClipping!=null) {
@@ -111,6 +160,9 @@ class PlayerViewModel(
         }
     }
 
+    /**
+     * 解放
+     */
     override fun close() {
         player.removeListener(listener)
         player.release()
@@ -118,30 +170,38 @@ class PlayerViewModel(
         isDisposed = true
     }
 
+    /**
+     * 再初期化
+     */
     fun reset() {
-        source.value = null
+        source.mutable.value = null
         sourceClipping = null
         pseudoClipping = null
         ended = false
-        state.value = IAmvVideoPlayer.PlayerState.None
-        videoSize.value = null
-        errorMessage.value = null
-        naturalDuration.value = 0L
+        state.mutable.value = IAmvVideoPlayer.PlayerState.None
+        videoSize.mutable.value = null
+        errorMessage.mutable.value = null
+        naturalDuration.mutable.value = 0L
     }
 
+    /**
+     * 動画のソースを設定
+     * @param source    ソース（ファイル、uriなど）
+     * @param sourceClipping   クリッピング情報
+     */
     fun setVideoSource(source: IAmvSource?, sourceClipping: IAmvVideoPlayer.Clipping? = null) {
         reset()
         if(source==null) {
             return
         }
 
-        this.source.value = source
+        this.source.mutable.value = source
         this.sourceClipping = sourceClipping
 
         CoroutineScope(Dispatchers.IO).launch {
             val uri = source.getUriAsync()
             if(uri==null) {
-                errorMessage.value = source.error.toString()
+                errorMessage.mutable.value = source.error.toString()
             } else {
                 withContext(Dispatchers.Main) {
                     if(isDisposed) return@withContext
@@ -160,28 +220,37 @@ class PlayerViewModel(
         }
     }
 
+    /**
+     * pseudoClippingによって、引数 pos をクリップして返す。
+     */
     fun clipPosition(pos:Long):Long {
         val clipped = pseudoClipping?.clipPos(pos)?:pos
-        return if(clipped<0) {
-            0
-        } else if(clipped>naturalDuration.value) {
-            naturalDuration.value
-        } else clipped
+        return when {
+            clipped<0 -> 0
+            clipped>naturalDuration.value ->  naturalDuration.value
+            else -> clipped
+        }
     }
 
-    fun clippingSeekTo(pos:Long) {
+    /**
+     * pseudoClippingを考慮したシーク
+     */
+    private fun clippingSeekTo(pos:Long) {
         val clippedPos = clipPosition(pos)
         val end = pseudoClipping?.end ?: naturalDuration.value
 
         player.seekTo(clippedPos)
-        if(clippedPos == end) {
+        ended = if(clippedPos == end) {
             pause()
-            ended = true
+            true
         } else {
-            ended = false
+            false
         }
     }
 
+    /**
+     * Play / Pauseをトグル
+     */
     fun togglePlay() {
         if(player.playWhenReady) {
             pause()
@@ -190,6 +259,9 @@ class PlayerViewModel(
         }
     }
 
+    /**
+     * （再生中でなければ）再生を開始する
+     */
     fun play() {
         if(isDisposed) return
         if(ended) {
@@ -200,11 +272,17 @@ class PlayerViewModel(
         player.playWhenReady = true
     }
 
+    /**
+     * 再生を中断する
+     */
     fun pause() {
         if(isDisposed) return
         player.playWhenReady = false
     }
 
+    /**
+     * （SeekManager経由で）シークする
+     */
     fun seekTo(pos:Long) {
         if(isDisposed) return
         if(ended) {
@@ -217,23 +295,20 @@ class PlayerViewModel(
         seekManager.request(pos)
     }
 
-    inner class PlayerListener :  Player.Listener
-    {
-
+    /**
+     * ExoPlayerのイベントリスナークラス
+     */
+    inner class PlayerListener :  Player.Listener {
         override fun onVideoSizeChanged(videoSize: VideoSize) {
-            this@PlayerViewModel.videoSize.value = videoSize
+            this@PlayerViewModel.videoSize.mutable.value = videoSize
         }
-
-//        override fun onSeekProcessed() {
-//            playerSeekPositionInternalFlow.value = player.contentPosition
-//        }
 
         override fun onPlayerError(error: PlaybackException) {
             AmvExoVideoPlayer.logger.stackTrace(error)
             source.value?.invalidate()
-            if(!isReady) {
-                state.value = IAmvVideoPlayer.PlayerState.Error
-                errorMessage.value = AmvStringPool[R.string.error] ?: context.getString(R.string.error)
+            if(!isReady.value) {
+                state.mutable.value = IAmvVideoPlayer.PlayerState.Error
+                errorMessage.mutable.value = AmvStringPool[R.string.error] ?: context.getString(R.string.error)
             } else {
                 AmvExoVideoPlayer.logger.warn("ignoring exo error.")
             }
@@ -243,7 +318,7 @@ class PlayerViewModel(
             AmvExoVideoPlayer.logger.debug("loading = $isLoading")
             if (isLoading && player.playbackState == Player.STATE_BUFFERING) {
                 if(state.value==IAmvVideoPlayer.PlayerState.None) {
-                    state.value = IAmvVideoPlayer.PlayerState.Loading
+                    state.mutable.value = IAmvVideoPlayer.PlayerState.Loading
                 } else {
                     scope.launch {
                         for(i in 0..20) {
@@ -254,7 +329,7 @@ class PlayerViewModel(
                         }
                         if (player.playbackState == Player.STATE_BUFFERING) {
                             // ２秒以上bufferingならロード中に戻す
-                            state.value = IAmvVideoPlayer.PlayerState.Loading
+                            state.mutable.value = IAmvVideoPlayer.PlayerState.Loading
                         }
                     }
                 }
@@ -276,26 +351,31 @@ class PlayerViewModel(
             }
             when(playbackState) {
                 Player.STATE_READY ->  {
-                    state.value = if(playWhenReady) IAmvVideoPlayer.PlayerState.Playing else IAmvVideoPlayer.PlayerState.Paused
-                    naturalDuration.value = player.duration
+                    state.mutable.value = if(playWhenReady) IAmvVideoPlayer.PlayerState.Playing else IAmvVideoPlayer.PlayerState.Paused
+                    naturalDuration.mutable.value = player.duration
                 }
                 Player.STATE_ENDED -> {
                     player.playWhenReady = false
                     ended = true
-                    state.value = IAmvVideoPlayer.PlayerState.Paused
+                    state.mutable.value = IAmvVideoPlayer.PlayerState.Paused
                 }
                 else -> {}
             }
         }
     }
 
-
+    /**
+     * 高速シークモードを開始（スライダー用）
+     */
     fun beginFastSeekMode() {
         val duration = naturalDuration.value
         if(duration==0L) return
         seekManager.begin(duration)
     }
 
+    /**
+     * 高速シークモード終了（スライダー用）
+     */
     fun endFastSeekMode() {
         seekManager.end()
     }
@@ -346,7 +426,7 @@ class PlayerViewModel(
         private fun checkAndSeek() {
             if(mSeeking) {
                 if(mCheckCounter>=mWaitCount && mSeekTarget>=0 ) {
-                    if(isLoading) {
+                    if(isLoading.value) {
                         com.michael.video.AmvExoVideoPlayer.logger.debug("seek: checked ok, but loading now")
                     } else {
                         com.michael.video.AmvExoVideoPlayer.logger.debug("seek: checked ok")
@@ -404,9 +484,12 @@ class PlayerViewModel(
             }
         }
 
-        fun fastSeek(pos:Long) {
+        /**
+         * 高速な（テキトーな）シーク
+         */
+        private fun fastSeek(pos:Long) {
             com.michael.video.AmvExoVideoPlayer.logger.debug("fast seek - $pos")
-            if(isLoading) {
+            if(isLoading.value) {
                 return
             }
             if(!mFastMode) {
@@ -417,6 +500,9 @@ class PlayerViewModel(
             clippingSeekTo(pos)
         }
 
+        /**
+         * 正確なシーク
+         */
         fun exactSeek(pos:Long) {
             com.michael.video.AmvExoVideoPlayer.logger.debug("exact seek - $pos")
             if(mFastMode) {
@@ -427,9 +513,18 @@ class PlayerViewModel(
             clippingSeekTo(pos)
         }
 
+        /**
+         * シーク中か？
+         */
         val isSeeking:Boolean
             get() = mSeeking
     }
     private var seekManager = SeekManager()
+
+    /**
+     * 外部に対して、ImmutableなStateFlowとして公開したプロパティを更新するために、MutableStateFlowにキャストする秘密のメソッド
+     */
+    private val <T> StateFlow<T>.mutable:MutableStateFlow<T>
+        get() = this as MutableStateFlow<T>
 
 }

@@ -98,7 +98,7 @@ class AmvVideoController @JvmOverloads constructor(context: Context, attrs: Attr
             // mute
             viewModel.commandSnapshot.connectViewEx(snapshotButton),
             viewModel.commandMute.connectViewEx(muteButton),
-            viewModel.playerViewModel.isPlayingFlow.asLiveData().disposableObserve(owner) { playing->
+            viewModel.playerViewModel.isPlaying.asLiveData().disposableObserve(owner) { playing->
                 val drawable = if(playing==true) drPause else drPlay
                 playButton.setImageDrawable(drawable)
                 playButtonMini.setImageDrawable(drawable)
@@ -106,8 +106,8 @@ class AmvVideoController @JvmOverloads constructor(context: Context, attrs: Attr
             viewModel.showFrameList.asLiveData().disposableObserve(owner) { show->
                 showFramesButton.setImageDrawable(if(show==true) drShowFrameOn else drShowFrameOff )
             },
-            MultiEnableBinding.create(owner, playButton, playButtonMini, forwardButton, backButton, markButton, pinpButton, fullButton, muteButton, snapshotButton, data = viewModel.playerViewModel.isReadyFlow.asLiveData() ),
-            GenericBoolMultiBinding.create(owner, playButton, playButtonMini, forwardButton, backButton, markButton, pinpButton, fullButton, muteButton, snapshotButton, data = viewModel.playerViewModel.isReadyFlow.asLiveData()) { views, enabled ->
+            MultiEnableBinding.create(owner, playButton, playButtonMini, forwardButton, backButton, markButton, pinpButton, fullButton, muteButton, snapshotButton, data = viewModel.playerViewModel.isReady.asLiveData() ),
+            GenericBoolMultiBinding.create(owner, playButton, playButtonMini, forwardButton, backButton, markButton, pinpButton, fullButton, muteButton, snapshotButton, data = viewModel.playerViewModel.isReady.asLiveData()) { views, enabled ->
                 views.forEach { it.alpha = if(enabled) 1.0f else 0.5f }
             },
             TextBinding.create(owner, counterBar, viewModel.counterText.asLiveData()),

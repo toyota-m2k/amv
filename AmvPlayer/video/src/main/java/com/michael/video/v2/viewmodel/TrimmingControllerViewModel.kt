@@ -17,7 +17,7 @@ class TrimmingControllerViewModel(playerViewModel: PlayerViewModel, thumbnailCou
     }
     val trimmingStart = MutableStateFlow<Long>(0)
     val trimmingEnd = MutableStateFlow<Long>(-1)
-    val isTrimmed:Boolean get() = playerViewModel.isReady && 0<trimmingStart.value || trimmingEnd.value < playerViewModel.naturalDuration.value
+    val isTrimmed:Boolean get() = playerViewModel.isReady.value && 0<trimmingStart.value || trimmingEnd.value < playerViewModel.naturalDuration.value
     val trimmingRange: IAmvVideoPlayer.Clipping?
         get() = if(isTrimmed) {
                 IAmvVideoPlayer.Clipping(trimmingStart.value, trimmingEnd.value)

@@ -55,9 +55,9 @@ class AmvTrimmingPlayerView @JvmOverloads constructor(context: Context, attrs: A
         val drPlay: Drawable = ContextCompat.getDrawable(context, R.drawable.ic_play)!!
         val drPause: Drawable = ContextCompat.getDrawable(context, R.drawable.ic_pause)!!
         binder.register(
-            EnableBinding.create(lifecycleOwner, playButton, viewModel.playerViewModel.isReadyFlow.asLiveData()),
-            AlphaBinding.create(lifecycleOwner, playButton, viewModel.playerViewModel.isReadyFlow.map { if(it) 1f else 0.4f }.asLiveData()),
-            GenericBoolBinding.create(lifecycleOwner, playButton, viewModel.playerViewModel.isPlayingFlow.asLiveData()) { view, playing->
+            EnableBinding.create(lifecycleOwner, playButton, viewModel.playerViewModel.isReady.asLiveData()),
+            AlphaBinding.create(lifecycleOwner, playButton, viewModel.playerViewModel.isReady.map { if(it) 1f else 0.4f }.asLiveData()),
+            GenericBoolBinding.create(lifecycleOwner, playButton, viewModel.playerViewModel.isPlaying.asLiveData()) { view, playing->
                 (view as? ImageButton)?.setImageDrawable( if(playing) drPause else drPlay )
             },
             viewModel.commandTogglePlay.connectViewEx(playerView),

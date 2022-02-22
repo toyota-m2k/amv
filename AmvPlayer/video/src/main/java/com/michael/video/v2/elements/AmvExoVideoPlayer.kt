@@ -10,17 +10,20 @@ import android.widget.FrameLayout
 import android.widget.TextView
 import androidx.lifecycle.asLiveData
 import androidx.lifecycle.lifecycleScope
-import com.google.android.exoplayer2.SimpleExoPlayer
 import com.google.android.exoplayer2.ui.AspectRatioFrameLayout
 import com.google.android.exoplayer2.ui.PlayerView
-import com.michael.video.*
+import com.michael.video.AmvSettings
+import com.michael.video.R
+import com.michael.video.setLayoutSize
 import com.michael.video.v2.viewmodel.PlayerViewModel
 import io.github.toyota32k.bindit.Binder
 import io.github.toyota32k.bindit.BoolConvert
 import io.github.toyota32k.bindit.TextBinding
 import io.github.toyota32k.bindit.VisibilityBinding
 import io.github.toyota32k.utils.lifecycleOwner
-import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.onEach
 
 class AmvExoVideoPlayer @JvmOverloads constructor(context: Context, attrs: AttributeSet? = null, defStyleAttr: Int = 0)
     : FrameLayout(context, attrs, defStyleAttr) {
@@ -86,8 +89,8 @@ class AmvExoVideoPlayer @JvmOverloads constructor(context: Context, attrs: Attri
         val errorMessageView : TextView = findViewById(R.id.exp_errorMessage)
         val progressRing : View = findViewById(R.id.exp_progressRing)
         binder.register(
-            VisibilityBinding.create(owner, progressRing, viewModel.isLoadingFlow.asLiveData(), BoolConvert.Straight, VisibilityBinding.HiddenMode.HideByInvisible),
-            VisibilityBinding.create(owner, errorMessageView, viewModel.isErrorFlow.asLiveData(), BoolConvert.Straight, VisibilityBinding.HiddenMode.HideByInvisible),
+            VisibilityBinding.create(owner, progressRing, viewModel.isLoading.asLiveData(), BoolConvert.Straight, VisibilityBinding.HiddenMode.HideByInvisible),
+            VisibilityBinding.create(owner, errorMessageView, viewModel.isError.asLiveData(), BoolConvert.Straight, VisibilityBinding.HiddenMode.HideByInvisible),
             TextBinding.create(owner,errorMessageView, viewModel.errorMessage.filterNotNull().asLiveData()),
         )
 
@@ -109,7 +112,7 @@ class AmvExoVideoPlayer @JvmOverloads constructor(context: Context, attrs: Attri
     override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
         super.onSizeChanged(w, h, oldw, oldh)
         if(w>0 && h>0) {
-            viewModel.rootViewSize.value = Size(w, h)
+            viewModel.onRootViewSizeChanged(Size(w, h))
         }
     }
 
