@@ -20,8 +20,7 @@ import androidx.lifecycle.lifecycleScope
 import com.michael.utils.SortedList
 import com.michael.video.AmvSettings
 import com.michael.video.R
-import com.michael.video.v2.viewmodel.ControllerViewModel
-import com.michael.video.v2.viewmodel.FullControllerViewModel
+import com.michael.video.v2.models.FullControlPanelModel
 import io.github.toyota32k.bindit.Binder
 import io.github.toyota32k.utils.dp2px
 import io.github.toyota32k.utils.lifecycleOwner
@@ -49,7 +48,7 @@ class AmvMarkerView @JvmOverloads constructor(
     private val mLeftInert: Int
     private val mRightInert: Int
 
-    lateinit var viewModel:FullControllerViewModel
+    lateinit var viewModel: FullControlPanelModel
     private var mTotalRange = 0L //viewModel.playerViewModel.naturalDuration.value
 
     init {
@@ -73,16 +72,16 @@ class AmvMarkerView @JvmOverloads constructor(
         setOnLongClickListener(touchManager)
     }
 
-    fun bindViewModel(viewModel:FullControllerViewModel, binder: Binder) {
+    fun bindViewModel(viewModel: FullControlPanelModel, binder: Binder) {
         this.viewModel = viewModel
         val lifecycleOwner = lifecycleOwner()!!
         val scope = lifecycleOwner.lifecycleScope
-        this.viewModel.playerViewModel.naturalDuration.onEach {
+        this.viewModel.playerModel.naturalDuration.onEach {
             mTotalRange = it
             invalidate()
         }.launchIn(scope)
 
-        this.viewModel.markerViewModel.markerEvent.onEach {
+        this.viewModel.markerListModel.markerEvent.onEach {
             invalidate()
         }.launchIn(scope)
     }
@@ -134,21 +133,21 @@ class AmvMarkerView @JvmOverloads constructor(
     private val mListPos:SortedList.Position by lazy { SortedList.Position() }
     private fun hitTestIndex(xPos:Int) : Int {
         val mk = (mTotalRange * (xPos - mLeftInert) / (mViewWidth - mLeftInert - mRightInert).toDouble()).roundToLong()
-        viewModel.markerViewModel.find(mk, mListPos)
+        viewModel.markerListModel.find(mk, mListPos)
         return if (mListPos.hit >= 0) {
             mListPos.hit
         } else {
             var candidate = -1
             var diff = Float.MAX_VALUE
             if (mListPos.next >= 0) {
-                val d = hitTestSub(xPos.toFloat(), viewModel.markerViewModel[mListPos.next])
+                val d = hitTestSub(xPos.toFloat(), viewModel.markerListModel[mListPos.next])
                 if (d >= 0f) {
                     diff = d
                     candidate = mListPos.next
                 }
             }
             if (mListPos.prev >= 0) {
-                val d = hitTestSub(xPos.toFloat(), viewModel.markerViewModel[mListPos.prev])
+                val d = hitTestSub(xPos.toFloat(), viewModel.markerListModel[mListPos.prev])
                 if (d >= 0f && d < diff) {
                     candidate = mListPos.prev
                 }
@@ -162,7 +161,7 @@ class AmvMarkerView @JvmOverloads constructor(
             return
         }
 
-        viewModel.markerViewModel.markerList.forEach {v->
+        viewModel.markerListModel.markerList.forEach { v->
             val left = getMarkerLeft(v).roundToInt()
             val drawable =
                 if(v ==highlightMarker) {
@@ -271,7 +270,7 @@ class AmvMarkerView @JvmOverloads constructor(
                         xOrg = x
                         yOrg = y
                         tapping = true
-                        setHighlight(viewModel.markerViewModel[markerIndex])
+                        setHighlight(viewModel.markerListModel[markerIndex])
                     }
                 }
                 MotionEvent.ACTION_MOVE, MotionEvent.ACTION_UP -> {
@@ -290,7 +289,7 @@ class AmvMarkerView @JvmOverloads constructor(
         }
 
         private fun selectMarker() : Long {
-            val marker = viewModel.markerViewModel[markerIndex]
+            val marker = viewModel.markerListModel[markerIndex]
             if(marker>=0) {
                 viewModel.commandSelectMarker.invoke(marker)
             }

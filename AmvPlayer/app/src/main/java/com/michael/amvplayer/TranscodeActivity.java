@@ -1,23 +1,13 @@
 package com.michael.amvplayer;
 
-import androidx.lifecycle.Observer;
-import androidx.lifecycle.ViewModelProviders;
 import android.content.Intent;
-import androidx.databinding.BaseObservable;
 import android.os.Bundle;
-import androidx.annotation.NonNull;
-import androidx.appcompat.app.AppCompatActivity;
-import android.util.Log;
-import android.util.Size;
 import android.view.View;
-import android.widget.TextView;
 
-import com.michael.video.AmvWorkingSurfaceView;
+import androidx.appcompat.app.AppCompatActivity;
+
 import com.mihcael.video.transcoder.AmvCascadeTranscoder;
 import com.mihcael.video.transcoder.IAmvTranscoder;
-
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 import java.io.File;
 import java.io.Serializable;
@@ -26,18 +16,6 @@ import io.github.toyota32k.utils.UtLogger;
 
 public class TranscodeActivity extends AppCompatActivity {
 
-    public class BindingParams extends BaseObservable {
-        private String _mediaInfoString;
-
-        public String getMediaInfoString() {
-            return _mediaInfoString;
-        }
-
-        public void setMediaInfoString(String v) {
-            _mediaInfoString = v;
-        }
-    }
-    public BindingParams bindingParams = new BindingParams();
     public IAmvTranscoder transcoder;
 
     @Override

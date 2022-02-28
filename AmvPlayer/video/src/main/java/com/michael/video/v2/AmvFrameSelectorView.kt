@@ -9,7 +9,7 @@ import com.michael.video.R
 import com.michael.video.v2.elements.AmvExoVideoPlayer
 import com.michael.video.v2.elements.AmvSliderPanel
 import com.michael.video.v2.misc.SliderWidthMediator
-import com.michael.video.v2.viewmodel.ControllerViewModel
+import com.michael.video.v2.models.ControlPanelModel
 import io.github.toyota32k.bindit.Binder
 import io.github.toyota32k.utils.lifecycleOwner
 import kotlin.math.roundToInt
@@ -18,7 +18,7 @@ class AmvFrameSelectorView@JvmOverloads constructor(context: Context, attrs: Att
     : FrameLayout(context, attrs, defStyleAttr) {
     val playerView: AmvExoVideoPlayer
     val sliderPanel: AmvSliderPanel
-    lateinit var viewModel:ControllerViewModel
+    lateinit var viewModel: ControlPanelModel
 
     init {
         LayoutInflater.from(context).inflate(R.layout.v2_frame_selector_view, this)
@@ -26,9 +26,9 @@ class AmvFrameSelectorView@JvmOverloads constructor(context: Context, attrs: Att
         sliderPanel = findViewById(R.id.vfs_slider_panel)
     }
 
-    fun bindViewModel(viewModel: ControllerViewModel, binder: Binder) {
+    fun bindViewModel(viewModel: ControlPanelModel, binder: Binder) {
         this.viewModel = viewModel
-        playerView.bindViewModel(viewModel.playerViewModel, binder)
+        playerView.bindViewModel(viewModel, binder)
         sliderPanel.bindViewModel(viewModel, binder)
         val lifecycleOwner = lifecycleOwner()!!
         sliderWidthMediator= SliderWidthMediator(viewModel.frameList.contentWidth, sliderPanel, sliderPanel.sliderView.extentWidth.roundToInt(), lifecycleOwner.lifecycleScope)

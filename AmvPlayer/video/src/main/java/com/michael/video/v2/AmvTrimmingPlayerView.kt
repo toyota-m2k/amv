@@ -14,7 +14,7 @@ import com.michael.video.R
 import com.michael.video.v2.elements.AmvExoVideoPlayer
 import com.michael.video.v2.elements.AmvTrimmingSliderPanel
 import com.michael.video.v2.misc.SliderWidthMediator
-import com.michael.video.v2.viewmodel.TrimmingControllerViewModel
+import com.michael.video.v2.models.TrimmingControlPanelModel
 import io.github.toyota32k.bindit.*
 import io.github.toyota32k.utils.lifecycleOwner
 import kotlinx.coroutines.flow.map
@@ -37,7 +37,7 @@ class AmvTrimmingPlayerView @JvmOverloads constructor(context: Context, attrs: A
 
     val playerView: AmvExoVideoPlayer
     val sliderPanel: AmvTrimmingSliderPanel
-    lateinit var viewModel:TrimmingControllerViewModel
+    lateinit var viewModel: TrimmingControlPanelModel
 
     init {
         LayoutInflater.from(context).inflate(R.layout.v2_trimming_player_view, this)
@@ -45,9 +45,9 @@ class AmvTrimmingPlayerView @JvmOverloads constructor(context: Context, attrs: A
         sliderPanel = findViewById(R.id.tpv_slider_panel)
     }
 
-    fun bindViewModel(viewModel:TrimmingControllerViewModel, binder: Binder) {
+    fun bindViewModel(viewModel: TrimmingControlPanelModel, binder: Binder) {
         this.viewModel = viewModel
-        playerView.bindViewModel(viewModel.playerViewModel, binder)
+        playerView.bindViewModel(viewModel, binder)
         sliderPanel.bindViewModel(viewModel, binder)
 
         val playButton = findViewById<ImageButton>(R.id.tpv_playButton)
@@ -55,9 +55,9 @@ class AmvTrimmingPlayerView @JvmOverloads constructor(context: Context, attrs: A
         val drPlay: Drawable = ContextCompat.getDrawable(context, R.drawable.ic_play)!!
         val drPause: Drawable = ContextCompat.getDrawable(context, R.drawable.ic_pause)!!
         binder.register(
-            EnableBinding.create(lifecycleOwner, playButton, viewModel.playerViewModel.isReady.asLiveData()),
-            AlphaBinding.create(lifecycleOwner, playButton, viewModel.playerViewModel.isReady.map { if(it) 1f else 0.4f }.asLiveData()),
-            GenericBoolBinding.create(lifecycleOwner, playButton, viewModel.playerViewModel.isPlaying.asLiveData()) { view, playing->
+            EnableBinding.create(lifecycleOwner, playButton, viewModel.playerModel.isReady.asLiveData()),
+            AlphaBinding.create(lifecycleOwner, playButton, viewModel.playerModel.isReady.map { if(it) 1f else 0.4f }.asLiveData()),
+            GenericBoolBinding.create(lifecycleOwner, playButton, viewModel.playerModel.isPlaying.asLiveData()) { view, playing->
                 (view as? ImageButton)?.setImageDrawable( if(playing) drPause else drPlay )
             },
             viewModel.commandTogglePlay.connectViewEx(playerView),

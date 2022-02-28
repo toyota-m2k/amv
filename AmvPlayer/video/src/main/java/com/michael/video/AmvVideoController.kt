@@ -216,7 +216,7 @@ class AmvVideoController @JvmOverloads constructor(context: Context, attrs: Attr
             slider.isSaveFromParentEnabled = false         // スライダーの状態は、AmvVideoController側で復元する
             slider.currentPositionChanged.set(this@AmvVideoController::onCurrentPositionChanged)
 
-            if(!AmvSettings.allowPictureInPicture) {
+            if(!AmvSettings.isPinPAvailable(context)) {
                 pinpButton.visibility = View.GONE
             }
 
@@ -299,7 +299,7 @@ class AmvVideoController @JvmOverloads constructor(context: Context, attrs: Attr
             }
 
         private val buttonCount
-            get() = 6 + if(AmvSettings.allowPictureInPicture) 1 else 0
+            get() = 6 + if(AmvSettings.isPinPAvailable(context)) 1 else 0
 
         val minControllerWidth: Int by lazy {
             context.dp2px(40*buttonCount) // ボタンの幅ｘボタンの数

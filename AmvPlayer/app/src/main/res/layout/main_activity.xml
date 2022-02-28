@@ -116,13 +116,13 @@
         <!--app:layout_constraintRight_toRightOf="parent"-->
         <!--/>-->
 
-    <com.michael.video.v2.AmvPlayerUnitView
-        android:id="@+id/playerUnitView"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        app:layout_constraintTop_toBottomOf="@+id/buttonGroup"
-        app:layout_constraintStart_toStartOf="parent"
-        />
+<!--    <com.michael.video.v2.AmvPlayerUnitView-->
+<!--        android:id="@+id/playerUnitView"-->
+<!--        android:layout_width="wrap_content"-->
+<!--        android:layout_height="wrap_content"-->
+<!--        app:layout_constraintTop_toBottomOf="@+id/buttonGroup"-->
+<!--        app:layout_constraintStart_toStartOf="parent"-->
+<!--        />-->
 
 
     <LinearLayout

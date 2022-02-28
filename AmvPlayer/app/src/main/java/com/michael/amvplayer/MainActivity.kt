@@ -16,11 +16,10 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
-import com.michael.video.AmvPickedUriSource
 import com.michael.video.AmvSettings
 import com.michael.video.v2.AmvPlayerUnitView
-import com.michael.video.v2.viewmodel.FullControllerViewModel
-import com.michael.video.v2.viewmodel.PlayerViewModel
+import com.michael.video.v2.models.FullControlPanelModel
+import com.michael.video.v2.models.PlayerModel
 import io.github.toyota32k.bindit.Binder
 import io.github.toyota32k.bindit.Command
 import io.github.toyota32k.dialog.broker.pickers.UtFilePickerStore
@@ -36,8 +35,8 @@ import java.io.File
  */
 class MainActivity : UtMortalActivity() {
     class MainViewModel : ViewModel() {
-        lateinit var playerViewModel :PlayerViewModel
-        lateinit var controllerViewModel :FullControllerViewModel
+        lateinit var playerModel : PlayerModel
+        lateinit var controllerViewModel : FullControlPanelModel
         companion object {
             fun instanceFor(owner:MainActivity):MainViewModel {
                 return ViewModelProvider(owner)[MainActivity.MainViewModel::class.java]
@@ -89,14 +88,14 @@ class MainActivity : UtMortalActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.main_activity);
 
-        viewModel = MainViewModel.instanceFor(this)
-        if(savedInstanceState==null) {
-            viewModel.playerViewModel = PlayerViewModel(this)
-            viewModel.controllerViewModel = FullControllerViewModel(viewModel.playerViewModel, 16, 50)
-        }
-
-        playerUnitView = findViewById<AmvPlayerUnitView>(R.id.playerUnitView)
-        playerUnitView.bindViewModel(viewModel.controllerViewModel, binder)
+//        viewModel = MainViewModel.instanceFor(this)
+//        if(savedInstanceState==null) {
+//            viewModel.playerModel = PlayerModel(this)
+//            viewModel.controllerViewModel = FullControlPanelModel(viewModel.playerModel, 16, 50)
+//        }
+//
+//        playerUnitView = findViewById<AmvPlayerUnitView>(R.id.playerUnitView)
+//        playerUnitView.bindViewModel(viewModel, binder)
         //        mBinding.videoPlayer.setLayoutHint(FitMode.Inside, 1000, 1000);
         //        mBinding.videoController.setVideoPlayer(mBinding.videoPlayer);
 
@@ -270,7 +269,10 @@ class MainActivity : UtMortalActivity() {
         lifecycleScope.launch {
             val uri = filePickers.openFilePicker.selectFile(arrayOf("video/mp4", "video/*"))
             if(uri!=null) {
-                viewModel.playerViewModel.setVideoSource(AmvPickedUriSource(uri))
+//                viewModel.playerViewModel.setVideoSource(AmvPickedUriSource(uri))
+                val intent = Intent(this@MainActivity, PlayerActivity::class.java)
+                intent.putExtra("source", uri)
+                startActivity(intent)
             }
         }
     }

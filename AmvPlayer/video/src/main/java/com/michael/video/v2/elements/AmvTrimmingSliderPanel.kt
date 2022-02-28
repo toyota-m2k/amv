@@ -6,7 +6,7 @@ import android.view.LayoutInflater
 import android.widget.FrameLayout
 import com.michael.video.AmvSettings
 import com.michael.video.R
-import com.michael.video.v2.viewmodel.TrimmingControllerViewModel
+import com.michael.video.v2.models.TrimmingControlPanelModel
 import io.github.toyota32k.bindit.Binder
 
 class AmvTrimmingSliderPanel @JvmOverloads constructor(context: Context, attrs: AttributeSet? = null, defStyleAttr: Int = 0)
@@ -15,7 +15,7 @@ class AmvTrimmingSliderPanel @JvmOverloads constructor(context: Context, attrs: 
         val logger get() = AmvSettings.logger
     }
 
-    lateinit var viewModel: TrimmingControllerViewModel
+    lateinit var viewModel: TrimmingControlPanelModel
     val frameListView: AmvFrameListView
     val sliderView: AmvSliderView
 
@@ -25,7 +25,7 @@ class AmvTrimmingSliderPanel @JvmOverloads constructor(context: Context, attrs: 
         sliderView = findViewById(R.id.tsp_slider)
     }
 
-    fun bindViewModel(viewModel:TrimmingControllerViewModel, binder:Binder) {
+    fun bindViewModel(viewModel: TrimmingControlPanelModel, binder:Binder) {
         this.viewModel = viewModel
         frameListView.bindViewModel(viewModel, binder)
         sliderView.bindViewModel(viewModel, binder)

@@ -167,7 +167,7 @@ class AmvFullscreenActivity : AppCompatActivity() {
         activityState.onCreated(this)
         setContentView(R.layout.activity_amv_fullscreen)
 
-        if (AmvSettings.allowPictureInPicture) {
+        if (AmvSettings.isPinPAvailable(this)) {
             fsa_player.playerStateChangedListener.add(handlerName) { _, state ->
                 if(isPinP) {
                     val playing = when (state) {
@@ -208,7 +208,7 @@ class AmvFullscreenActivity : AppCompatActivity() {
          * PinPボタン
          */
         findViewById<ImageButton>(R.id.amv_ctr_pinp_button)?.let {
-            if (requestPinP && AmvSettings.allowPictureInPicture) {     // PinPで起動後、全画面表示になるケースだけ、PinPボタンを表示する
+            if (requestPinP && AmvSettings.isPinPAvailable(this)) {     // PinPで起動後、全画面表示になるケースだけ、PinPボタンを表示する
                 it.visibility = View.VISIBLE
                 it.setOnClickListener {
                     requestPinP = true
@@ -277,7 +277,7 @@ class AmvFullscreenActivity : AppCompatActivity() {
      */
     @TargetApi(Build.VERSION_CODES.O)
     private fun enterPinP() {
-        if (AmvSettings.allowPictureInPicture) {
+        if (AmvSettings.isPinPAvailable(this)) {
             val w = intent.getIntExtra(KEY_VIDEO_WIDTH, 0)
             val h = intent.getIntExtra(KEY_VIDEO_HEIGHT, 0)
             val ro = Rational(w, h)

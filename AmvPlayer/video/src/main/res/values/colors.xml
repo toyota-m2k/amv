@@ -12,4 +12,5 @@
     <color name="controller_bg">#303030</color>
 
     <color name="black_overlay">#66000000</color>
+    <color name="gray_overlay">#66888888</color>
 </resources>

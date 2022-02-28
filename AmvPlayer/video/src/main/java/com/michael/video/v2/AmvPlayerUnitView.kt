@@ -2,20 +2,19 @@ package com.michael.video.v2
 
 import android.content.Context
 import android.util.AttributeSet
-import android.util.Size
 import android.view.LayoutInflater
 import android.view.View
-import android.view.ViewGroup
 import android.widget.FrameLayout
-import android.widget.ProgressBar
-import android.widget.TextView
-import androidx.constraintlayout.widget.ConstraintLayout
+import androidx.lifecycle.asLiveData
 import androidx.lifecycle.lifecycleScope
 import com.michael.video.*
 import com.michael.video.v2.elements.AmvExoVideoPlayer
 import com.michael.video.v2.elements.AmvVideoController
-import com.michael.video.v2.viewmodel.FullControllerViewModel
+import com.michael.video.v2.models.FullControlPanelModel
+import com.michael.video.v2.viewmodel.AmvPlayerUnitViewModel
 import io.github.toyota32k.bindit.Binder
+import io.github.toyota32k.bindit.BoolConvert
+import io.github.toyota32k.bindit.MultiVisibilityBinding
 import io.github.toyota32k.bindit.VisibilityBinding
 import io.github.toyota32k.utils.lifecycleOwner
 import kotlinx.coroutines.flow.filter
@@ -32,28 +31,32 @@ class AmvPlayerUnitView@JvmOverloads constructor(
         val logger = AmvSettings.logger
     }
 
-    private val player:AmvExoVideoPlayer by lazy { findViewById(R.id.evp_videoPlayer) }
+    val player:AmvExoVideoPlayer by lazy { findViewById(R.id.evp_videoPlayer) }
     private val controller:AmvVideoController by lazy { findViewById(R.id.evp_videoController) }
     private val fitter = AmvFitterEx(FitMode.Width)
-    private lateinit var viewModel:FullControllerViewModel
+    private lateinit var model: FullControlPanelModel
 
     init {
         LayoutInflater.from(context).inflate(R.layout.v2_player_unit_view, this)
     }
 
-    fun bindViewModel(viewModel:FullControllerViewModel, binder:Binder) {
-        this.viewModel = viewModel
+    fun bindViewModel(viewModel: AmvPlayerUnitViewModel, binder:Binder) {
+        this.model = viewModel.controlPanelModel
         val owner = lifecycleOwner()!!
         val scope = owner.lifecycleScope
-        player.bindViewModel(viewModel.playerViewModel, binder)
-        controller.bindViewModel(viewModel, binder)
+        player.bindViewModel(model, binder)
+        controller.bindViewModel(model, binder)
 
-        viewModel.controllerMinWidth.filter { it>0 }.onEach {
+        model.controllerMinWidth.filter { it>0 }.onEach {
             findViewById<View>(R.id.min_width_keeper).setLayoutWidth(it)
         }.launchIn(scope)
-//        binder.register()
-    }
 
+        binder.register(
+            VisibilityBinding.create(owner, findViewById(R.id.evp_videoPlayer), viewModel.isOwner.asLiveData(), hiddenMode = VisibilityBinding.HiddenMode.HideByInvisible),
+            VisibilityBinding.create(owner, findViewById(R.id.evp_videoController), data=viewModel.isOwner.asLiveData(), hiddenMode = VisibilityBinding.HiddenMode.HideByInvisible),
+            VisibilityBinding.create(owner, findViewById(R.id.evp_pinp_alternative), viewModel.isOwner.asLiveData(), boolConvert = BoolConvert.Inverse, hiddenMode = VisibilityBinding.HiddenMode.HideByGone),
+        )
+    }
 
     // AmvPlayerUnitViewは、動画プレーヤー(player:AmvExoVideoPlayer)を基準に、全体のサイズや各パーツの配置、サイズが決定される。
     // Aspectを維持してリサイズするには、playerWidthプロパティでプレーヤーの幅を指定する。
@@ -67,7 +70,7 @@ class AmvPlayerUnitView@JvmOverloads constructor(
         get() = player.width
         set(v) {    // widthを指定して、ソース動画のaspectを維持するようにheightを決定する
             if(v<=0) return
-            val vs = viewModel.playerViewModel.videoSize.value ?: return
+            val vs = model.playerModel.videoSize.value ?: return
             val fit = fitter.setLayoutWidth(v).fit(vs.width, vs.height).result
             player.setLayoutSize(fit.width.toInt(), fit.height.toInt())
 //            logger.debug("AmvPlayerUnitView:size = ${fitter.resultSize}")

@@ -9,8 +9,8 @@ import android.widget.ImageView
 import androidx.lifecycle.lifecycleScope
 import com.michael.video.AmvSettings
 import com.michael.video.R
-import com.michael.video.v2.viewmodel.ControllerViewModel
-import com.michael.video.v2.viewmodel.TrimmingControllerViewModel
+import com.michael.video.v2.models.ControlPanelModel
+import com.michael.video.v2.models.TrimmingControlPanelModel
 import io.github.toyota32k.bindit.Binder
 import io.github.toyota32k.utils.lifecycleOwner
 import kotlinx.coroutines.flow.combine
@@ -43,12 +43,12 @@ class AmvFrameListView @JvmOverloads constructor(
 //        }
     }
 
-    private lateinit var viewModel:ControllerViewModel
+    private lateinit var viewModel: ControlPanelModel
 
-    fun bindViewModel(viewModel: ControllerViewModel, binder:Binder) {
+    fun bindViewModel(viewModel: ControlPanelModel, binder:Binder) {
         this.viewModel = viewModel
         val scope = this.lifecycleOwner()!!.lifecycleScope
-        combine(viewModel.frameList.isReady, viewModel.playerViewModel.naturalDuration) { ready, duration->
+        combine(viewModel.frameList.isReady, viewModel.playerModel.naturalDuration) { ready, duration->
             if(ready) duration else 0L
         }.onEach { duration ->
             if(duration==0L) {
@@ -73,7 +73,7 @@ class AmvFrameListView @JvmOverloads constructor(
             scroller.position = it
         }.launchIn(scope)
 
-        if(viewModel is TrimmingControllerViewModel) {
+        if(viewModel is TrimmingControlPanelModel) {
             scroller.trimmingEnabled = true
             viewModel.trimmingStart.onEach() {
                 logger.debug("TrimmingStart")

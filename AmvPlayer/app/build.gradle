@@ -4,11 +4,11 @@ plugins {
 }
 
 android {
-    compileSdkVersion 31
+    compileSdkVersion 32
     defaultConfig {
         applicationId "com.michael.amvplayer"
         minSdkVersion 26
-        targetSdkVersion 31
+        targetSdkVersion 32
         versionCode 1
         versionName "1.0"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
@@ -19,9 +19,6 @@ android {
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
     }
-    dataBinding {
-        enabled = true
-    }
 }
 
 dependencies {
@@ -29,6 +26,7 @@ dependencies {
     implementation fileTree(include: ['*.jar'], dir: 'libs')
     implementation "androidx.appcompat:appcompat:$androidx_compat_version"
     implementation "androidx.constraintlayout:constraintlayout:$androidx_constraint_version"
+    implementation 'com.google.android.material:material:1.5.0'
 
     // Unit Test
     testImplementation 'junit:junit:4.13.2'
@@ -38,9 +36,11 @@ dependencies {
     // Kotlin Support
     implementation "org.jetbrains.kotlin:kotlin-reflect:$kotlin_version"
     implementation "org.jetbrains.kotlinx:kotlinx-coroutines-android:$coroutine_version"
+    implementation "androidx.lifecycle:lifecycle-runtime-ktx:$lifecycle_ktx_version"
 
     // Google Architecture Components
     implementation 'androidx.lifecycle:lifecycle-extensions:2.2.0'
+    implementation "androidx.lifecycle:lifecycle-livedata-ktx:$lifecycle_ktx_version"
 
     // Permission Dispatcher
     // https://permissions-dispatcher.github.io/PermissionsDispatcher/
@@ -60,7 +60,7 @@ dependencies {
     implementation 'androidx.legacy:legacy-support-v13:1.0.0'
     implementation "androidx.media:media:$androidx_media_version"
 
-    implementation "com.github.toyota-m2k:bind-it:1.1.5"
+    implementation "com.github.toyota-m2k:bind-it:1.1.10"
     implementation "com.github.toyota-m2k:android-dialog:2.0.2"
     // sub modules
     implementation project(path: ':video')

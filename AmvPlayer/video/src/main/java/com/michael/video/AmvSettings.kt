@@ -19,8 +19,7 @@ object AmvSettings {
     lateinit var workDirectory: File
     var maxBitRate = 705 // k bps
         private set
-    var allowPictureInPicture = false
-        private set
+    private var allowPictureInPicture = false
     private var httpClientSource: IAmvHttpClientSource? = null
 
     /**
@@ -39,7 +38,7 @@ object AmvSettings {
         }
         initialized = true
         maxBitRate = bitrate
-        allowPictureInPicture = allowPinP && Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && context.packageManager.hasSystemFeature(PackageManager.FEATURE_PICTURE_IN_PICTURE)
+        allowPictureInPicture = allowPinP && Build.VERSION.SDK_INT >= Build.VERSION_CODES.O
         this.httpClientSource = httpClientSource
         val videoCache = File(cacheRootPath, ".video-cache")
         AmvCacheManager.initialize(videoCache)
@@ -58,4 +57,8 @@ object AmvSettings {
 
     val httpClient: OkHttpClient
         get() = httpClientSource?.getHttpClient() ?: OkHttpClient()
+
+    fun isPinPAvailable(context: Context) : Boolean {
+        return allowPictureInPicture && Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && context.packageManager.hasSystemFeature(PackageManager.FEATURE_PICTURE_IN_PICTURE)
+    }
 }

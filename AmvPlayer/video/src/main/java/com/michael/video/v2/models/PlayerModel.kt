@@ -1,4 +1,4 @@
-package com.michael.video.v2.viewmodel
+package com.michael.video.v2.models
 
 import android.content.Context
 import android.os.Handler
@@ -11,7 +11,6 @@ import com.google.android.exoplayer2.source.ProgressiveMediaSource
 import com.google.android.exoplayer2.upstream.DefaultDataSource
 import com.google.android.exoplayer2.video.VideoSize
 import com.michael.video.*
-import com.michael.video.v2.elements.AmvExoVideoPlayer
 import io.github.toyota32k.utils.SuspendableEvent
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
@@ -25,7 +24,7 @@ import kotlin.math.absoluteValue
  * しかも、ダイアログのような一時的な画面で使うのでなく、PinPや全画面表示などを有効にするなら、このビューモデルはApplicationスコープのようなライフサイクルオブジェクトに持たせるのがよい。
  * @param context   Application Context
  */
-class PlayerViewModel(
+class PlayerModel(
     context: Context,                   // application context が必要
 ) : Closeable {
     val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)          // dispose()まで有効なコルーチンスコープ
@@ -102,16 +101,18 @@ class PlayerViewModel(
      *  true: ルートビューにぴったりフィット（Aspectは無視）
      *  false: ルートビューの中に収まるサイズ（Aspect維持）
      */
-    var stretchVideoToView = false
+    // var stretchVideoToView = false
+    val stretchVideoToView = MutableStateFlow(false)
 
     private val mFitter = AmvFitterEx(FitMode.Inside)
-    val playerSizeFlow = combine(videoSize.filterNotNull(),rootViewSize.filterNotNull()) { videoSize, rootViewSize->
+    val playerSize = combine(videoSize.filterNotNull(),rootViewSize.filterNotNull()) { videoSize, rootViewSize->
+        logger.debug("videoSize=(${videoSize.height} x ${videoSize.height}), rootViewSize=(${rootViewSize.width} x ${rootViewSize.height})")
         mFitter
             .setLayoutWidth(rootViewSize.width)
             .setLayoutHeight(rootViewSize.height)
             .fit(videoSize.width, videoSize.height)
             .resultSize
-    }
+    }.stateIn(scope, SharingStarted.Eagerly, Size(100,100))
 
     val isLoading = state.map { it== IAmvVideoPlayer.PlayerState.Loading }.stateIn(scope, SharingStarted.Eagerly, false)
     val isReady = state.map { it== IAmvVideoPlayer.PlayerState.Playing || it== IAmvVideoPlayer.PlayerState.Paused }.stateIn(scope, SharingStarted.Eagerly, false)
@@ -127,7 +128,8 @@ class PlayerViewModel(
 
     private val watchPositionEvent = SuspendableEvent(signal = false, autoReset = false)    // スライダー位置監視を止めたり、再開したりするためのイベント
     private var ended = false                   // 次回再生開始時に先頭に戻すため、最後まで再生したことを覚えておくフラグ
-    private var isDisposed:Boolean = false      // close済みフラグ
+    var isDisposed:Boolean = false      // close済みフラグ
+        private set
 
     init {
         isPlaying.onEach {
@@ -300,22 +302,22 @@ class PlayerViewModel(
      */
     inner class PlayerListener :  Player.Listener {
         override fun onVideoSizeChanged(videoSize: VideoSize) {
-            this@PlayerViewModel.videoSize.mutable.value = videoSize
+            this@PlayerModel.videoSize.mutable.value = videoSize
         }
 
         override fun onPlayerError(error: PlaybackException) {
-            AmvExoVideoPlayer.logger.stackTrace(error)
+            logger.stackTrace(error)
             source.value?.invalidate()
             if(!isReady.value) {
                 state.mutable.value = IAmvVideoPlayer.PlayerState.Error
                 errorMessage.mutable.value = AmvStringPool[R.string.error] ?: context.getString(R.string.error)
             } else {
-                AmvExoVideoPlayer.logger.warn("ignoring exo error.")
+                logger.warn("ignoring exo error.")
             }
         }
 
         override fun onLoadingChanged(isLoading: Boolean) {
-            AmvExoVideoPlayer.logger.debug("loading = $isLoading")
+            logger.debug("loading = $isLoading")
             if (isLoading && player.playbackState == Player.STATE_BUFFERING) {
                 if(state.value==IAmvVideoPlayer.PlayerState.None) {
                     state.mutable.value = IAmvVideoPlayer.PlayerState.Loading
@@ -337,7 +339,7 @@ class PlayerViewModel(
         }
 
         override fun onPlayerStateChanged(playWhenReady: Boolean, playbackState: Int) {
-            AmvExoVideoPlayer.logger.debug {
+            logger.debug {
                 val ppn = {s:Int->
                     when(s) {
                         Player.STATE_IDLE -> "Idle"
@@ -427,9 +429,9 @@ class PlayerViewModel(
             if(mSeeking) {
                 if(mCheckCounter>=mWaitCount && mSeekTarget>=0 ) {
                     if(isLoading.value) {
-                        com.michael.video.AmvExoVideoPlayer.logger.debug("seek: checked ok, but loading now")
+                        logger.debug("seek: checked ok, but loading now")
                     } else {
-                        com.michael.video.AmvExoVideoPlayer.logger.debug("seek: checked ok")
+                        logger.debug("seek: checked ok")
                         exactSeek(mSeekTarget)
                         mCheckCounter = 0
                     }
@@ -442,7 +444,7 @@ class PlayerViewModel(
          * スライダーによるシークを開始する
          */
         fun begin(duration:Long) {
-            com.michael.video.AmvExoVideoPlayer.logger.debug("seek begin")
+            logger.debug("seek begin")
             if(!mSeeking) {
                 mSeeking = true
                 mFastMode = true
@@ -457,7 +459,7 @@ class PlayerViewModel(
          * スライダーによるシークを終了する
          */
         fun end() {
-            com.michael.video.AmvExoVideoPlayer.logger.debug("seek end")
+            logger.debug("seek end")
             if(mSeeking) {
                 mSeeking = false
                 if(mSeekTarget>=0) {
@@ -471,10 +473,10 @@ class PlayerViewModel(
          * シークを要求する
          */
         fun request(pos:Long) {
-            com.michael.video.AmvExoVideoPlayer.logger.debug("seek request - $pos")
+            logger.debug("seek request - $pos")
             if(mSeeking) {
                 if (mSeekTarget < 0 || (pos - mSeekTarget).absoluteValue > mThreshold) {
-                    com.michael.video.AmvExoVideoPlayer.logger.debug("reset check count - $pos ($mCheckCounter)")
+                    logger.debug("reset check count - $pos ($mCheckCounter)")
                     mCheckCounter = 0
                 }
                 fastSeek(pos)
@@ -488,12 +490,12 @@ class PlayerViewModel(
          * 高速な（テキトーな）シーク
          */
         private fun fastSeek(pos:Long) {
-            com.michael.video.AmvExoVideoPlayer.logger.debug("fast seek - $pos")
+            logger.debug("fast seek - $pos")
             if(isLoading.value) {
                 return
             }
             if(!mFastMode) {
-                com.michael.video.AmvExoVideoPlayer.logger.debug("switch to fast seek")
+                logger.debug("switch to fast seek")
                 mFastMode = true
                 player.setSeekParameters(SeekParameters.CLOSEST_SYNC)
             }
@@ -504,9 +506,9 @@ class PlayerViewModel(
          * 正確なシーク
          */
         fun exactSeek(pos:Long) {
-            com.michael.video.AmvExoVideoPlayer.logger.debug("exact seek - $pos")
+            logger.debug("exact seek - $pos")
             if(mFastMode) {
-                com.michael.video.AmvExoVideoPlayer.logger.debug("switch to exact seek")
+                logger.debug("switch to exact seek")
                 mFastMode = false
                 player.setSeekParameters(SeekParameters.EXACT)
             }
@@ -527,4 +529,7 @@ class PlayerViewModel(
     private val <T> StateFlow<T>.mutable:MutableStateFlow<T>
         get() = this as MutableStateFlow<T>
 
+    companion object {
+        val logger = AmvSettings.logger
+    }
 }

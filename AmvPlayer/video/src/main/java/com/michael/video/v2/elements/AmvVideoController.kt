@@ -1,11 +1,11 @@
 package com.michael.video.v2.elements
 
 import android.content.Context
+import android.content.Intent
 import android.graphics.drawable.Drawable
 import android.util.AttributeSet
 import android.view.LayoutInflater
 import android.view.View
-import android.view.ViewGroup
 import android.widget.FrameLayout
 import android.widget.ImageButton
 import android.widget.LinearLayout
@@ -17,7 +17,9 @@ import com.michael.utils.VectorDrawableTinter
 import com.michael.video.AmvSettings
 import com.michael.video.R
 import com.michael.video.dp2px
-import com.michael.video.v2.viewmodel.FullControllerViewModel
+import com.michael.video.getActivity
+import com.michael.video.v2.AmvFullscreenActivity
+import com.michael.video.v2.models.FullControlPanelModel
 import io.github.toyota32k.bindit.*
 import io.github.toyota32k.utils.disposableObserve
 import io.github.toyota32k.utils.lifecycleOwner
@@ -29,7 +31,7 @@ class AmvVideoController @JvmOverloads constructor(context: Context, attrs: Attr
     }
 
 
-    private lateinit var viewModel: FullControllerViewModel
+    private lateinit var viewModel: FullControlPanelModel
 //    private val mMinimalMode:Boolean
 
     val buttonsGroup: LinearLayout by lazy { findViewById<LinearLayout>(R.id.vct_buttons) }
@@ -63,7 +65,7 @@ class AmvVideoController @JvmOverloads constructor(context: Context, attrs: Attr
 //        } finally {
 //            sa.recycle()
 //        }
-        if(!AmvSettings.allowPictureInPicture) {
+        if(!AmvSettings.isPinPAvailable(context)) {
             pinpButton.visibility = View.GONE
         }
 
@@ -73,13 +75,13 @@ class AmvVideoController @JvmOverloads constructor(context: Context, attrs: Attr
 
 
 
-    fun bindViewModel(viewModel:FullControllerViewModel, binder:Binder) {
+    fun bindViewModel(viewModel: FullControlPanelModel, binder:Binder) {
         this.viewModel = viewModel
         findViewById<AmvMarkerView>(R.id.vct_markerView).bindViewModel(viewModel, binder)
         findViewById<AmvSliderPanel>(R.id.vct_sliderPanel).bindViewModel(viewModel, binder)
 
         // min width
-        val buttonCount:Int = buttonsGroup.childCount+1 - if(AmvSettings.allowPictureInPicture) 0 else 1
+        val buttonCount:Int = buttonsGroup.childCount+1 - if(AmvSettings.isPinPAvailable(context)) 0 else 1
         viewModel.controllerMinWidth.value = context.dp2px(40) * buttonCount
 
         val owner = lifecycleOwner()!!
@@ -92,13 +94,24 @@ class AmvVideoController @JvmOverloads constructor(context: Context, attrs: Attr
             viewModel.commandPrevMarker.connectViewEx(backButton),
             viewModel.commandAddMarker.connectViewEx(markButton),
             viewModel.commandShowFrameList.connectViewEx(showFramesButton),
-            // pinpButton
+            viewModel.commandPinP.connectAndBind(owner, pinpButton) {
+                this.getActivity()?.apply {
+                    viewModel.isPinP = true
+                    AmvFullscreenActivity.open(viewModel, this)
+                }
+            },
+            viewModel.commandFullscreen.connectAndBind(owner, fullButton) {
+                this.getActivity()?.apply {
+                    viewModel.isPinP = false
+                    AmvFullscreenActivity.open(viewModel, this)
+                }
+            },
             // fullButton
             // snapshot
             // mute
             viewModel.commandSnapshot.connectViewEx(snapshotButton),
             viewModel.commandMute.connectViewEx(muteButton),
-            viewModel.playerViewModel.isPlaying.asLiveData().disposableObserve(owner) { playing->
+            viewModel.playerModel.isPlaying.asLiveData().disposableObserve(owner) { playing->
                 val drawable = if(playing==true) drPause else drPlay
                 playButton.setImageDrawable(drawable)
                 playButtonMini.setImageDrawable(drawable)
@@ -106,8 +119,8 @@ class AmvVideoController @JvmOverloads constructor(context: Context, attrs: Attr
             viewModel.showFrameList.asLiveData().disposableObserve(owner) { show->
                 showFramesButton.setImageDrawable(if(show==true) drShowFrameOn else drShowFrameOff )
             },
-            MultiEnableBinding.create(owner, playButton, playButtonMini, forwardButton, backButton, markButton, pinpButton, fullButton, muteButton, snapshotButton, data = viewModel.playerViewModel.isReady.asLiveData() ),
-            GenericBoolMultiBinding.create(owner, playButton, playButtonMini, forwardButton, backButton, markButton, pinpButton, fullButton, muteButton, snapshotButton, data = viewModel.playerViewModel.isReady.asLiveData()) { views, enabled ->
+            MultiEnableBinding.create(owner, playButton, playButtonMini, forwardButton, backButton, markButton, pinpButton, fullButton, muteButton, snapshotButton, data = viewModel.playerModel.isReady.asLiveData() ),
+            GenericBoolMultiBinding.create(owner, playButton, playButtonMini, forwardButton, backButton, markButton, pinpButton, fullButton, muteButton, snapshotButton, data = viewModel.playerModel.isReady.asLiveData()) { views, enabled ->
                 views.forEach { it.alpha = if(enabled) 1.0f else 0.5f }
             },
             TextBinding.create(owner, counterBar, viewModel.counterText.asLiveData()),

@@ -17,7 +17,7 @@ import androidx.lifecycle.lifecycleScope
 import com.michael.video.AmvSettings
 import com.michael.video.R
 import com.michael.video.setLayoutHeight
-import com.michael.video.v2.viewmodel.ControllerViewModel
+import com.michael.video.v2.models.ControlPanelModel
 import io.github.toyota32k.bindit.Binder
 import io.github.toyota32k.utils.dp2px
 import io.github.toyota32k.utils.lifecycleOwner
@@ -29,7 +29,7 @@ class AmvSliderPanel @JvmOverloads constructor(context: Context, attrs: Attribut
     companion object {
         val logger get() = AmvSettings.logger
     }
-    lateinit var viewModel:ControllerViewModel
+    lateinit var viewModel: ControlPanelModel
     val frameListView: AmvFrameListView
     val sliderView: AmvSliderView
 
@@ -39,7 +39,7 @@ class AmvSliderPanel @JvmOverloads constructor(context: Context, attrs: Attribut
         sliderView = findViewById(R.id.sp_slider)
     }
 
-    fun bindViewModel(viewModel:ControllerViewModel, binder:Binder) {
+    fun bindViewModel(viewModel: ControlPanelModel, binder:Binder) {
         this.viewModel = viewModel
         viewModel.showFrameList.onEach {
             if(it) {

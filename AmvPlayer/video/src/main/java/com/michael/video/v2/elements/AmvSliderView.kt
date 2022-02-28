@@ -24,8 +24,8 @@ import com.michael.utils.FuncyListener3
 import com.michael.video.AmvSettings
 import com.michael.video.R
 import com.michael.video.dp2px
-import com.michael.video.v2.viewmodel.ControllerViewModel
-import com.michael.video.v2.viewmodel.TrimmingControllerViewModel
+import com.michael.video.v2.models.ControlPanelModel
+import com.michael.video.v2.models.TrimmingControlPanelModel
 import io.github.toyota32k.bindit.Binder
 import io.github.toyota32k.utils.lifecycleOwner
 import io.github.toyota32k.utils.onTrue
@@ -46,15 +46,15 @@ class AmvSliderView @JvmOverloads constructor(
         const val MIN_TRIMMING_SPAN = 10L // ms 以下にはトリミング禁止
     }
 
-    var viewModelRef:ControllerViewModel? = null
+    var modelRef: ControlPanelModel? = null
     private val trimmingEnabled:Boolean
-        get() = viewModelRef is TrimmingControllerViewModel
+        get() = modelRef is TrimmingControlPanelModel
 
-    private val viewModel:ControllerViewModel get() = viewModelRef!!
-    private val trimmingViewModel:TrimmingControllerViewModel?
-        get() = if(trimmingEnabled) viewModel as? TrimmingControllerViewModel else null
+    private val model: ControlPanelModel get() = modelRef!!
+    private val trimmingViewModel: TrimmingControlPanelModel?
+        get() = if(trimmingEnabled) model as? TrimmingControlPanelModel else null
     private val naturalDuration:Long
-        get() = viewModel.playerViewModel.naturalDuration.value
+        get() = model.playerModel.naturalDuration.value
     private var trimmingStart:Long
         get() = trimmingViewModel?.trimmingStart?.value ?: 0L
         set(v) { trimmingViewModel?.trimmingStart?.value = v }
@@ -63,21 +63,21 @@ class AmvSliderView @JvmOverloads constructor(
         set(v) { trimmingViewModel?.trimmingEnd?.value = v }
     private var isReady:Boolean = false
     private var sliderValue:Long
-        get() = viewModel.sliderPosition.value
-        set(v) { viewModel.sliderPosition.value = v }
+        get() = model.sliderPosition.value
+        set(v) { model.sliderPosition.value = v }
     private fun seekTo(pos:Long) {
         sliderValue = pos
-        viewModel.playerViewModel.seekTo(pos)
+        model.playerModel.seekTo(pos)
     }
 
 
-    fun bindViewModel(viewModel:ControllerViewModel, binder:Binder) {
-        this.viewModelRef = viewModel
+    fun bindViewModel(model: ControlPanelModel, binder:Binder) {
+        this.modelRef = model
         val viewScope = lifecycleOwner()!!.lifecycleScope
-        viewModel.playerViewModel.naturalDuration.onEach { duration->
+        model.playerModel.naturalDuration.onEach { duration->
             if(duration>0) {
                 isReady = true
-                sliderValue = viewModel.playerViewModel.player.currentPosition
+                sliderValue = model.playerModel.player.currentPosition
                 invalidate()
 //                applyPosition(true)
             } else {
@@ -85,11 +85,11 @@ class AmvSliderView @JvmOverloads constructor(
             }
         }.launchIn(viewScope)
 
-        viewModel.presentingPosition.onEach {
+        model.presentingPosition.onEach {
             applyPosition(true)
         }.launchIn(viewScope)
 
-        viewModel.showKnobBeltOnFrameList.onEach {
+        model.showKnobBeltOnFrameList.onEach {
             showThumbBg = it
         }.launchIn(viewScope)
 
@@ -430,7 +430,7 @@ class AmvSliderView @JvmOverloads constructor(
      * スライダー値から、ノブの座標値を求める
      */
     private fun value2position(value:Long) : Float {
-        val valueRange = viewModel.playerViewModel.naturalDuration.value
+        val valueRange = model.playerModel.naturalDuration.value
         if(valueRange==0L) return 0f
         return mSliderRange.min + mSliderRange.range * value.toFloat() / valueRange.toFloat()
     }
@@ -440,7 +440,7 @@ class AmvSliderView @JvmOverloads constructor(
      */
     fun position2value(position:Float) : Long {
         return try {
-            val valueRange = viewModel.playerViewModel.naturalDuration.value
+            val valueRange = model.playerModel.naturalDuration.value
             (valueRange * (position - mSliderRange.min) / mSliderRange.range).roundToLong()
         } catch (e:Throwable) {
             logger.error("sliderRange: ${mSliderRange.min} - ${mSliderRange.max}")
@@ -524,7 +524,7 @@ class AmvSliderView @JvmOverloads constructor(
      * スライダー値 ((Current|TrimStart|TrimEnd)Position) が変更されたときに、ノブの位置/レールの表示に反映する
      */
     private fun applyPosition(redraw:Boolean) {
-        val valueRange = viewModel.playerViewModel.naturalDuration.value
+        val valueRange = model.playerModel.naturalDuration.value
         if(0L==valueRange) {
             return
         }
@@ -780,7 +780,7 @@ class AmvSliderView @JvmOverloads constructor(
         /**
          * ドラッグ開始
          */
-        fun startAt(x:Float, y:Float, fromFriend:Boolean) :Boolean {
+        fun startAt(x:Float, y:Float) :Boolean {
             if(!isReady) return false
 
             val tappedValue = position2value(x)
@@ -816,7 +816,7 @@ class AmvSliderView @JvmOverloads constructor(
                 }
             }
             return (knob != Knob.NONE).onTrue {
-                viewModel.playerViewModel.beginFastSeekMode()
+                model.playerModel.beginFastSeekMode()
             }
         }
 
@@ -830,25 +830,25 @@ class AmvSliderView @JvmOverloads constructor(
                 }
                 Knob.LEFT -> {
                     if(trimmingEnabled) {
-                        viewModel.playerViewModel.pause()
+                        model.playerModel.pause()
                         val s = limitTrimStart(position2value(x+offset))
                         trimmingStart = s
                         if(sliderValue<s) {
                             seekTo(s)
                         } else {
-                            viewModel.playerViewModel.seekTo(s)
+                            model.playerModel.seekTo(s)
                         }
                     }
                 }
                 Knob.RIGHT -> {
                     if(trimmingEnabled) {
-                        viewModel.playerViewModel.pause()
+                        model.playerModel.pause()
                         val e = limitTrimEnd(position2value(x+offset))
                         trimmingEnd = e
                         if(e<sliderValue) {
                             seekTo(e)
                         } else {
-                            viewModel.playerViewModel.seekTo(e)
+                            model.playerModel.seekTo(e)
                         }
                     }
                 }
@@ -866,16 +866,16 @@ class AmvSliderView @JvmOverloads constructor(
                 knob != Knob.THUMB -> trimmingViewModel?.applyTrimmingRange()
             }
             applyPosition(true)
-            viewModel.playerViewModel.endFastSeekMode()
+            model.playerModel.endFastSeekMode()
             reset()
             return true
         }
     }
 
-    private fun handleTouchEvent(action:Int, x:Float, y:Float, friend:Boolean) : Boolean {
+    private fun handleTouchEvent(action:Int, x:Float, y:Float) : Boolean {
         return when (action) {
             MotionEvent.ACTION_DOWN -> {
-                mDraggingInfo.startAt(x, y, friend)
+                mDraggingInfo.startAt(x, y)
             }
             MotionEvent.ACTION_MOVE -> {
                 mDraggingInfo.moveTo(x)
@@ -892,16 +892,16 @@ class AmvSliderView @JvmOverloads constructor(
      */
     @SuppressLint("ClickableViewAccessibility")
     override fun onTouchEvent(event: MotionEvent): Boolean {
-        return handleTouchEvent(event.action, event.x, event.y, false)
+        return handleTouchEvent(event.action, event.x, event.y)
     }
 
-    /**
-     * お友達（AmvFrameListView）のタッチイベントを我がことのように扱うためのi/f
-     */
-    fun onTouchAtFriend(event: MotionEvent) : Boolean {
-        return handleTouchEvent(event.action, event.x, event.y, true)
-    }
-
+//    /**
+//     * お友達（AmvFrameListView）のタッチイベントを我がことのように扱うためのi/f
+//     */
+//    fun onTouchAtFriend(event: MotionEvent) : Boolean {
+//        return handleTouchEvent(event.action, event.x, event.y, true)
+//    }
+//
     /**
      * トリミング用にフレームリストを使う場合のおともだち追加処理
      */

@@ -1,4 +1,4 @@
-package com.michael.video.v2.viewmodel
+package com.michael.video.v2.models
 
 import android.content.Context
 import android.graphics.Bitmap
@@ -8,35 +8,34 @@ import androidx.annotation.MainThread
 import com.michael.video.*
 import com.michael.video.v2.elements.AmvFrameExtractor
 import io.github.toyota32k.bindit.Command
-import io.github.toyota32k.utils.Callback
-import io.github.toyota32k.utils.Listeners
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import java.io.Closeable
 
 /**
  * コントローラーの共通実装
- * ControllerViewModel              基本実装（AmvFrameSelectorViewで使用）
- *   + FullControllerViewModel      フル機能プレイヤー（AmvPlayerUnitView）用
- *   + TrimmingControllerViewModel  トリミング画面(AMvTrimmingPlayerView)用
+ * ControlPanelModel              基本実装（AmvFrameSelectorViewで使用）
+ *   + FullControlPanelModel      フル機能プレイヤー（AmvPlayerUnitView）用
+ *   + TrimmingControlPanelModel  トリミング画面(AMvTrimmingPlayerView)用
  */
-open class ControllerViewModel(
-    val playerViewModel: PlayerViewModel,
+open class ControlPanelModel(
+    val playerModel: PlayerModel,
     thumbnailCount:Int,
     thumbnailHeightInDp:Int
 ) : Closeable {
     companion object {
         val logger get() = AmvSettings.logger
-        fun create(context: Context, thumbnailCount: Int, thumbnailHeight: Int):ControllerViewModel {
-            val playerViewModel = PlayerViewModel(context)
-            return ControllerViewModel(playerViewModel, thumbnailCount, thumbnailHeight)
+        fun create(context: Context, thumbnailCount: Int, thumbnailHeight: Int): ControlPanelModel {
+            val playerViewModel = PlayerModel(context)
+            return ControlPanelModel(playerViewModel, thumbnailCount, thumbnailHeight)
         }
     }
 
-    val scope:CoroutineScope get() = playerViewModel.scope
-    val context: Context get() = playerViewModel.context
+    val scope:CoroutineScope = CoroutineScope(playerModel.scope.coroutineContext)
+    val context: Context get() = playerModel.context
     private val thumbnailHeight = context.dp2px(thumbnailHeightInDp)
 
     class FrameList(val count:Int, val height:Int, val context:Context, val scope:CoroutineScope) : Closeable {
@@ -105,14 +104,15 @@ open class ControllerViewModel(
             reset()
         }
     }
+    open val autoAssociatePlayer:Boolean = true
 
     val frameList = FrameList(thumbnailCount, thumbnailHeight, context, scope)
     val showFrameList = MutableStateFlow(true)
     val controllerMinWidth = MutableStateFlow(0)
     open val showKnobBeltOnFrameList:Flow<Boolean> = flow { emit(true) }
-    val commandPlay = Command { playerViewModel::play }
-    val commandPause = Command { playerViewModel.pause() }
-    val commandTogglePlay = Command { playerViewModel.togglePlay() }
+    val commandPlay = Command { playerModel::play }
+    val commandPause = Command { playerModel.pause() }
+    val commandTogglePlay = Command { playerModel.togglePlay() }
     val commandShowFrameList = Command { showFrameList.value = !showFrameList.value }
 
 //
@@ -127,21 +127,21 @@ open class ControllerViewModel(
     val sliderPosition = MutableStateFlow(0L)
 
     fun seekAndSetSlider(pos:Long) {
-        val clipped = playerViewModel.clipPosition(pos)
+        val clipped = playerModel.clipPosition(pos)
         sliderPosition.value = clipped
-        playerViewModel.seekTo(clipped)
+        playerModel.seekTo(clipped)
     }
 
 
     open val presentingPosition:Flow<Long> = sliderPosition
 
-    val counterText:Flow<String> = combine(sliderPosition, playerViewModel.naturalDuration) { pos, duration->
+    val counterText:Flow<String> = combine(sliderPosition, playerModel.naturalDuration) { pos, duration->
         "${formatTime(pos,duration)} / ${formatTime(duration,duration)}"
     }
 
     init {
-        playerViewModel.source.onEach(this::onSourceChanged).launchIn(scope)
-        playerViewModel.playerSeekPosition.onEach {
+        playerModel.source.onEach(this::onSourceChanged).launchIn(scope)
+        playerModel.playerSeekPosition.onEach {
             onPlayerSeekPositionChanged(it)
         }.launchIn(scope)
     }
@@ -151,7 +151,7 @@ open class ControllerViewModel(
     }
 
     suspend fun getThumbnails(fn:(Bitmap)->Unit) {
-        val v = frameList.getFrames().onEach {
+        frameList.getFrames().onEach {
             fn(it)
         }.launchIn(scope)
     }
@@ -165,6 +165,8 @@ open class ControllerViewModel(
     }
 
     override fun close() {
+        scope.cancel()
         frameList.close()
+        playerModel.close()
     }
 }

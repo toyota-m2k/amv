@@ -1,19 +1,16 @@
-package com.michael.video.v2.viewmodel
+package com.michael.video.v2.models
 
 import com.michael.utils.SortedList
 import com.michael.video.AmvSettings
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.channels.BufferOverflow
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableSharedFlow
-import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
-import kotlinx.coroutines.launch
 import java.io.Closeable
 import kotlin.math.absoluteValue
 
-class MarkerViewModel(val scope:CoroutineScope) : Closeable {
+class MarkerListModel(val scope:CoroutineScope) : Closeable {
     companion object {
         val logger = AmvSettings.logger
         const val MinMarkerSpan : Long = 100L     // マーカー設定間隔の最小値（100ms）
@@ -23,7 +20,7 @@ class MarkerViewModel(val scope:CoroutineScope) : Closeable {
     val markerList : List<Long>
         get() = markers
 
-    data class MarkerOperation(val action:Action, val marker:Long, val markers:Iterable<Long>?, val clientData:Any?) {
+    data class MarkerOperation(val action: Action, val marker:Long, val markers:Iterable<Long>?, val clientData:Any?) {
         enum class Action {
             ADD,        // １個追加
             REMOVE,     // １個削除
@@ -38,10 +35,10 @@ class MarkerViewModel(val scope:CoroutineScope) : Closeable {
     init {
         markerCommand.onEach {
             when(it.action) {
-                MarkerOperation.Action.ADD->addMarker(it)
-                MarkerOperation.Action.REMOVE->removeMarker(it)
-                MarkerOperation.Action.SET->setMarkers(it)
-                MarkerOperation.Action.CLEAR->clearMarkers(it)
+                MarkerOperation.Action.ADD ->addMarker(it)
+                MarkerOperation.Action.REMOVE ->removeMarker(it)
+                MarkerOperation.Action.SET ->setMarkers(it)
+                MarkerOperation.Action.CLEAR ->clearMarkers(it)
             }
         }.launchIn(scope)
     }
@@ -80,7 +77,7 @@ class MarkerViewModel(val scope:CoroutineScope) : Closeable {
     }
 
 
-    private suspend fun setMarkers(cmd:MarkerOperation) {
+    private suspend fun setMarkers(cmd: MarkerOperation) {
         assert(cmd.action == MarkerOperation.Action.SET)
         markers.clear()
         val v = cmd.markers ?: return
@@ -91,7 +88,7 @@ class MarkerViewModel(val scope:CoroutineScope) : Closeable {
         markerEvent.emit(cmd)
     }
 
-    private suspend fun clearMarkers(cmd:MarkerOperation) {
+    private suspend fun clearMarkers(cmd: MarkerOperation) {
         assert(cmd.action == MarkerOperation.Action.CLEAR)
         markers.clear()
         markerEvent.emit(cmd)
@@ -113,7 +110,7 @@ class MarkerViewModel(val scope:CoroutineScope) : Closeable {
         return true
     }
 
-    private suspend fun addMarker(cmd:MarkerOperation) {
+    private suspend fun addMarker(cmd: MarkerOperation) {
         assert(cmd.action == MarkerOperation.Action.ADD && cmd.marker>=0)
         if(!canAddMarker(cmd.marker)) {
             return
@@ -123,7 +120,7 @@ class MarkerViewModel(val scope:CoroutineScope) : Closeable {
         }
     }
 
-    private suspend fun removeMarker(cmd:MarkerOperation) {
+    private suspend fun removeMarker(cmd: MarkerOperation) {
         assert(cmd.action == MarkerOperation.Action.REMOVE && cmd.marker>=0)
         if(markers.remove(cmd.marker)) {
             markerEvent.emit(cmd)

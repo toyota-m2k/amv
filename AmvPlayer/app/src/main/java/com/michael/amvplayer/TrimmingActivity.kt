@@ -1,30 +1,18 @@
 package com.michael.amvplayer
 
-import android.content.Context
 import android.net.Uri
 import android.os.Bundle
-import androidx.appcompat.app.AppCompatActivity
-import android.widget.Button
 import androidx.fragment.app.FragmentActivity
-import androidx.lifecycle.SavedStateViewModelFactory
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
-import com.michael.video.AmvFileSource
 import com.michael.video.AmvPickedUriSource
-import com.michael.video.AmvTrimmingPlayerView
-import com.michael.video.dp2px
-import com.michael.video.v2.viewmodel.TrimmingControllerViewModel
-import com.michael.video.viewmodel.AmvTranscodeViewModel
+import com.michael.video.v2.models.TrimmingControlPanelModel
 import io.github.toyota32k.bindit.Binder
 import io.github.toyota32k.dialog.task.UtMortalActivity
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
-import java.io.File
 
 class TrimmingActivity : UtMortalActivity() {
     class TrimmingViewModel: ViewModel() {
-        var trimmingControllerViewModel:TrimmingControllerViewModel? = null
+        var trimmingControllerViewModel: TrimmingControlPanelModel? = null
 
         override fun onCleared() {
             super.onCleared()
@@ -48,11 +36,11 @@ class TrimmingActivity : UtMortalActivity() {
         setContentView(R.layout.trimming_activity)
 
         viewModel = TrimmingViewModel.instanceFor(this)
-        val trimmingControllerViewModel = viewModel.trimmingControllerViewModel ?: TrimmingControllerViewModel.create(this, 8, 80).apply {
+        val trimmingControllerViewModel = viewModel.trimmingControllerViewModel ?: TrimmingControlPanelModel.create(this, 8, 80).apply {
             viewModel.trimmingControllerViewModel = this
             val s = intent.getParcelableExtra<Uri>("source")
             mSource = s as Uri
-            playerViewModel.setVideoSource(AmvPickedUriSource(mSource!!), null)
+            playerModel.setVideoSource(AmvPickedUriSource(mSource!!), null)
         }
 
         findViewById<com.michael.video.v2.AmvTrimmingPlayerView>(R.id.trimmingPlayer).bindViewModel(trimmingControllerViewModel,binder)
