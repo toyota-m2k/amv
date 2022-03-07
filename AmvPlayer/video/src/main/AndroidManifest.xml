@@ -7,7 +7,7 @@
 
     <application>
         <activity
-            android:name=".AmvFullscreenActivity"
+            android:name=".obsolete.AmvFullscreenActivity"
             android:theme="@style/Theme.AppCompat.Light.NoActionBar"
             android:resizeableActivity="true"
             android:supportsPictureInPicture="true"

@@ -16,8 +16,8 @@ import kotlin.math.roundToInt
 
 class AmvFrameSelectorView@JvmOverloads constructor(context: Context, attrs: AttributeSet? = null, defStyleAttr: Int = 0)
     : FrameLayout(context, attrs, defStyleAttr) {
-    val playerView: AmvExoVideoPlayer
-    val sliderPanel: AmvSliderPanel
+    private val playerView: AmvExoVideoPlayer
+    private val sliderPanel: AmvSliderPanel
     lateinit var viewModel: ControlPanelModel
 
     init {

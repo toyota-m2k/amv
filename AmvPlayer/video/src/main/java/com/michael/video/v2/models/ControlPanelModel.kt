@@ -5,9 +5,12 @@ import android.graphics.Bitmap
 import android.net.Uri
 import android.util.Size
 import androidx.annotation.MainThread
-import com.michael.video.*
-import com.michael.video.v2.elements.AmvFrameExtractor
+import com.michael.video.v2.common.AmvSettings
+import com.michael.video.v2.common.IAmvSource
+import com.michael.video.v2.core.AmvFrameExtractor
+import com.michael.video.v2.util.*
 import io.github.toyota32k.bindit.Command
+import io.github.toyota32k.utils.UtLazyResetableValue
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.cancel
@@ -23,7 +26,7 @@ import java.io.Closeable
  */
 open class ControlPanelModel(
     val playerModel: PlayerModel,
-    thumbnailCount:Int,
+    val thumbnailCount:Int,
     thumbnailHeightInDp:Int
 ) : Closeable {
     companion object {
@@ -34,10 +37,27 @@ open class ControlPanelModel(
         }
     }
 
+    /**
+     * コントローラーのCoroutineScope
+     * playerModel.scope を継承するが、ライフサイクルが異なるので、新しいインスタンスにしておく。
+     */
     val scope:CoroutineScope = CoroutineScope(playerModel.scope.coroutineContext)
+
+    /**
+     * ApplicationContext参照用
+     */
     val context: Context get() = playerModel.context
+
+    /**
+     * サムネイルの高さ（定数）
+     * FullControlPanel --> 50dp
+     * それ以外 --> 80dp
+     */
     private val thumbnailHeight = context.dp2px(thumbnailHeightInDp)
 
+    /**
+     * フレーム（サムネイル）リストの管理クラス
+     */
     class FrameList(val count:Int, val height:Int, val context:Context, val scope:CoroutineScope) : Closeable {
         val extractor = AmvFrameExtractor(AmvFitter(FitMode.Height, MuSize(0f,height.toFloat())),scope)
         private var frameListCache:MutableList<Bitmap>? = null
@@ -104,58 +124,81 @@ open class ControlPanelModel(
             reset()
         }
     }
+
+    /**
+     * AmvExoVideoPlayerのbindViewModelで、playerをplayerView.playerに設定するか？
+     * 通常は true。ただし、FullControlPanelのように、PinP/FullScreenモードに対応する場合は、
+     * どのビューに関連付けるかを個別に分岐するため、falseにする。
+     */
     open val autoAssociatePlayer:Boolean = true
 
-    val frameList = FrameList(thumbnailCount, thumbnailHeight, context, scope)
+    // region Frame List
+    private val frameListRef = UtLazyResetableValue<FrameList> { FrameList(thumbnailCount, thumbnailHeight, context, scope) }
+    val frameList get() = frameListRef.value
     val showFrameList = MutableStateFlow(true)
     val controllerMinWidth = MutableStateFlow(0)
     open val showKnobBeltOnFrameList:Flow<Boolean> = flow { emit(true) }
+    // endregion
+
+    // region Commands
     val commandPlay = Command { playerModel::play }
     val commandPause = Command { playerModel.pause() }
     val commandTogglePlay = Command { playerModel.togglePlay() }
     val commandShowFrameList = Command { showFrameList.value = !showFrameList.value }
+    // endregion
 
-//
-//    data class LongPressInfo(val marker:Long, val pressX:Float)
-//    val markerLongPressCommand = Listeners<LongPressInfo>().apply {
-//        addForever { info->
-//            onMarkerLongPress?.invoke(info.marker, info.pressX)
-//        }
-//    }
+    // region Slider
 
-
+    /**
+     * スライダーのトラッカー位置
+     */
     val sliderPosition = MutableStateFlow(0L)
+
+    /**
+     * プレーヤーの再生位置
+     * 通常は、sliderPosition == presentingPosition だが、トリミングスライダーの場合は、左右トリミング用トラッカーも候補となる。
+     * （最後に操作したトラッカーの位置が、presentingPosition となる。）
+     */
+    open val presentingPosition:Flow<Long> = sliderPosition
 
     fun seekAndSetSlider(pos:Long) {
         val clipped = playerModel.clipPosition(pos)
         sliderPosition.value = clipped
         playerModel.seekTo(clipped)
     }
-
-
-    open val presentingPosition:Flow<Long> = sliderPosition
-
+    /**
+     * スライダーのカウンター表示文字列
+     */
     val counterText:Flow<String> = combine(sliderPosition, playerModel.naturalDuration) { pos, duration->
         "${formatTime(pos,duration)} / ${formatTime(duration,duration)}"
     }
 
+    // endregion
+
     init {
         playerModel.source.onEach(this::onSourceChanged).launchIn(scope)
-        playerModel.playerSeekPosition.onEach {
-            onPlayerSeekPositionChanged(it)
-        }.launchIn(scope)
+        playerModel.playerSeekPosition.onEach(this::onPlayerSeekPositionChanged).launchIn(scope)
     }
 
+    /**
+     * タイマーによって監視されるプレーヤーの再生位置（playerModel.playerSeekPosition）に応じて、スライダーのシーク位置を合わせる。
+     */
     open fun onPlayerSeekPositionChanged(pos:Long) {
         sliderPosition.value = pos
     }
 
+    /**
+     * サムネイルを取得
+     */
     suspend fun getThumbnails(fn:(Bitmap)->Unit) {
         frameList.getFrames().onEach {
             fn(it)
         }.launchIn(scope)
     }
 
+    /**
+     * 動画ソースが変わった時に、
+     */
     open fun onSourceChanged(source: IAmvSource?) {
         if(source==null) return
         scope.launch(Dispatchers.IO) {
@@ -166,7 +209,7 @@ open class ControlPanelModel(
 
     override fun close() {
         scope.cancel()
-        frameList.close()
+        frameListRef.reset { it.close() }
         playerModel.close()
     }
 }

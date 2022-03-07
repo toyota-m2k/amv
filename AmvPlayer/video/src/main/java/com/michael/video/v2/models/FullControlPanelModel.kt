@@ -1,11 +1,12 @@
 package com.michael.video.v2.models
 
 import android.content.Context
-import androidx.lifecycle.ViewModelStoreOwner
-import com.michael.video.AmvSettings
+import com.michael.video.v2.common.AmvSettings
 import io.github.toyota32k.bindit.Command
 import io.github.toyota32k.utils.Listeners
-import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
 
 class FullControlPanelModel(
@@ -19,7 +20,9 @@ class FullControlPanelModel(
             return FullControlPanelModel(playerViewModel, thumbnailCount, thumbnailHeight)
         }
     }
-
+    interface IPlayerOwner {
+        val isPrimary:Boolean
+    }
     override val autoAssociatePlayer: Boolean = false
     override val showKnobBeltOnFrameList: Flow<Boolean> = showFrameList
     val mininalMode = MutableStateFlow(false)   // only used in AmvVideoController

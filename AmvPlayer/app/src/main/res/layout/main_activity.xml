@@ -86,7 +86,7 @@
 
     </LinearLayout>
 
-<!--        <com.michael.video.AmvPlayerUnitView-->
+<!--        <com.michael.video.obsolete.AmvPlayerUnitView-->
 <!--            android:id="@+id/playerUnitView"-->
 <!--            android:layout_width="wrap_content"-->
 <!--            android:layout_height="0dp"-->
@@ -97,7 +97,7 @@
 <!--            tools:layout_width="300dp"-->
 <!--            tools:layout_height="300dp"-->
 <!--            />-->
-    <!--<com.michael.video.AmvExoVideoPlayer-->
+    <!--<com.michael.video.obsolete.AmvExoVideoPlayer-->
         <!--tools:layout_width="wrap_content"-->
         <!--tools:layout_height="wrap_content"-->
         <!--android:layout_height="wrap_content"-->
@@ -107,7 +107,7 @@
         <!--app:layout_constraintLeft_toLeftOf="parent"-->
         <!--app:layout_constraintRight_toRightOf="parent"-->
         <!--/>-->
-    <!--<com.michael.video.AmvVideoController-->
+    <!--<com.michael.video.obsolete.AmvVideoController-->
         <!--android:id="@+id/video_controller"-->
         <!--android:layout_width="wrap_content"-->
         <!--android:layout_height="wrap_content"-->

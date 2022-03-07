@@ -82,9 +82,9 @@ dependencies {
     // OkHttp
     implementation 'com.squareup.okhttp3:okhttp:4.9.0'
 
-    implementation 'com.github.toyota-m2k:android-media-processor:0.1.5'
+    implementation 'com.github.toyota-m2k:android-media-processor:1.0.4'
     implementation "com.github.toyota-m2k:bind-it:1.1.10"
-    implementation "com.github.toyota-m2k:android-dialog:2.0.2"
+    implementation "com.github.toyota-m2k:android-dialog:2.0.3"
 }
 
 

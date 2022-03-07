@@ -1,7 +1,7 @@
 package com.michael.video.v2.models
 
 import com.michael.utils.SortedList
-import com.michael.video.AmvSettings
+import com.michael.video.v2.common.AmvSettings
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.MutableSharedFlow

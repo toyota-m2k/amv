@@ -6,7 +6,7 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
-import com.michael.video.AmvPickedUriSource
+import com.michael.video.v2.common.AmvPickedUriSource
 import com.michael.video.v2.models.ControlPanelModel
 import io.github.toyota32k.bindit.Binder
 

@@ -18,7 +18,7 @@ import android.view.View
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
 import com.michael.utils.SortedList
-import com.michael.video.AmvSettings
+import com.michael.video.v2.common.AmvSettings
 import com.michael.video.R
 import com.michael.video.v2.models.FullControlPanelModel
 import io.github.toyota32k.bindit.Binder

@@ -42,7 +42,7 @@
             tools:layout_height="200dp"
             />
 
-        <com.michael.video.AmvWorkingSurfaceView
+        <com.michael.video.obsolete.AmvWorkingSurfaceView
             android:id="@+id/surfaceView"
             android:layout_width="300dp"
             android:layout_height="300dp"

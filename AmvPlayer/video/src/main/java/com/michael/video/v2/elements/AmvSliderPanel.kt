@@ -14,9 +14,9 @@ import android.view.LayoutInflater
 import android.view.View
 import android.widget.FrameLayout
 import androidx.lifecycle.lifecycleScope
-import com.michael.video.AmvSettings
+import com.michael.video.v2.common.AmvSettings
 import com.michael.video.R
-import com.michael.video.setLayoutHeight
+import com.michael.video.v2.util.setLayoutHeight
 import com.michael.video.v2.models.ControlPanelModel
 import io.github.toyota32k.bindit.Binder
 import io.github.toyota32k.utils.dp2px

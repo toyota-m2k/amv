@@ -1,16 +1,12 @@
 package com.michael.amvplayer
 
-import android.content.Context
 import android.net.Uri
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.view.View
-import androidx.lifecycle.ViewModel
-import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.asLiveData
-import com.michael.video.AmvPickedUriSource
+import com.michael.video.v2.common.AmvPickedUriSource
 import com.michael.video.v2.AmvPlayerUnitView
-import com.michael.video.v2.models.FullControlPanelModel
 import com.michael.video.v2.models.PlayerModel
 import com.michael.video.v2.viewmodel.AmvPlayerUnitViewModel
 import io.github.toyota32k.bindit.Binder

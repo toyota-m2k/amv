@@ -11,7 +11,7 @@
  * Copyright © 2018 M.TOYOTA  All Rights Reserved.
  */
 
-package com.michael.video
+package com.michael.video.v2.common
 
 import android.net.Uri
 import android.os.Parcel
@@ -19,7 +19,7 @@ import android.os.Parcelable
 import java.io.File
 
 interface IAmvSource : Parcelable {
-    val error:AmvError
+    val error: AmvError
 
     suspend fun getUriAsync() : Uri?
     suspend fun getFileAsync() : File?

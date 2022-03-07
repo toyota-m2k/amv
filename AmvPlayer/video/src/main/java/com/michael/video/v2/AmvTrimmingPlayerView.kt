@@ -9,7 +9,7 @@ import android.widget.ImageButton
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.asLiveData
 import androidx.lifecycle.lifecycleScope
-import com.michael.video.AmvSettings
+import com.michael.video.v2.common.AmvSettings
 import com.michael.video.R
 import com.michael.video.v2.elements.AmvExoVideoPlayer
 import com.michael.video.v2.elements.AmvTrimmingSliderPanel
@@ -35,8 +35,8 @@ class AmvTrimmingPlayerView @JvmOverloads constructor(context: Context, attrs: A
         val logger get() = AmvSettings.logger
     }
 
-    val playerView: AmvExoVideoPlayer
-    val sliderPanel: AmvTrimmingSliderPanel
+    private val playerView: AmvExoVideoPlayer
+    private val sliderPanel: AmvTrimmingSliderPanel
     lateinit var viewModel: TrimmingControlPanelModel
 
     init {
@@ -72,23 +72,6 @@ class AmvTrimmingPlayerView @JvmOverloads constructor(context: Context, attrs: A
         playerView.setPadding(sliderPanel.sliderView.leftExtentWidth.roundToInt(), 0,sliderPanel.sliderView.rightExtentWidth.roundToInt(), 0 )
 
         sliderWidthMediator = SliderWidthMediator(viewModel.frameList.contentWidth, sliderPanel, sliderPanel.sliderView.extentWidth.roundToInt(), lifecycleOwner.lifecycleScope)
-
-//        combine(containerWidth, viewModel.frameList.contentWidth) { containerWiddth, contentWidth ->
-//            if(containerWiddth>0 && contentWidth>0 ) {
-//                val maxSliderWidth = contentWidth + sliderPanel.sliderView.extentWidth.roundToInt()
-//                if(maxSliderWidth<containerWiddth) {
-//                    maxSliderWidth
-//                } else {
-//                    LayoutParams.MATCH_PARENT
-//                }
-//            } else {
-//                0
-//            }
-//        }.onEach {
-//            if(it!=0 && sliderPanel.getLayoutWidth()!=it) {
-//                sliderPanel.setLayoutWidth(it)
-//            }
-//        }.launchIn(lifecycleOwner.lifecycleScope)
     }
 
     private var sliderWidthMediator: SliderWidthMediator? = null

@@ -3,6 +3,7 @@ package com.michael.video
 import android.net.Uri
 import androidx.test.InstrumentationRegistry
 import androidx.test.runner.AndroidJUnit4
+import com.michael.video.v2.cache.AmvCacheManager
 import junit.framework.Assert.*
 import org.junit.Test
 import org.junit.runner.RunWith

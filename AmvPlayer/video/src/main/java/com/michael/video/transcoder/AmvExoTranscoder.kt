@@ -1,28 +1,31 @@
 package com.mihcael.video.transcoder
 
 import android.content.Context
-import android.net.Uri
+import android.os.Build
 import com.google.android.exoplayer2.MediaItem
 import com.google.android.exoplayer2.transformer.ProgressHolder
 import com.google.android.exoplayer2.transformer.Transformer
 import com.google.android.exoplayer2.util.MimeTypes
-import com.michael.utils.FuncyListener2
-import com.michael.video.AmvError
-import com.michael.video.AmvSettings
+import com.michael.video.v2.common.AmvSettings
+import com.michael.video.v2.util.AmvClipping
+import com.michael.video.v2.util.AmvFile
+import com.michael.video.transcoder.AmvResult
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
-import java.io.File
+import kotlin.coroutines.Continuation
+import kotlin.coroutines.resume
+import kotlin.coroutines.suspendCoroutine
 
-class AmvExoTranscoder(val sourceFile:File, context: Context) : IAmvTranscoder, Transformer.Listener {
+class AmvExoTranscoder(val srcFile: AmvFile, context: Context, override var progress: MutableStateFlow<Int>?) : IAmvTranscoder, Transformer.Listener {
     val logger = AmvSettings.logger
+    override val remainingTime:Long = -1L
+    private var cancelled: Boolean = false
+    private var succeeded: Boolean = false
 
-    override val completionListener =  FuncyListener2<IAmvTranscoder, Boolean, Unit>()
-    override val progressListener = FuncyListener2<IAmvTranscoder, Float, Unit>()
-    override val error = AmvError()
-
-    private var mDstFile:File? = null
+    private var mDstFile:AmvFile? = null
 
     val transformer:Transformer = Transformer.Builder()
         .setContext(context)
@@ -31,68 +34,71 @@ class AmvExoTranscoder(val sourceFile:File, context: Context) : IAmvTranscoder, 
         .build()
 
 
-    private fun progressWatch() {
-        CoroutineScope(Dispatchers.Main).launch {
-            val progressHolder = ProgressHolder()
-            do {
-                progressListener.invoke(this@AmvExoTranscoder, progressHolder.progress.toFloat()/100)
-                delay(500)
-            } while(transformer.getProgress(progressHolder)!= Transformer.PROGRESS_STATE_NO_TRANSFORMATION)
+    private suspend fun process(startTransform:()->Unit) : AmvResult {
+        return suspendCoroutine<AmvResult> {
+            continuation = it
+            CoroutineScope(Dispatchers.IO).launch {
+                startTransform()
+                val progressHolder = ProgressHolder()
+                do {
+                    progress?.value = progressHolder.progress
+                    delay(500)
+                } while (transformer.getProgress(progressHolder) != Transformer.PROGRESS_STATE_NO_TRANSFORMATION)
+            }
         }
     }
 
-    override fun transcode(distFile: File) {
-        logger.debug("from: ${sourceFile.path}")
-        logger.debug("to  : ${distFile.path}")
-        mDstFile = distFile
-        transformer.startTransformation(MediaItem.Builder().setUri(Uri.fromFile(sourceFile)).build(), distFile.path)
-        progressWatch()
-    }
+    var continuation:Continuation<AmvResult>? = null
 
-    override fun truncate(distFile: File, start: Long, end: Long) {
-        logger.debug("${start}-${end}")
-        logger.debug("from: ${sourceFile.path}")
-        logger.debug("to  : ${distFile.path}")
+    override suspend fun transcode(distFile: AmvFile, clipping: AmvClipping) : AmvResult {
+        logger.debug("$clipping")
+        logger.debug("from: $srcFile")
+        logger.debug("to  : $distFile")
         mDstFile = distFile
-        val clip = if(start>0L||end>0L) {
+        val clip = if(clipping.isValid) {
             val builder = MediaItem.ClippingConfiguration.Builder()
-            if (start >= 0) {
-                builder.setStartPositionMs(start)
+            if (clipping.isValidStart) {
+                builder.setStartPositionMs(clipping.start)
             }
-            if (end > 0) {
-                builder.setEndPositionMs(end)
+            if (clipping.isValidEnd) {
+                builder.setEndPositionMs(clipping.end)
             }
             builder.build()
         } else MediaItem.ClippingConfiguration.UNSET
-        transformer.startTransformation(MediaItem.Builder().setUri(Uri.fromFile(sourceFile)).setClippingConfiguration(clip).build(), distFile.path)
-        progressWatch()
+        return try {
+            process {
+                if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    transformer.startTransformation(MediaItem.Builder().setUri(srcFile.toUri).setClippingConfiguration(clip).build(), distFile.openParcelFileDescriptorToWrite())
+                } else {
+                    if(!distFile.hasPath) throw IllegalArgumentException("file path is required on Android 6/7")
+                    transformer.startTransformation(MediaItem.Builder().setUri(srcFile.toUri).setClippingConfiguration(clip).build(), distFile.path!!.path)
+                }
+            }
+        } finally {
+            close()
+        }
     }
 
     override fun cancel() {
+        cancelled = true
         transformer.cancel()
     }
 
-    override fun dispose() {
-        if (error.hasError) {
-            mDstFile?.apply {
-                if (exists() && isFile) {
-                    delete()
-                }
-                mDstFile = null
-            }
+    override fun close() {
+        if (!succeeded) {
+            mDstFile?.safeDelete()
+            mDstFile = null
         }
-        completionListener.reset()
-        progressListener.reset()
     }
 
     override fun onTransformationCompleted(inputMediaItem: MediaItem) {
-        completionListener.invoke(this, true)
+        succeeded = true
+        continuation?.resume(AmvResult.succeeded)
     }
 
     override fun onTransformationError(inputMediaItem: MediaItem, exception: Exception) {
         logger.stackTrace(exception)
-        error.setError(exception)
-        completionListener.invoke(this, false)
+        continuation?.resume(if(cancelled) AmvResult.cancelled else  AmvResult.failed(exception))
     }
 
 }

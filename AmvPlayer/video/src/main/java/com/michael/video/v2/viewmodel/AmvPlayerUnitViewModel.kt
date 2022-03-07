@@ -4,12 +4,11 @@ import android.content.Context
 import androidx.lifecycle.*
 import com.michael.video.v2.elements.AmvExoVideoPlayer
 import com.michael.video.v2.models.FullControlPanelModel
-import com.michael.video.v2.models.IPlayerOwner
 import com.michael.video.v2.models.PlayerModel
 import io.github.toyota32k.utils.lifecycleOwner
 import kotlinx.coroutines.flow.*
 
-class AmvPlayerUnitViewModel : ViewModel(), IPlayerOwner {
+class AmvPlayerUnitViewModel : ViewModel(), FullControlPanelModel.IPlayerOwner {
     lateinit var playerModel: PlayerModel
     lateinit var controlPanelModel: FullControlPanelModel
     override var isPrimary:Boolean = true   // true:メインプレーヤー / false:PinP/Fullscreenプレーヤー

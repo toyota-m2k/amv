@@ -1,73 +1,52 @@
 package com.mihcael.video.transcoder
 
-import com.michael.utils.FuncyListener2
-import com.michael.video.AmvError
-import com.michael.video.AmvSettings
+import com.michael.video.v2.common.AmvSettings
+import com.michael.video.v2.util.AmvClipping
+import com.michael.video.v2.util.AmvFile
+import com.michael.video.transcoder.AmvResult
 import io.github.toyota32k.media.lib.converter.ConvertResult
 import io.github.toyota32k.media.lib.converter.Converter
 import io.github.toyota32k.media.lib.converter.IAwaiter
 import io.github.toyota32k.media.lib.converter.IProgress
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
-import java.io.File
+import kotlinx.coroutines.flow.MutableStateFlow
 
-class AmvAmpTranscoder(val srcFile:File) : IAmvTranscoder {
+class AmvAmpTranscoder(val srcFile: AmvFile, override var progress: MutableStateFlow<Int>?) : IAmvTranscoder {
     val logger = AmvSettings.logger
-    override val completionListener = FuncyListener2<IAmvTranscoder, Boolean, Unit>()
-    override val progressListener = FuncyListener2<IAmvTranscoder, Float, Unit>()
-    override val error = AmvError()
-
+    override var remainingTime:Long = -1L
+        private set
     private var awaiter: IAwaiter<ConvertResult>? = null
 
     private fun onProgress(progress: IProgress) {
-        progressListener.invoke(this, progress.percentage.toFloat()/100)
+        this.remainingTime = progress.remainingTime
+        this.progress?.value = progress.percentage
     }
 
-    private fun await() {
-        CoroutineScope(Dispatchers.Main).launch {
-            val result = awaiter?.await()
-            if(result?.succeeded==true) {
-                completionListener.invoke(this@AmvAmpTranscoder, true)
-            } else {
-                when {
-                    result == null -> error.setError("fatal error")
-                    result.cancelled -> error.reset()
-                    result.exception != null -> error.setError(result.exception!!)
-                    result.errorMessage != null -> error.setError(result.errorMessage!!)
-                }
-                completionListener.invoke(this@AmvAmpTranscoder, false)
-            }
+    private suspend fun await(): AmvResult {
+        val result = awaiter?.await()
+        return when {
+            result == null -> AmvResult.failed("fatal error")
+            result.succeeded -> AmvResult.succeeded
+            result.cancelled -> AmvResult.cancelled
+            result.exception != null -> AmvResult.failed(result.exception!!)
+            result.errorMessage != null -> AmvResult.failed(result.errorMessage!!)
+            else -> AmvResult.failed("unknown status")
         }
     }
 
-    override fun transcode(distFile: File) {
-        logger.debug("from: ${srcFile.path}")
-        logger.debug("to  : ${distFile.path}")
+    override suspend fun transcode(distFile: AmvFile, clipping: AmvClipping): AmvResult {
+        logger.debug("$clipping")
+        logger.debug("from: $srcFile")
+        logger.debug("to  : $distFile")
         val converter = Converter.Factory()
-            .input(srcFile)
-            .output(distFile)
+            .input(srcFile.asAndroidFile())
+            .output(distFile.asAndroidFile())
             .deleteOutputOnError(true)
             .setProgressHandler(this::onProgress)
+            .trimmingStartFrom(clipping.start)
+            .trimmingEndTo(clipping.end)
             .build()
         awaiter = converter.executeAsync()
-        await()
-    }
-
-    override fun truncate(distFile: File, start: Long, end: Long) {
-        logger.debug("${start}-${end}")
-        logger.debug("from: ${srcFile.path}")
-        logger.debug("to  : ${distFile.path}")
-        val converter = Converter.Factory()
-            .input(srcFile)
-            .output(distFile)
-            .deleteOutputOnError(true)
-            .setProgressHandler(this::onProgress)
-            .trimmingStartFrom(start)
-            .trimmingEndTo(end)
-            .build()
-        awaiter = converter.executeAsync()
-        await()
+        return await()
     }
 
     override fun cancel() {
@@ -75,9 +54,7 @@ class AmvAmpTranscoder(val srcFile:File) : IAmvTranscoder {
         awaiter?.cancel()
     }
 
-    override fun dispose() {
+    override fun close() {
         logger.debug()
-        completionListener.reset()
-        progressListener.reset()
     }
 }

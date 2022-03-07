@@ -5,11 +5,18 @@
  * Copyright © 2018 M.TOYOTA  All Rights Reserved.
  */
 
-package com.michael.video
+package com.michael.video.v2.common
 
-class AmvError {
+class AmvError() {
     private var mMessage: String? = null
     private var mException: Throwable? = null
+
+    constructor(message:String) : this() {
+        setError(message)
+    }
+    constructor(error:Throwable) : this() {
+        setError(error)
+    }
 
     @Suppress("MemberVisibilityCanBePrivate")
     val hasError: Boolean
@@ -37,7 +44,7 @@ class AmvError {
         }
     }
 
-    fun copyFrom(e:AmvError) {
+    fun copyFrom(e: AmvError) {
         if (!hasError) {
             mException = e.mException
             mMessage = e.mMessage

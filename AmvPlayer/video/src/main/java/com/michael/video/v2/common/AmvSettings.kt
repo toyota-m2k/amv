@@ -1,8 +1,9 @@
-package com.michael.video
+package com.michael.video.v2.common
 
 import android.content.Context
 import android.content.pm.PackageManager
 import android.os.Build
+import com.michael.video.v2.cache.AmvCacheManager
 import io.github.toyota32k.utils.UtLog
 import okhttp3.OkHttpClient
 import java.io.File
@@ -32,14 +33,14 @@ object AmvSettings {
      * @param　httpClientSource　videoライブラリと本体とで、httpClient（の設定やセッションなど）を共用するためのi/f
      */
     @JvmStatic
-    fun initialize(context: Context, cacheRootPath: File, bitrate:Int, allowPinP:Boolean, httpClientSource:IAmvHttpClientSource?) {
+    fun initialize(context: Context, cacheRootPath: File, bitrate:Int, allowPinP:Boolean, httpClientSource: IAmvHttpClientSource?) {
         if (initialized) {
             return
         }
         initialized = true
         maxBitRate = bitrate
         allowPictureInPicture = allowPinP && Build.VERSION.SDK_INT >= Build.VERSION_CODES.O
-        this.httpClientSource = httpClientSource
+        AmvSettings.httpClientSource = httpClientSource
         val videoCache = File(cacheRootPath, ".video-cache")
         AmvCacheManager.initialize(videoCache)
 

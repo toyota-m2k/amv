@@ -16,4 +16,5 @@
     <string name="ok">OK</string>
     <string name="expandMark">＋</string>
     <string name="reduceMark">－</string>
+    <string name="trimming_source">Source</string>
 </resources>

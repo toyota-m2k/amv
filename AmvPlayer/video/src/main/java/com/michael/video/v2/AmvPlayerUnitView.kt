@@ -8,13 +8,17 @@ import android.widget.FrameLayout
 import androidx.lifecycle.asLiveData
 import androidx.lifecycle.lifecycleScope
 import com.michael.video.*
+import com.michael.video.v2.common.AmvSettings
 import com.michael.video.v2.elements.AmvExoVideoPlayer
 import com.michael.video.v2.elements.AmvVideoController
 import com.michael.video.v2.models.FullControlPanelModel
+import com.michael.video.v2.util.AmvFitterEx
+import com.michael.video.v2.util.FitMode
+import com.michael.video.v2.util.setLayoutSize
+import com.michael.video.v2.util.setLayoutWidth
 import com.michael.video.v2.viewmodel.AmvPlayerUnitViewModel
 import io.github.toyota32k.bindit.Binder
 import io.github.toyota32k.bindit.BoolConvert
-import io.github.toyota32k.bindit.MultiVisibilityBinding
 import io.github.toyota32k.bindit.VisibilityBinding
 import io.github.toyota32k.utils.lifecycleOwner
 import kotlinx.coroutines.flow.filter
@@ -22,7 +26,7 @@ import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 
 /**
- * 普通の動画プレーヤー
+ * 動画プレーヤー＋FullControlPanel
  */
 class AmvPlayerUnitView@JvmOverloads constructor(
     context: Context, attrs: AttributeSet? = null, defStyleAttr: Int = 0
@@ -80,6 +84,7 @@ class AmvPlayerUnitView@JvmOverloads constructor(
      * 動画プレーヤーのサイズを指定する。
      * 他のパーツは、動画プレーヤーのサイズに合わせて適当にリサイズ＆移動される。
      */
+    @Suppress("unused")
     fun setPlayerSize(width:Int, height:Int) {
         player.setLayoutSize(width, height)
     }

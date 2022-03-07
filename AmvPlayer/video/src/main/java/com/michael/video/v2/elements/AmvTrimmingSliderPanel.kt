@@ -4,7 +4,7 @@ import android.content.Context
 import android.util.AttributeSet
 import android.view.LayoutInflater
 import android.widget.FrameLayout
-import com.michael.video.AmvSettings
+import com.michael.video.v2.common.AmvSettings
 import com.michael.video.R
 import com.michael.video.v2.models.TrimmingControlPanelModel
 import io.github.toyota32k.bindit.Binder

@@ -16,7 +16,7 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
-import com.michael.video.AmvSettings
+import com.michael.video.v2.common.AmvSettings
 import com.michael.video.v2.AmvPlayerUnitView
 import com.michael.video.v2.models.FullControlPanelModel
 import com.michael.video.v2.models.PlayerModel
@@ -220,14 +220,8 @@ class MainActivity : UtMortalActivity() {
     val filePickers: UtFilePickerStore = UtFilePickerStore(this)
 
     fun onTrimming(view: View?) {
-        lifecycleScope.launch {
-            val uri = filePickers.openFilePicker.selectFile(arrayOf("video/mp4", "video/*"))
-            if(uri!=null) {
-                val intent = Intent(this@MainActivity, TrimmingActivity::class.java)
-                intent.putExtra("source", uri)
-                startActivity(intent)
-            }
-        }
+        val intent = Intent(this@MainActivity, TrimmingActivity::class.java)
+        startActivity(intent)
     }
     fun onExpand(view: View?) {
         playerUnitView.playerWidth = (playerUnitView.playerWidth * 1.1f).toInt()

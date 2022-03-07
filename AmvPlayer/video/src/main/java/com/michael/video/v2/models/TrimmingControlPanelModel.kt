@@ -1,10 +1,10 @@
 package com.michael.video.v2.models
 
 import android.content.Context
-import com.michael.video.AmvSettings
-import com.michael.video.IAmvSource
-import com.michael.video.IAmvVideoPlayer
-import com.michael.video.formatTime
+import com.michael.video.v2.common.AmvSettings
+import com.michael.video.v2.common.IAmvSource
+import com.michael.video.v2.util.AmvClipping
+import com.michael.video.v2.util.formatTime
 import kotlinx.coroutines.flow.*
 
 class TrimmingControlPanelModel(playerModel: PlayerModel, thumbnailCount:Int, thumbnailHeight:Int) : ControlPanelModel(playerModel, thumbnailCount, thumbnailHeight) {
@@ -17,13 +17,13 @@ class TrimmingControlPanelModel(playerModel: PlayerModel, thumbnailCount:Int, th
     }
     val trimmingStart = MutableStateFlow<Long>(0)
     val trimmingEnd = MutableStateFlow<Long>(-1)
-    val isTrimmed:Boolean get() = playerModel.isReady.value && 0<trimmingStart.value || trimmingEnd.value < playerModel.naturalDuration.value
-    val trimmingRange: IAmvVideoPlayer.Clipping?
+    val isTrimmed:Boolean get() = playerModel.isReady.value && AmvClipping.isValidClipping(trimmingStart.value, trimmingEnd.value, playerModel.naturalDuration.value)
+    val trimmingRange: AmvClipping?
         get() = if(isTrimmed) {
-                IAmvVideoPlayer.Clipping(trimmingStart.value, trimmingEnd.value)
-            } else {
-                null
-            }
+            AmvClipping.make(trimmingStart.value, trimmingEnd.value, playerModel.naturalDuration.value)
+        } else {
+            null
+        }
 
     fun applyTrimmingRange() {
         playerModel.pseudoClipping = trimmingRange

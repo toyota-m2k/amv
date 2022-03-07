@@ -18,7 +18,7 @@ import android.view.View
 import android.widget.ImageButton
 import androidx.appcompat.app.AppCompatActivity
 import androidx.fragment.app.FragmentActivity
-import com.michael.video.AmvSettings
+import com.michael.video.v2.common.AmvSettings
 import com.michael.video.R
 import com.michael.video.v2.elements.AmvExoVideoPlayer
 import com.michael.video.v2.models.FullControlPanelModel
@@ -59,7 +59,7 @@ class AmvFullscreenActivity : AppCompatActivity() {
     private lateinit var receiver: BroadcastReceiver        // PinP中のコマンド（ブロードキャスト）を受け取るレシーバー
 
     lateinit var viewModel:AmvPlayerUnitViewModel
-    lateinit var player: AmvExoVideoPlayer
+    private lateinit var player: AmvExoVideoPlayer
     val binder = Binder()
 
     /**
@@ -140,9 +140,9 @@ class AmvFullscreenActivity : AppCompatActivity() {
     /**
      * 後処理
      */
-    override fun onDestroy() {
-        super.onDestroy()
-    }
+//    override fun onDestroy() {
+//        super.onDestroy()
+//    }
 
     /**
      * このActivityは singleTask モードで実行されるので、すでにActivityが存在する状態で、startActivity されると、
@@ -182,7 +182,7 @@ class AmvFullscreenActivity : AppCompatActivity() {
     @TargetApi(Build.VERSION_CODES.O)
     private fun enterPinP() {
         if (AmvSettings.isPinPAvailable(this)) {
-            player.useExoController = false
+//            player.useExoController = false
             val w = viewModel.playerModel.videoSize.value?.width ?: 100
             val h = viewModel.playerModel.videoSize.value?.height ?: 100
             val ro = Rational(w, h)
@@ -307,7 +307,7 @@ class AmvFullscreenActivity : AppCompatActivity() {
             }
         }
     }
-    val pinpTerminator = PinPTerminator()
+    private val pinpTerminator = PinPTerminator()
 
 
     /**

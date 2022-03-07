@@ -10,7 +10,13 @@ import com.google.android.exoplayer2.source.MediaSource
 import com.google.android.exoplayer2.source.ProgressiveMediaSource
 import com.google.android.exoplayer2.upstream.DefaultDataSource
 import com.google.android.exoplayer2.video.VideoSize
-import com.michael.video.*
+import com.michael.video.R
+import com.michael.video.v2.common.AmvSettings
+import com.michael.video.v2.common.AmvStringPool
+import com.michael.video.v2.common.IAmvSource
+import com.michael.video.v2.util.AmvClipping
+import com.michael.video.v2.util.AmvFitterEx
+import com.michael.video.v2.util.FitMode
 import io.github.toyota32k.utils.SuspendableEvent
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
@@ -27,6 +33,15 @@ import kotlin.math.absoluteValue
 class PlayerModel(
     context: Context,                   // application context が必要
 ) : Closeable {
+    enum class PlayerState {
+        None,       // 初期状態
+        Loading,
+        Error,
+        Playing,
+        Paused
+    }
+
+
     val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)          // dispose()まで有効なコルーチンスコープ
     val context:Context = context.applicationContext                                        // ApplicationContextならViewModelが持っていても大丈夫だと思う。
     private val listener =  PlayerListener()                                        // ExoPlayerのリスナー
@@ -45,13 +60,13 @@ class PlayerModel(
      * ソースのクリッピング指定
      * setVideoSource()の第２引数で指定すると、内部で、ExoPlayerのClippingMediaSourceを生成する。
      */
-    private var sourceClipping: IAmvVideoPlayer.Clipping? = null
+    private var sourceClipping: AmvClipping? = null
 
     /**
      * 動画再生範囲を無理やりクリッピングする指定
      * Trimmingで、全体の再生範囲を有効にした状態で、再生範囲を限定するときに使用。
      */
-    var pseudoClipping: IAmvVideoPlayer.Clipping? = null
+    var pseudoClipping: AmvClipping? = null
 
     /**
      * 動画の画面サイズ情報
@@ -76,7 +91,7 @@ class PlayerModel(
     /**
      * プレーヤーの状態
      */
-    val state: StateFlow<IAmvVideoPlayer.PlayerState> = MutableStateFlow(IAmvVideoPlayer.PlayerState.None)
+    val state: StateFlow<PlayerState> = MutableStateFlow(PlayerState.None)
 
     /**
      * エラーメッセージ
@@ -114,9 +129,9 @@ class PlayerModel(
             .resultSize
     }.stateIn(scope, SharingStarted.Eagerly, Size(100,100))
 
-    val isLoading = state.map { it== IAmvVideoPlayer.PlayerState.Loading }.stateIn(scope, SharingStarted.Eagerly, false)
-    val isReady = state.map { it== IAmvVideoPlayer.PlayerState.Playing || it== IAmvVideoPlayer.PlayerState.Paused }.stateIn(scope, SharingStarted.Eagerly, false)
-    val isPlaying = state.map { it==IAmvVideoPlayer.PlayerState.Playing }.stateIn(scope, SharingStarted.Eagerly, false)
+    val isLoading = state.map { it== PlayerState.Loading }.stateIn(scope, SharingStarted.Eagerly, false)
+    val isReady = state.map { it== PlayerState.Playing || it== PlayerState.Paused }.stateIn(scope, SharingStarted.Eagerly, false)
+    val isPlaying = state.map { it== PlayerState.Playing }.stateIn(scope, SharingStarted.Eagerly, false)
     val isError = errorMessage.map { !it.isNullOrBlank() }.stateIn(scope, SharingStarted.Lazily, false)
 
     /**
@@ -180,7 +195,7 @@ class PlayerModel(
         sourceClipping = null
         pseudoClipping = null
         ended = false
-        state.mutable.value = IAmvVideoPlayer.PlayerState.None
+        state.mutable.value = PlayerState.None
         videoSize.mutable.value = null
         errorMessage.mutable.value = null
         naturalDuration.mutable.value = 0L
@@ -191,7 +206,7 @@ class PlayerModel(
      * @param source    ソース（ファイル、uriなど）
      * @param sourceClipping   クリッピング情報
      */
-    fun setVideoSource(source: IAmvSource?, sourceClipping: IAmvVideoPlayer.Clipping? = null) {
+    fun setVideoSource(source: IAmvSource?, sourceClipping: AmvClipping? = null) {
         reset()
         if(source==null) {
             return
@@ -309,7 +324,7 @@ class PlayerModel(
             logger.stackTrace(error)
             source.value?.invalidate()
             if(!isReady.value) {
-                state.mutable.value = IAmvVideoPlayer.PlayerState.Error
+                state.mutable.value = PlayerState.Error
                 errorMessage.mutable.value = AmvStringPool[R.string.error] ?: context.getString(R.string.error)
             } else {
                 logger.warn("ignoring exo error.")
@@ -319,8 +334,8 @@ class PlayerModel(
         override fun onLoadingChanged(isLoading: Boolean) {
             logger.debug("loading = $isLoading")
             if (isLoading && player.playbackState == Player.STATE_BUFFERING) {
-                if(state.value==IAmvVideoPlayer.PlayerState.None) {
-                    state.mutable.value = IAmvVideoPlayer.PlayerState.Loading
+                if(state.value== PlayerState.None) {
+                    state.mutable.value = PlayerState.Loading
                 } else {
                     scope.launch {
                         for(i in 0..20) {
@@ -331,7 +346,7 @@ class PlayerModel(
                         }
                         if (player.playbackState == Player.STATE_BUFFERING) {
                             // ２秒以上bufferingならロード中に戻す
-                            state.mutable.value = IAmvVideoPlayer.PlayerState.Loading
+                            state.mutable.value = PlayerState.Loading
                         }
                     }
                 }
@@ -353,13 +368,13 @@ class PlayerModel(
             }
             when(playbackState) {
                 Player.STATE_READY ->  {
-                    state.mutable.value = if(playWhenReady) IAmvVideoPlayer.PlayerState.Playing else IAmvVideoPlayer.PlayerState.Paused
+                    state.mutable.value = if(playWhenReady) PlayerState.Playing else PlayerState.Paused
                     naturalDuration.mutable.value = player.duration
                 }
                 Player.STATE_ENDED -> {
                     player.playWhenReady = false
                     ended = true
-                    state.mutable.value = IAmvVideoPlayer.PlayerState.Paused
+                    state.mutable.value = PlayerState.Paused
                 }
                 else -> {}
             }

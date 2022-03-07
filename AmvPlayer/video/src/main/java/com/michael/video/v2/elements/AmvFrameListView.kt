@@ -7,7 +7,7 @@ import android.view.ViewGroup
 import android.widget.FrameLayout
 import android.widget.ImageView
 import androidx.lifecycle.lifecycleScope
-import com.michael.video.AmvSettings
+import com.michael.video.v2.common.AmvSettings
 import com.michael.video.R
 import com.michael.video.v2.models.ControlPanelModel
 import com.michael.video.v2.models.TrimmingControlPanelModel

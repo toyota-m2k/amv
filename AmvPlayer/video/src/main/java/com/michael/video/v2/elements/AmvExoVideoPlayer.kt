@@ -12,10 +12,10 @@ import androidx.lifecycle.asLiveData
 import androidx.lifecycle.lifecycleScope
 import com.google.android.exoplayer2.ui.AspectRatioFrameLayout
 import com.google.android.exoplayer2.ui.PlayerView
-import com.michael.video.AmvSettings
+import com.michael.video.v2.common.AmvSettings
 import com.michael.video.R
-import com.michael.video.px2dp
-import com.michael.video.setLayoutSize
+import com.michael.video.v2.util.px2dp
+import com.michael.video.v2.util.setLayoutSize
 import com.michael.video.v2.models.ControlPanelModel
 import com.michael.video.v2.models.PlayerModel
 import io.github.toyota32k.bindit.Binder

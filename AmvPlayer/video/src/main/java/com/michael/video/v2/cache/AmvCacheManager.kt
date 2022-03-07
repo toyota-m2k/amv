@@ -6,13 +6,17 @@
  */
 @file:Suppress("unused")
 
-package com.michael.video
+package com.michael.video.v2.cache
 
 import android.annotation.SuppressLint
 import android.net.Uri
 import com.michael.utils.Funcies2
 import com.michael.utils.Funcy2
 import com.michael.utils.IFuncy2
+import com.michael.video.v2.common.AmvError
+import com.michael.video.v2.common.AmvException
+import com.michael.video.v2.common.AmvSettings
+import com.michael.video.BuildConfig
 import io.github.toyota32k.utils.UtLog
 import okhttp3.*
 import java.io.File
@@ -35,7 +39,7 @@ object AmvCacheManager {
 //    private var mMaxCacheCount = DEFAULT_MAX_CACHE_COUNT
     private var mLock = Object()
     private lateinit var mCacheFolder : File
-    private val mCacheList = HashMap<String,IAmvCache>(MAX_CACHE_COUNT)
+    private val mCacheList = HashMap<String, IAmvCache>(MAX_CACHE_COUNT)
     private var mSweeping = false
 
     /**
@@ -171,7 +175,7 @@ object AmvCacheManager {
     }
 
     data class DiskCapacity(val capacity:Long, val freeSpace:Long)
-    private val diskCapacity :DiskCapacity
+    private val diskCapacity : DiskCapacity
         @SuppressLint("UsableSpace")
         get() = DiskCapacity(mCacheFolder.totalSpace, min(mCacheFolder.freeSpace, mCacheFolder.usableSpace))
 
@@ -184,7 +188,7 @@ object AmvCacheManager {
     }
 
     data class Statistics(val count:Int, val totalSize:Long)
-    val cacheStatistics:Statistics
+    val cacheStatistics: Statistics
         get() {
             val list = mCacheFolder.listFiles() ?: emptyArray()
             val totalSize = if(list.isNotEmpty()) list.map { it.length() }.reduce { acc, v -> acc + v } else 0
@@ -298,7 +302,7 @@ object AmvCacheManager {
         }
     }
 
-    internal fun removeCache(cache:IAmvCache) {
+    internal fun removeCache(cache: IAmvCache) {
         try {
             synchronized(mLock) {
                 mCacheList.remove(cache.key)
@@ -313,7 +317,7 @@ object AmvCacheManager {
 /**
  * キャッシュファイルの内部表現
  */
-private class AmvCache(override val key:String, override val uri:Uri?, existsFile:File?) : IAmvCache{
+private class AmvCache(override val key:String, override val uri:Uri?, existsFile:File?) : IAmvCache {
     private var mFile: File? = null
     private var mInvalidated = false
     private var mRefCount: Int = 0
@@ -373,7 +377,7 @@ private class AmvCache(override val key:String, override val uri:Uri?, existsFil
                                         }
                                         outFile
                                     } catch(e:Exception) {
-                                        outFile.deleteOnExit()
+                                        outFile.delete()
                                         null
                                     }
                                 }

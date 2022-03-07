@@ -1,4 +1,4 @@
-package com.michael.video.v2.elements
+package com.michael.video.v2.core
 
 import android.content.Context
 import android.graphics.Bitmap
@@ -6,12 +6,12 @@ import android.media.MediaMetadataRetriever
 import android.net.Uri
 import android.util.Size
 import com.michael.utils.UtAndroidUri
-import com.michael.video.AmvFitter
-import com.michael.video.AmvSettings
-import com.michael.video.MuSize
-import com.michael.video.v2.getBitmapAt
-import com.michael.video.v2.getDate
-import com.michael.video.v2.getLong
+import com.michael.video.v2.util.AmvFitter
+import com.michael.video.v2.common.AmvSettings
+import com.michael.video.v2.util.MuSize
+import com.michael.video.v2.misc.getBitmapAt
+import com.michael.video.v2.misc.getDate
+import com.michael.video.v2.misc.getLong
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
@@ -24,7 +24,7 @@ import java.util.*
 import kotlin.coroutines.resume
 import kotlin.coroutines.suspendCoroutine
 
-class AmvFrameExtractor(val fitter:AmvFitter, val scope: CoroutineScope) : Closeable {
+class AmvFrameExtractor(val fitter: AmvFitter, val scope: CoroutineScope) : Closeable {
     var analyzer: MediaMetadataRetriever? = null
 
 //    fun open(file:File) {
@@ -69,7 +69,7 @@ class AmvFrameExtractor(val fitter:AmvFitter, val scope: CoroutineScope) : Close
         val width:Int,
         val height:Int
     ) {
-        val size:MuSize
+        val size: MuSize
             get() = MuSize(width.toFloat(), height.toFloat())
     }
 

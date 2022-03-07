@@ -1,5 +1,8 @@
-package com.michael.video
+package com.michael.video.v2.util
 
+import com.michael.video.v2.common.AmvError
+import com.michael.video.v2.common.AmvException
+import com.michael.video.v2.common.AmvSettings
 import okhttp3.*
 import java.io.File
 import java.io.FileOutputStream
@@ -9,6 +12,7 @@ import java.util.concurrent.TimeUnit
 /**
  * URLを作業フォルダにDLし、不要になったら削除するための作業ファイルクラス
  */
+@Deprecated("use AmvTempFile / AmvHttpTempFile")
 class AmvDLTempFile(val uri:String, val onPrepared:(AmvDLTempFile, File?)->Unit) {
     /**
      * DLに失敗した場合に、エラー情報を取得
@@ -34,7 +38,7 @@ class AmvDLTempFile(val uri:String, val onPrepared:(AmvDLTempFile, File?)->Unit)
 
     data class Status(val busy:Boolean, val file:File?)
 
-    val status:Status
+    val status: Status
         get() = Status(mDownloading, mFile)
 
     private companion object {

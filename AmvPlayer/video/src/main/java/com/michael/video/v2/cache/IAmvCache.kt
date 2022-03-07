@@ -4,9 +4,10 @@
  * @author M.TOYOTA 2018.07.27 Created
  * Copyright © 2018 M.TOYOTA  All Rights Reserved.
  */
-package com.michael.video
+package com.michael.video.v2.cache
 
 import android.net.Uri
+import com.michael.video.v2.common.AmvError
 import java.io.File
 
 /**
@@ -19,11 +20,11 @@ interface IAmvCache
      * @param callback  結果を返すコールバック fn(sender, file)    エラー発生時はfile==null / sender.error でエラー情報を取得
      */
     // for Kotlin
-    fun getFile(callback: (IAmvCache,File?)->Unit)
+    fun getFile(callback: (IAmvCache, File?)->Unit)
 
     // for Java i/f
     interface IGotFileCallback {
-        fun onGotFile(cache:IAmvCache, file:File?)
+        fun onGotFile(cache: IAmvCache, file:File?)
     }
     fun getFile(callback: IGotFileCallback)
 

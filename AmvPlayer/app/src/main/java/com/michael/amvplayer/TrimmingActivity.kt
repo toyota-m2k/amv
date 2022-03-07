@@ -1,48 +1,110 @@
 package com.michael.amvplayer
 
-import android.net.Uri
 import android.os.Bundle
-import androidx.fragment.app.FragmentActivity
-import androidx.lifecycle.ViewModel
-import androidx.lifecycle.ViewModelProvider
-import com.michael.video.AmvPickedUriSource
-import com.michael.video.v2.models.TrimmingControlPanelModel
-import io.github.toyota32k.bindit.Binder
+import androidx.lifecycle.asLiveData
+import com.michael.video.v2.AmvTrimmingPlayerView
+import com.michael.video.v2.util.AmvFile
+import com.michael.video.v2.viewmodel.AmvTrimmingPlayerViewModel
+import io.github.toyota32k.bindit.*
+import io.github.toyota32k.dialog.broker.pickers.UtFilePickerStore
+import io.github.toyota32k.dialog.task.UtGeneralViewModelStoreOwner
+import io.github.toyota32k.dialog.task.UtImmortalSimpleTask
 import io.github.toyota32k.dialog.task.UtMortalActivity
+import kotlinx.coroutines.flow.combine
 
 class TrimmingActivity : UtMortalActivity() {
-    class TrimmingViewModel: ViewModel() {
-        var trimmingControllerViewModel: TrimmingControlPanelModel? = null
+    companion object {
+        val viewModelStoreOwner = UtGeneralViewModelStoreOwner()
+        var staticViewModel: AmvTrimmingPlayerViewModel? = null
+    }
 
-        override fun onCleared() {
-            super.onCleared()
-            trimmingControllerViewModel?.close()
-            trimmingControllerViewModel = null
+    fun prepareViewModel():AmvTrimmingPlayerViewModel {
+        logger.debug()
+        if(staticViewModel==null) {
+            staticViewModel = AmvTrimmingPlayerViewModel.instanceFor(viewModelStoreOwner, applicationContext)
         }
+        return staticViewModel!!
+    }
+    fun disposeViewModel() {
+        logger.debug()
+        viewModelStoreOwner.release()
+        staticViewModel = null
+    }
 
-        companion object {
-            fun instanceFor(owner:FragmentActivity):TrimmingViewModel {
-                return ViewModelProvider(owner)[TrimmingViewModel::class.java]
+    val viewModel:AmvTrimmingPlayerViewModel get() = staticViewModel!!
+
+
+    private val binder = Binder()
+
+    val filePickers: UtFilePickerStore = UtFilePickerStore(this)
+
+    val sourceCommand = Command {
+        UtImmortalSimpleTask.run("select source") {
+            val uri = filePickers.openReadOnlyFilePicker.selectFile("video/*") ?: return@run false
+            withOwner {
+                (it.asActivity() as? TrimmingActivity)?.viewModel?.setSourceFile(AmvFile(uri,applicationContext))
             }
+            true
         }
     }
 
-    private var mSource: Uri? = null
-    lateinit var viewModel:TrimmingViewModel
-    private val binder = Binder()
+    val transcodeCommand = Command {
+        UtImmortalSimpleTask.run("select source") {
+            val uri = filePickers.createFilePicker.selectFile("video.mp4") ?: return@run false
+            withOwner {
+                (it.asActivity() as? TrimmingActivity)?.viewModel?.apply {
+                    setOutputFile(AmvFile(uri, applicationContext))
+                    transcode()
+                }
+            }
+            true
+        }
+        // 次のコードは、うまく行きそうだけど、Activityを保持しない設定でうまくいかない。
+        // FilePickerを開くとActivityが閉じられ、AmvTrimmingPlayerViewModel もClearされる。
+        // 戻ってきたとき、ViewModelは再構築されるが、Commandは、破棄されたActivityの持ち物なので、古いviewModelを持ってしまっている。
+//        UtImmortalTaskManager.immortalTaskScope.launch {
+//            val uri = filePickers.createFilePicker.selectFile("video/mp4") ?: return@launch
+//            viewModel.setOutputFile(AmvFile(uri, applicationContext))
+//            viewModel.transcode()
+//        }
+    }
+
+    val cancelCommand = Command {
+        viewModel.cancel()
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.trimming_activity)
 
-        viewModel = TrimmingViewModel.instanceFor(this)
-        val trimmingControllerViewModel = viewModel.trimmingControllerViewModel ?: TrimmingControlPanelModel.create(this, 8, 80).apply {
-            viewModel.trimmingControllerViewModel = this
-            val s = intent.getParcelableExtra<Uri>("source")
-            mSource = s as Uri
-            playerModel.setVideoSource(AmvPickedUriSource(mSource!!), null)
-        }
+        prepareViewModel()
+//        staticViewModel = AmvTrimmingPlayerViewModel.instanceFor(UtImmortalTaskManager., applicationContext)
+        findViewById<AmvTrimmingPlayerView>(R.id.trimmingPlayer).bindViewModel(viewModel.controlPanelModel,binder)
 
-        findViewById<com.michael.video.v2.AmvTrimmingPlayerView>(R.id.trimmingPlayer).bindViewModel(trimmingControllerViewModel,binder)
+        binder.register(
+            sourceCommand.connectViewEx(findViewById(R.id.trimming_source_button)),
+            transcodeCommand.connectViewEx(findViewById(R.id.trimming_execute_button)),
+            cancelCommand.connectViewEx(findViewById(R.id.trimming_cancel_button)),
+            EnableBinding.create(this, findViewById(R.id.trimming_cancel_button), viewModel.isTranscodingNow.asLiveData()),
+            EnableBinding.create(this, findViewById(R.id.trimming_execute_button), combine(viewModel.playerModel.isReady, viewModel.isTranscodingNow) { ready, busy->
+                ready && !busy}.asLiveData()),
+            VisibilityBinding.create(this, findViewById(R.id.progress_panel), viewModel.isTranscodingNow.asLiveData()),
+            ProgressBarBinding.create(this, findViewById(R.id.progress_bar), viewModel.progress.asLiveData()),
+            TextBinding.create(this, findViewById(R.id.progress_text), combine(viewModel.progress,viewModel.remainingTime) { progress, remaining->
+                if(remaining>0) {
+                    "$progress % (残り：${remaining/1000}秒)"
+                } else {
+                    "$progress %"
+                }
+            }.asLiveData())
+        )
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        if(isFinishing) {
+            logger.debug()
+            disposeViewModel()
+        }
     }
 }

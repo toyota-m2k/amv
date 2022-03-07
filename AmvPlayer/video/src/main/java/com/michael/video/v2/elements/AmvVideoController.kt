@@ -1,7 +1,6 @@
 package com.michael.video.v2.elements
 
 import android.content.Context
-import android.content.Intent
 import android.graphics.drawable.Drawable
 import android.util.AttributeSet
 import android.view.LayoutInflater
@@ -14,10 +13,10 @@ import androidx.appcompat.content.res.AppCompatResources
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.asLiveData
 import com.michael.utils.VectorDrawableTinter
-import com.michael.video.AmvSettings
+import com.michael.video.v2.common.AmvSettings
 import com.michael.video.R
-import com.michael.video.dp2px
-import com.michael.video.getActivity
+import com.michael.video.v2.util.dp2px
+import com.michael.video.v2.util.getActivity
 import com.michael.video.v2.AmvFullscreenActivity
 import com.michael.video.v2.models.FullControlPanelModel
 import io.github.toyota32k.bindit.*

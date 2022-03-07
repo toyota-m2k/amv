@@ -6,7 +6,6 @@ import android.view.View;
 
 import androidx.appcompat.app.AppCompatActivity;
 
-import com.mihcael.video.transcoder.AmvCascadeTranscoder;
 import com.mihcael.video.transcoder.IAmvTranscoder;
 
 import java.io.File;
@@ -55,7 +54,7 @@ public class TranscodeActivity extends AppCompatActivity {
         mSource = (File)s;
 
         if(null!=mSource) {
-            transcoder = new AmvCascadeTranscoder(mSource, getApplicationContext());
+//            transcoder = new AmvCascadeTranscoder(mSource, getApplicationContext());
 //            AmvMediaInfo mi = new AmvMediaInfo(mSource, getApplicationContext());
 //            AmvWorkingSurfaceView surfaceView = findViewById(R.id.surfaceView);
 //            Size size = transcoder.getMediaInfo().getHd720Size();

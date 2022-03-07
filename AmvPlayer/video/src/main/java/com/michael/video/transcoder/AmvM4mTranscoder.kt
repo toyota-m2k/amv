@@ -7,8 +7,12 @@
  */
 package com.mihcael.video.transcoder
 import android.content.Context
-import com.michael.utils.FuncyListener2
-import com.michael.video.AmvError
+import com.michael.video.transcoder.AmvResult
+import com.michael.video.v2.common.AmvError
+import com.michael.video.v2.util.AmvClipping
+import com.michael.video.v2.util.AmvFile
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
 import java.io.File
 
 /**
@@ -16,10 +20,16 @@ import java.io.File
  *
  */
 
-class AmvM4mTranscoder(val source:File, context:Context)
+class AmvM4mTranscoder(val source: AmvFile, context:Context, override var progress: MutableStateFlow<Int>?)
     : IAmvTranscoder
 //    , SurfaceHolder.Callback
 {
+    override val remainingTime: Long
+        get() = TODO("Not yet implemented")
+
+    override suspend fun transcode(distFile: AmvFile, clipping: AmvClipping): AmvResult {
+        TODO("Not yet implemented")
+    }
 //    companion object {
 //        val logger = AmvSettings.logger
 //        private const val FRAME_REFRESH_PERCENT = 5     // 5%毎にフレーム表示を更新
@@ -325,26 +335,13 @@ class AmvM4mTranscoder(val source:File, context:Context)
 //    }
 
     // endregion -----------------------------------------------------------------------------
-    override val completionListener: FuncyListener2<IAmvTranscoder, Boolean, Unit>
-        get() = TODO("Not yet implemented")
-    override val progressListener: FuncyListener2<IAmvTranscoder, Float, Unit>
-        get() = TODO("Not yet implemented")
-    override val error: AmvError
-        get() = TODO("Not yet implemented")
-
-    override fun transcode(distFile: File) {
-        TODO("Not yet implemented")
-    }
-
-    override fun truncate(distFile: File, start: Long, end: Long) {
-        TODO("Not yet implemented")
-    }
 
     override fun cancel() {
         TODO("Not yet implemented")
     }
 
-    override fun dispose() {
+    override fun close() {
         TODO("Not yet implemented")
     }
+
 }

@@ -21,9 +21,9 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
 import com.michael.utils.Funcy3
 import com.michael.utils.FuncyListener3
-import com.michael.video.AmvSettings
+import com.michael.video.v2.common.AmvSettings
 import com.michael.video.R
-import com.michael.video.dp2px
+import com.michael.video.v2.util.dp2px
 import com.michael.video.v2.models.ControlPanelModel
 import com.michael.video.v2.models.TrimmingControlPanelModel
 import io.github.toyota32k.bindit.Binder

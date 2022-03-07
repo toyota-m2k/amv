@@ -4,7 +4,7 @@
  * @author M.TOYOTA 2018.07.11 Created
  * Copyright © 2018 M.TOYOTA  All Rights Reserved.
  */
-package com.michael.video
+package com.michael.video.v2.util
 
 import android.content.Context
 import android.util.Size
@@ -14,6 +14,7 @@ import android.view.ViewGroup
 import kotlin.math.roundToInt
 import android.content.ContextWrapper
 import androidx.fragment.app.FragmentActivity
+import com.michael.video.v2.common.AmvSettings
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -37,7 +38,7 @@ data class MuSize(override var width: Float, override var height: Float) : ImSiz
     constructor(s: SizeF) : this(s.width, s.height)
     constructor(s: Size) : this(s.width.toFloat(), s.height.toFloat())
 
-    fun copyFrom(s:MuSize) {
+    fun copyFrom(s: MuSize) {
         width = s.width
         height = s.height
     }

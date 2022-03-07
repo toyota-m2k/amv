@@ -1,9 +1,9 @@
-package com.michael.video.v2
+package com.michael.video.v2.misc
 
 import android.graphics.Bitmap
 import android.media.MediaMetadataRetriever
 import android.os.Build
-import com.michael.video.parseIso8601DateString
+import com.michael.video.v2.util.parseIso8601DateString
 import java.util.*
 
 /**

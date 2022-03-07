@@ -1,4 +1,4 @@
-package com.michael.video
+package com.michael.video.v2.common
 
 import android.util.SparseArray
 
