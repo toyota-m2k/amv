@@ -18,6 +18,7 @@ import android.view.View
 import android.widget.ImageButton
 import androidx.appcompat.app.AppCompatActivity
 import androidx.fragment.app.FragmentActivity
+import androidx.lifecycle.lifecycleScope
 import com.michael.video.v2.common.AmvSettings
 import com.michael.video.R
 import com.michael.video.v2.elements.AmvExoVideoPlayer
@@ -25,6 +26,7 @@ import com.michael.video.v2.models.FullControlPanelModel
 import com.michael.video.v2.viewmodel.AmvPlayerUnitViewModel
 import io.github.toyota32k.bindit.Binder
 import io.github.toyota32k.utils.lifecycleOwner
+import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 
 /**
@@ -99,7 +101,7 @@ class AmvFullscreenActivity : AppCompatActivity() {
                         playAction.setShouldShowIcon(!playing)
                         pauseAction.setShouldShowIcon(playing)
                     }
-                }
+                }.launchIn(lifecycleScope)
             }
         } else {
             viewModel.controlPanelModel.isPinP = false
