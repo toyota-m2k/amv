@@ -1,9 +1,8 @@
-package com.mihcael.video.transcoder
+package com.michael.video.v2.transcoder
 
 import com.michael.video.v2.common.AmvSettings
 import com.michael.video.v2.util.AmvClipping
 import com.michael.video.v2.util.AmvFile
-import com.michael.video.transcoder.AmvResult
 import io.github.toyota32k.media.lib.converter.ConvertResult
 import io.github.toyota32k.media.lib.converter.Converter
 import io.github.toyota32k.media.lib.converter.IAwaiter
@@ -11,7 +10,7 @@ import io.github.toyota32k.media.lib.converter.IProgress
 import kotlinx.coroutines.flow.MutableStateFlow
 
 class AmvAmpTranscoder(val srcFile: AmvFile, override var progress: MutableStateFlow<Int>?) : IAmvTranscoder {
-    val logger = AmvSettings.logger
+    val logger = AmvCascadeTranscoder.logger
     override var remainingTime:Long = -1L
         private set
     private var awaiter: IAwaiter<ConvertResult>? = null

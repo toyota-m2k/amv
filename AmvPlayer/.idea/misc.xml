@@ -23,10 +23,12 @@
         <entry key="..\:/dev/android/amv/AmvPlayer/video/src/main/res/layout/player_unit_view.xml" value="0.1828125" />
         <entry key="..\:/dev/android/amv/AmvPlayer/video/src/main/res/layout/slider_panel.xml" value="0.17604166666666668" />
         <entry key="..\:/dev/android/amv/AmvPlayer/video/src/main/res/layout/trimming_player.xml" value="0.17604166666666668" />
+        <entry key="..\:/dev/android/amv/AmvPlayer/video/src/main/res/layout/v2_dialog_select_frame.xml" value="0.1" />
+        <entry key="..\:/dev/android/amv/AmvPlayer/video/src/main/res/layout/v2_dialog_trimming.xml" value="0.1" />
         <entry key="..\:/dev/android/amv/AmvPlayer/video/src/main/res/layout/v2_frame_list_view.xml" value="0.17291666666666666" />
         <entry key="..\:/dev/android/amv/AmvPlayer/video/src/main/res/layout/v2_frame_selector_view.xml" value="0.17291666666666666" />
         <entry key="..\:/dev/android/amv/AmvPlayer/video/src/main/res/layout/v2_fullscreen_activity.xml" value="0.11901041666666666" />
-        <entry key="..\:/dev/android/amv/AmvPlayer/video/src/main/res/layout/v2_player_unit_view.xml" value="0.6125" />
+        <entry key="..\:/dev/android/amv/AmvPlayer/video/src/main/res/layout/v2_player_unit_view.xml" value="0.28401360544217685" />
         <entry key="..\:/dev/android/amv/AmvPlayer/video/src/main/res/layout/v2_slider_panel.xml" value="0.1484375" />
         <entry key="..\:/dev/android/amv/AmvPlayer/video/src/main/res/layout/v2_trimming_player_view.xml" value="0.17604166666666668" />
         <entry key="..\:/dev/android/amv/AmvPlayer/video/src/main/res/layout/v2_trimming_slider_panel.xml" value="0.17604166666666668" />

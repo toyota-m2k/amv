@@ -3,7 +3,9 @@ package com.michael.video.v2.common
 import android.content.Context
 import android.content.pm.PackageManager
 import android.os.Build
+import com.michael.video.R
 import com.michael.video.v2.cache.AmvCacheManager
+import io.github.toyota32k.dialog.UtDialogConfig
 import io.github.toyota32k.utils.UtLog
 import okhttp3.OkHttpClient
 import java.io.File
@@ -54,6 +56,7 @@ object AmvSettings {
                     file.delete()
                 }
         }
+        UtDialogConfig.dialogTheme = R.style.UtDialogAlternativeTheme
     }
 
     val httpClient: OkHttpClient

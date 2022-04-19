@@ -5,15 +5,11 @@
  * @author M.TOYOTA 2018.07.26 Created
  * Copyright © 2018 M.TOYOTA  All Rights Reserved.
  */
-package com.mihcael.video.transcoder
+package com.michael.video.v2.transcoder
 import android.content.Context
-import com.michael.video.transcoder.AmvResult
-import com.michael.video.v2.common.AmvError
 import com.michael.video.v2.util.AmvClipping
 import com.michael.video.v2.util.AmvFile
-import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
-import java.io.File
 
 /**
  * トランスコード / トリミングを行うクラス

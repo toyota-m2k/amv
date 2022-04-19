@@ -31,8 +31,8 @@ import io.github.toyota32k.utils.lifecycleOwner
 import io.github.toyota32k.utils.onTrue
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
-import java.lang.Long.min
 import kotlin.math.max
+import kotlin.math.min
 import kotlin.math.roundToInt
 import kotlin.math.roundToLong
 
@@ -314,6 +314,8 @@ class AmvSliderView @JvmOverloads constructor(
     private val mDrawingRailEnd     // レールの描画終端位置・・・endToEndRailを考慮するのでmRailRangeとは異なる
         get() = if(endToEndRail) viewWidth.toFloat() else mSliderRange.max
 
+    // スライダーのサム上をタップ判定用 x方向マージン
+    private val tapMargin = context.dp2px(4)
 
     // 操作量（表示用）
 //    private val mCurX               // シークノブの位置
@@ -784,7 +786,10 @@ class AmvSliderView @JvmOverloads constructor(
             if(!isReady) return false
 
             val tappedValue = position2value(x)
-            if(x in mThumbRect.left-5..mThumbRect.right+5 && y in mThumbRect.top..mThumbRect.bottom+5) {
+
+            logger.debug("TAP: (${x.toLong()},${y.toLong()}) thumbRect=(${mThumbRect.left.toLong()},${mThumbRect.top.toLong()})-(${mThumbRect.right.toLong()},${mThumbRect.bottom.toLong()})")
+
+            if(x in mThumbRect.left-tapMargin..mThumbRect.right+tapMargin && (!trimmingEnabled || y in mThumbRect.top-tapMargin..mThumbRect.bottom+tapMargin)) {
                 knob = Knob.THUMB
                 offset = mThumbRect.centerX() - x
             }

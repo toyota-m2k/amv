@@ -121,7 +121,7 @@ class AmvFile {
         return path?.toString() ?: uri?.toString() ?: "*invalid-path*"
     }
 
-    fun delete() {
+    private fun delete() {
         if (hasPath) {
             path!!.delete()
         } else if (hasUri) {

@@ -17,7 +17,7 @@ class AmvTempFile(val sourceFile:AmvFile?=null) : IAmvTempFile {
     var error:Throwable? = null
 
     private fun createTempFile():File {
-        return File.createTempFile("a_", ".tmp", AmvSettings.workDirectory).also { outFile ->
+        return File.createTempFile("amv_", ".tmp", AmvSettings.workDirectory).also { outFile ->
             try {
                 val src = sourceFile
                 if(src!=null) {

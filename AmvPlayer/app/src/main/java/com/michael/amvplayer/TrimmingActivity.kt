@@ -1,6 +1,7 @@
 package com.michael.amvplayer
 
 import android.os.Bundle
+import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.asLiveData
 import com.michael.video.v2.AmvTrimmingPlayerView
 import com.michael.video.v2.util.AmvFile
@@ -21,7 +22,7 @@ class TrimmingActivity : UtMortalActivity() {
     fun prepareViewModel():AmvTrimmingPlayerViewModel {
         logger.debug()
         if(staticViewModel==null) {
-            staticViewModel = AmvTrimmingPlayerViewModel.instanceFor(viewModelStoreOwner, applicationContext)
+            staticViewModel = ViewModelProvider(viewModelStoreOwner, ViewModelProvider.AndroidViewModelFactory(application))[AmvTrimmingPlayerViewModel::class.java]
         }
         return staticViewModel!!
     }

@@ -1,9 +1,8 @@
-package com.mihcael.video.transcoder
+package com.michael.video.v2.transcoder
 
 import com.michael.video.v2.util.AmvClipping
 import com.michael.video.v2.util.AmvFile
-import com.michael.video.transcoder.AmvResult
-import kotlinx.coroutines.flow.Flow
+import com.michael.video.v2.transcoder.AmvResult
 import kotlinx.coroutines.flow.MutableStateFlow
 
 interface IAmvTranscoder {

@@ -181,6 +181,7 @@ class PlayerModel(
      * 解放
      */
     override fun close() {
+        reset()
         player.removeListener(listener)
         player.release()
         scope.cancel()
@@ -191,6 +192,7 @@ class PlayerModel(
      * 再初期化
      */
     fun reset() {
+        source.mutable.value?.release()
         source.mutable.value = null
         sourceClipping = null
         pseudoClipping = null
@@ -212,6 +214,7 @@ class PlayerModel(
             return
         }
 
+        source.addRef()
         this.source.mutable.value = source
         this.sourceClipping = sourceClipping
 

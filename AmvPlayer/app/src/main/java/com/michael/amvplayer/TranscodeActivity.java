@@ -6,7 +6,7 @@ import android.view.View;
 
 import androidx.appcompat.app.AppCompatActivity;
 
-import com.mihcael.video.transcoder.IAmvTranscoder;
+import com.michael.video.v2.transcoder.IAmvTranscoder;
 
 import java.io.File;
 import java.io.Serializable;

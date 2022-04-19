@@ -17,6 +17,16 @@
         android:layout_marginTop="5dp"
         />
 
+    <ImageView
+        android:id="@+id/thumbnail"
+        android:layout_width="200dp"
+        android:layout_height="200dp"
+        app:layout_constraintStart_toEndOf="@id/playerUnitView"
+        app:layout_constraintTop_toTopOf="@+id/playerUnitView"
+        android:scaleType="centerInside"
+        />
+
+
 
     <LinearLayout
         android:id="@+id/underButtonGroup"
@@ -53,6 +63,25 @@
             android:paddingLeft="8dp"
             android:paddingRight="8dp"
             android:text="@string/expandMark"
+            tools:ignore="ButtonStyle" />
+
+
+        <Button android:id="@+id/selectFrameButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginEnd="8dp"
+            android:paddingLeft="8dp"
+            android:paddingRight="8dp"
+            android:text="@string/select_frame"
+            tools:ignore="ButtonStyle" />
+
+        <Button android:id="@+id/trimmingButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginEnd="8dp"
+            android:paddingLeft="8dp"
+            android:paddingRight="8dp"
+            android:text="@string/trimming"
             tools:ignore="ButtonStyle" />
     </LinearLayout>
 

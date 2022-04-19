@@ -19,4 +19,6 @@
     <string name="dummy_content">DUMMY\nCONTENT</string>
     <string name="snapshot">Snapshot</string>
     <string name="mute">Mute</string>
+    <string name="title_dialog_amv_select_frame">Select Frame</string>
+    <string name="title_dialog_amv_trimming">Trimming</string>
 </resources>

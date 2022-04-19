@@ -6,7 +6,6 @@
     android:layout_height="match_parent"
     android:layout_width="match_parent"
     android:id="@+id/exp_player_root"
-    android:background="#ff0000"
     >
 
     <com.google.android.exoplayer2.ui.PlayerView
@@ -16,7 +15,6 @@
         android:layout_height="150dp"
         android:id="@+id/exp_playerView"
         android:layout_gravity="center_horizontal|center_vertical"
-        android:background="#ff0000"
         app:use_controller="false"
         />
     <ProgressBar

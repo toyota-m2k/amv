@@ -17,6 +17,7 @@ import androidx.fragment.app.FragmentActivity
 import com.michael.video.v2.common.AmvSettings
 import java.text.SimpleDateFormat
 import java.util.*
+import kotlin.math.min
 
 
 interface ImSize {

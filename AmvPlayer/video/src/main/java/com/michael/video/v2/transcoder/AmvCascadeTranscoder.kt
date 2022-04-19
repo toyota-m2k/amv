@@ -1,4 +1,4 @@
-package com.michael.video.transcoder
+package com.michael.video.v2.transcoder
 
 import android.content.Context
 import android.os.Build
@@ -7,10 +7,7 @@ import com.michael.video.v2.util.AmvClipping
 import com.michael.video.v2.util.AmvFile
 import com.michael.video.v2.util.AmvTempFile
 import com.michael.video.v2.util.withTempFile
-import com.mihcael.video.transcoder.AmvAmpTranscoder
-import com.mihcael.video.transcoder.AmvExoTranscoder
-import com.mihcael.video.transcoder.AmvM4mTranscoder
-import com.mihcael.video.transcoder.IAmvTranscoder
+import io.github.toyota32k.utils.UtLog
 import kotlinx.coroutines.flow.MutableStateFlow
 
 /**
@@ -24,7 +21,13 @@ class AmvCascadeTranscoder
         processMode: Mode = Mode.AUTO,
         useAmp:Boolean=true)
     : IAmvTranscoder {
-    val logger = AmvSettings.logger
+    companion object {
+        val logger = UtLog("Transcoder", AmvSettings.logger)
+    }
+
+    /**
+     * 動作モード
+     */
 
     /**
      * 動作モード
@@ -37,12 +40,16 @@ class AmvCascadeTranscoder
     }
 
     override val remainingTime:Long
-        get() = transcoder?.remainingTime ?: -1L
+        get() = activeTranscoder?.remainingTime ?: -1L
+
+            /**
+     * 内部transcoder
+     */
 
     /**
      * 内部transcoder
      */
-    private var transcoder: IAmvTranscoder? = null
+    private var activeTranscoder: IAmvTranscoder? = null
     private val useAmp:Boolean
     private val processMode: Mode
 
@@ -56,12 +63,25 @@ class AmvCascadeTranscoder
         }
     }
 
+    private suspend fun activate(transcoder: IAmvTranscoder, dst: AmvFile, clipping: AmvClipping):AmvResult {
+        this.activeTranscoder = transcoder
+        return try {
+            logger.debug("begin transcoding: ${transcoder::class.java.simpleName}")
+            transcoder.transcode(dst, clipping)
+        } finally {
+            transcoder.close()
+            this.activeTranscoder = null
+        }
+    }
+
     private suspend fun processCascade(src:AmvFile, dst: AmvFile, clipping: AmvClipping):AmvResult {
+        logger.debug()
         val transcoder = AmvExoTranscoder(src, context, progress)
         return AmvTempFile().withTempFile { tmp->
             val intermediate = AmvFile(tmp)
-            val result = transcoder.transcode(intermediate, clipping)
+            val result = activate(transcoder, intermediate, clipping)
             if(!result.succeeded) {
+                logger.debug("transcode failed: 1st stage of cascade mode.")
                 result
             } else {
                 processSingle(intermediate, dst, AmvClipping.empty)
@@ -70,8 +90,10 @@ class AmvCascadeTranscoder
     }
 
     private suspend fun processAuto(src:AmvFile, dst:AmvFile, clipping: AmvClipping):AmvResult {
+        logger.debug()
         val result = processSingle(src, dst, clipping)
-        return if(result.succeeded) {
+        return if(result.succeeded||result.cancelled) {
+            logger.debug("transcode completed: 1st stage of auto mode.")
             result
         } else {
             processCascade(src, dst, clipping)
@@ -79,12 +101,18 @@ class AmvCascadeTranscoder
     }
 
     private suspend fun processSingle(src:AmvFile, dst:AmvFile, clipping: AmvClipping) : AmvResult {
-        return (if(useAmp) AmvAmpTranscoder(src, progress) else AmvM4mTranscoder(src, context, progress)).transcode(dst, clipping)
+        logger.debug()
+        return activate(if(useAmp) AmvAmpTranscoder(src, progress) else AmvM4mTranscoder(src, context, progress), dst, clipping)
     }
 
     private suspend fun processRepair(src:AmvFile, dst:AmvFile, clipping:AmvClipping) : AmvResult {
-        return AmvExoTranscoder(src, context, progress).transcode(dst, clipping)
+        logger.debug()
+        return activate(AmvExoTranscoder(src, context, progress), dst, clipping)
     }
+
+            /**
+     * トランスコードを実行
+     */
 
     /**
      * トランスコードを実行
@@ -103,26 +131,36 @@ class AmvCascadeTranscoder
             AmvResult.failed(e)
         }
         if(!result.succeeded) {
+            result.error?.also { error-> logger.error(error.message)}
             distFile.safeDelete()
         }
+        logger.debug("transcode completed (status=${result.succeeded}).")
         close()
         return result
     }
+
+            /**
+     * キャンセル
+     */
 
     /**
      * キャンセル
      */
     override fun cancel() {
         logger.debug()
-        transcoder?.cancel()
+        activeTranscoder?.cancel()
     }
+
+            /**
+     * リソース開放
+     */
 
     /**
      * リソース開放
      */
     override fun close() {
         logger.debug()
-        transcoder?.close()
-        transcoder = null
+        activeTranscoder?.close()
+        activeTranscoder = null
     }
 }
