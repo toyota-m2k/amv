@@ -8,7 +8,7 @@
     android:id="@+id/exp_player_root"
     >
 
-    <com.google.android.exoplayer2.ui.PlayerView
+    <com.google.android.exoplayer2.ui.StyledPlayerView
         tools:layout_width="150dp"
         tools:layout_height="150dp"
         android:layout_width="150dp"

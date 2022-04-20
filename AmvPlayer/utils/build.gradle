@@ -34,7 +34,7 @@ dependencies {
     implementation "org.jetbrains.kotlinx:kotlinx-coroutines-core:$coroutine_version"
     implementation "org.jetbrains.kotlinx:kotlinx-coroutines-android:$coroutine_android_version"
 
-    testImplementation 'junit:junit:4.12'
+    testImplementation 'junit:junit:4.13.2'
     androidTestImplementation "androidx.test:runner:$androidx_test_runner_version"
     androidTestImplementation "androidx.test.espresso:espresso-core:$androidx_test_espresso_version"
 
@@ -46,7 +46,7 @@ dependencies {
 //    implementation 'org.parceler:parceler-api:1.1.12'
 //    kapt "org.parceler:parceler:1.1.12"
 
-    implementation "com.github.toyota-m2k:bind-it:1.1.5"
+    implementation "com.github.toyota-m2k:bind-it:1.2.5"
 }
 repositories {
     mavenCentral()
